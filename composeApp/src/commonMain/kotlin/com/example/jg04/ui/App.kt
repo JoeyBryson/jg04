@@ -26,13 +26,16 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import uniffi.rust_api.DbEntrypoint
-
+import com.example.jg04.data.*
 
 @Composable
 fun App(dB: DbEntrypoint) {
     _root_ide_package_.com.example.jg04.ui.theme.ComposeTutorialTheme {
+        var sampleData by remember {
+            mutableStateOf(BuildUIChatsWithMessages(dB))
+        }
         Surface(modifier = Modifier.fillMaxSize()) {
-            Conversation(SampleData.conversationSample)
+            Conversation(sampleData.first())
         }
     }
 }
@@ -44,33 +47,39 @@ fun App(dB: DbEntrypoint) {
 //data class Message(val author: String, val body: String)
 
 @Composable
-fun Conversation(messages: List<Message>) {
+fun Conversation(chat: UIChatWithMessages) {
     LazyColumn {
-        items(messages) { message ->
+        items(chat.messages) {message ->
             MessageRow(message)
         }
     }
 }
-public final data class Message(
-    public final var topicId: ByteArray,
-    public final var fromMe: Boolean,
-    public final var endpointId: ByteArray?,
-    public final var content: String,
-    public final var sentAt: Long
-)
-public final data class Chat(
-    public final var name: String?,
-    public final var members: List<Contact>,
-    public final var topicId: ByteArray
-)
 
-public final data class Contact(
-    public final var name: String,
-    public final var endpointId: ByteArray
-)
+//public data class UIContact(
+//    val name: String,
+//    val endpointId: ByteArray
+//)
+//
+//public data class UIChat(
+//    val name: String?,
+//    val members: List<UIContact>,
+//    val topicId: ByteArray
+//)
+//
+//public data class UIMessage(
+//    val fromMe: Boolean,
+//    val contact: UIContact?,
+//    val content: String,
+//    val sentAt: Long
+//)
+//
+//public data class UIChatWithMessages(
+//    val chat: UIChat,
+//    val messages: List<UIMessage>
+//)
 
 @Composable
-fun MessageRow(msg: Message) {
+fun MessageRow(msg: UIMessage) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (msg.fromMe) Arrangement.End else Arrangement.Start
@@ -80,7 +89,7 @@ fun MessageRow(msg: Message) {
 }
 
 @Composable
-fun MessageCard(msg: Message) {
+fun MessageCard(msg: UIMessage) {
     var isSelected by remember { mutableStateOf(false) }
     // surfaceColor will be updated gradually from one color to the other
     val surfaceColor by animateColorAsState(
@@ -99,102 +108,25 @@ fun MessageCard(msg: Message) {
     ) {
 
         Column {
-            Row(modifier = Modifier.padding(all = 8.dp)) {
-                Text(
-                    text = msg.author,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    style = MaterialTheme.typography.titleSmall
-                )
-
+            msg.contact?.let { contact ->
+                Row(modifier = Modifier.padding(all = 8.dp)) {
+                    Text(
+                        text = contact.name,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = msg.body,
+                text = msg.content,
                 modifier = Modifier.padding(all = 4.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-
-
-
     }
 }
 
-
-
-/**
- * SampleData for Jetpack Compose Tutorial
- */
-object SampleData {
-    // Sample conversation data
-    val conversationSample = listOf(
-        Message(
-            "Lexi",
-            "Test...Test...Test..."
-        ),
-        Message(
-            "Lexi",
-            """List of Android versions:
-            |Android KitKat (API 19)
-            |Android Lollipop (API 21)
-            |Android Marshmallow (API 23)
-            |Android Nougat (API 24)
-            |Android Oreo (API 26)
-            |Android Pie (API 28)
-            |Android 10 (API 29)
-            |Android 11 (API 30)
-            |Android 12 (API 31)""".trim()
-        ),
-        Message(
-            "Lexi",
-            """I think Kotlin is my favorite programming language.
-            |It's so much fun!""".trim()
-        ),
-        Message(
-            "Lexi",
-            "Searching for alternatives to XML layouts..."
-        ),
-        Message(
-            "Lexi",
-            """Hey, take a look at Jetpack Compose, it's great!
-            |It's the Android's modern toolkit for building native UI.
-            |It simplifies and accelerates UI development on Android.
-            |Less code, powerful tools, and intuitive Kotlin APIs :)""".trim()
-        ),
-        Message(
-            "Lexi",
-            "It's available from API 21+ :)"
-        ),
-        Message(
-            "Lexi",
-            "Writing Kotlin for UI seems so natural, Compose where have you been all my life?"
-        ),
-        Message(
-            "Lexi",
-            "Android Studio next version's name is Arctic Fox"
-        ),
-        Message(
-            "Lexi",
-            "Android Studio Arctic Fox tooling for Compose is top notch ^_^"
-        ),
-        Message(
-            "Lexi",
-            "I didn't know you can now run the emulator directly from Android Studio"
-        ),
-        Message(
-            "Lexi",
-            "Compose Previews are great to check quickly how a composable layout looks like"
-        ),
-        Message(
-            "Lexi",
-            "Previews are also interactive after enabling the experimental setting"
-        ),
-        Message(
-            "Lexi",
-            "Have you tried writing build.gradle with KTS?"
-        ),
-    )
-}
 

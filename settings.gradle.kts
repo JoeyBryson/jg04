@@ -11,6 +11,7 @@ pluginManagement {
             }
         }
         mavenCentral()
+        mavenLocal()
         gradlePluginPortal()
     }
 }
@@ -25,6 +26,7 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        mavenLocal()
     }
 }
 
@@ -33,3 +35,4 @@ plugins {
 }
 
 include(":composeApp")
+include(":core-lib")

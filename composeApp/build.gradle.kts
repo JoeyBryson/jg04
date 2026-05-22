@@ -7,6 +7,9 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+//    id("dev.gobley.cargo") version "0.3.7"
+//    id("dev.gobley.uniffi") version "0.3.7"
+    kotlin("plugin.atomicfu") version libs.versions.kotlin
 }
 
 kotlin {
@@ -16,6 +19,8 @@ kotlin {
         }
     }
 
+    // Temporarily disabled iOS targets
+    /*
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -25,6 +30,7 @@ kotlin {
             isStatic = true
         }
     }
+    */
 
     jvm()
 
@@ -42,6 +48,8 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
+            implementation("com.jg04:core-lib:1.0.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -49,9 +57,17 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            runtimeOnly("com.jg04:core-lib-jvm:1.0.0:linux-x86-64")
         }
     }
 }
+
+// gobley {
+//     cargo {
+//         command.set("cargo-ndk")
+//         args.addAll("--platform", "23") // Minimum Android API level
+//     }
+// }
 
 android {
     namespace = "com.example.jg04"
@@ -93,5 +109,6 @@ compose.desktop {
             packageName = "com.example.jg04"
             packageVersion = "1.0.0"
         }
+
     }
 }

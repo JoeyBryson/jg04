@@ -1,0 +1,18 @@
+# This part is already added by cargo init.
+[package]
+name = "rust_api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+uniffi = "0.29.4"
+anyhow = "1.0.102"
+rusqlite = { version = "0.39.0", features = ["bundled"] }
+tokio = { version = "1.52.0", features = ["full"] }
+log = { version = "0.4", features = ["std"] }
+
+# This as well.
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+# Put this only if you moved lib.rs.
+path = "rust/lib.rs"
