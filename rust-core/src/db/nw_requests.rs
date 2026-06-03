@@ -1,115 +1,11 @@
-use rusqlite::Connection;
-use std::fs;
-use std::path;
-use tokio::sync::mpsc;
-use tokio::sync::oneshot;
-use crate::nw;
+use crate::nw::{self, NwDbRequest};
+
 use anyhow::{Result, anyhow};
 use std::collections::HashMap;
+use super::DbWorker;
 
-const SCHEMA: &str = include_str!("../sql/schema.sql");
-pub enum Command {
-    AddMessage {
-        message: nw::Message,
-        reply: oneshot::Sender<Result<()>>,
-    },
-    AddContact {
-        contact: nw::Contact,
-        reply: oneshot::Sender<Result<()>>,
-    },
-    AddChat {
-        chat: nw::Chat,
-        reply: oneshot::Sender<Result<()>>,
-    },
-    GetChats {
-        reply: oneshot::Sender<Result<Vec<nw::Chat>>>,
-    },
-    GetChatMembers {
-        topic_id: Vec<u8>,
-        reply: oneshot::Sender<Result<Vec<nw::Contact>>>,
-    },
-    GetChat {
-        topic_id: Vec<u8>,
-        reply: oneshot::Sender<Result<nw::Chat>>,
-    },
-    GetChatMessages {
-        topic_id: Vec<u8>,
-        reply: oneshot::Sender<Result<Vec<nw::Message>>>,
-    },
-    GetMessages {
-        reply: oneshot::Sender<Result<Vec<nw::Message>>>,
-    },
-}
-
-struct ConnectionHandle {
-    conn: Connection
-}
-
-
-pub fn worker<P: AsRef<path::Path>>(
-    mut db_rx: mpsc::Receiver<Command>,
-    path: P
-) -> Result<()>{
-
-    if let Some(parent) = path.as_ref().parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-
-    log::info!("db worker started db path:{:?}", path.as_ref());
-    let mut handle = ConnectionHandle{conn: Connection::open(path)?};
-    log::info!("connection openned");
-    handle.conn.execute_batch(SCHEMA)?;
-    log::info!("schema executed");
-
-    while let Some(command) = db_rx.blocking_recv() {
-        match command {
-            Command::AddMessage { message, reply } => {
-                let result = handle.add_message(message);
-                let _ = reply.send(result);
-            }
-
-            Command::AddContact { contact, reply } => {
-                let result = handle.add_contact(contact);
-                let _ = reply.send(result);
-            }
-
-            Command::AddChat { chat, reply } => {
-                let result = handle.add_chat(chat);
-                let _ = reply.send(result);
-            }
-
-            Command::GetChats { reply } => {
-                let result = handle.get_chats();
-                let _ = reply.send(result);
-            }
-
-            Command::GetChatMembers { topic_id, reply } => {
-                let result = handle.get_chat_members(&topic_id);
-                let _ = reply.send(result);
-            }
-
-            Command::GetChat { topic_id, reply } => {
-                let result = handle.get_chat(&topic_id);
-                let _ = reply.send(result);
-            }
-
-            Command::GetChatMessages { topic_id, reply } => {
-                let result = handle.get_chat_messages(&topic_id);
-                let _ = reply.send(result);
-            }
-
-            Command::GetMessages { reply } => {
-                let result = handle.get_messages();
-                let _ = reply.send(result);
-            }
-        }
-    }
-    log::error!("DB Worker Function Exited?");
-    Ok(())
-}
-
-impl ConnectionHandle {
-    fn add_message(&self, message: nw::Message) -> Result<()>{
+impl DbWorker<NwDbRequest> {
+    pub fn add_message(&self, message: nw::NwMessage) -> Result<()>{
 
         self.conn.execute(
             "INSERT INTO messages (topic_id, is_me, endpoint_id, content, sent_at)
@@ -127,7 +23,7 @@ impl ConnectionHandle {
     }
 
 
-    fn add_contact(&self, contact: nw::Contact) -> Result<()>{
+    pub fn add_contact(&self, contact: nw::NwContact) -> Result<()>{
         self.conn.execute(
             "INSERT INTO contacts (endpoint_id, contact_name)
             VALUES (?1, ?2)",
@@ -141,7 +37,7 @@ impl ConnectionHandle {
     } 
 
 
-    fn add_chat(&mut self, chat: nw::Chat) -> Result<()> {
+    pub fn add_chat(&mut self, chat: nw::NwChat) -> Result<()> {
 
         let transaction = self.conn.transaction()?;
 
@@ -171,7 +67,7 @@ impl ConnectionHandle {
     }
 
 
-    fn get_chats(&self) -> Result<Vec<nw::Chat>> {
+    pub fn get_chats(&self) -> Result<Vec<nw::NwChat>> {
 
         let mut stmt = self.conn.prepare(
             "
@@ -197,19 +93,19 @@ impl ConnectionHandle {
             ))
         })?;
 
-        let mut chats: HashMap<Vec<u8>, nw::Chat> = HashMap::new();
+        let mut chats: HashMap<Vec<u8>, nw::NwChat> = HashMap::new();
 
         for row in rows {
             let (topic_id, chat_name, contact_name, endpoint_id) = row?;
 
-            let chat = chats.entry(topic_id.clone()).or_insert_with(|| nw::Chat {
+            let chat = chats.entry(topic_id.clone()).or_insert_with(|| nw::NwChat {
                 topic_id,
                 name: chat_name,
                 members: Vec::new(),
             });
 
             if let (Some(name), Some(endpoint_id)) = (contact_name, endpoint_id) {
-                chat.members.push(nw::Contact { 
+                chat.members.push(nw::NwContact { 
                     name, 
                     endpoint_id 
                 });
@@ -228,7 +124,7 @@ impl ConnectionHandle {
         Ok(chats.into_values().collect())
     }
 
-    fn get_chat_members(&self, topic_id: &[u8]) -> Result<Vec<nw::Contact>> {
+    pub fn get_chat_members(&self, topic_id: &[u8]) -> Result<Vec<nw::NwContact>> {
 
         let mut stmt = self.conn.prepare(
             "
@@ -245,7 +141,7 @@ impl ConnectionHandle {
         let mut members = Vec::new();
 
         while let Some(row) = rows.next()? {
-            members.push(nw::Contact {
+            members.push(nw::NwContact {
                 name: row.get(0)?,
                 endpoint_id: row.get(1)?,
             });
@@ -258,7 +154,7 @@ impl ConnectionHandle {
         Ok(members)
     }
 
-    fn get_chat(&self, topic_id: &[u8]) -> Result<nw::Chat> {
+    pub fn get_chat(&self, topic_id: &[u8]) -> Result<nw::NwChat> {
 
         let mut stmt = self.conn.prepare(
             "
@@ -278,14 +174,14 @@ impl ConnectionHandle {
 
         let mut rows = stmt.query([topic_id])?;
 
-        let mut chat: Option<nw::Chat> = None;
+        let mut chat: Option<nw::NwChat> = None;
 
         while let Some(row) = rows.next()? {
 
             let row_topic_id: Vec<u8> = row.get(0)?;
             let row_chat_name: Option<String> = row.get(1)?;
 
-            let chat_ref = chat.get_or_insert_with(|| nw::Chat {
+            let chat_ref = chat.get_or_insert_with(|| nw::NwChat {
                 topic_id: row_topic_id,
                 name: row_chat_name,
                 members: Vec::new(),
@@ -295,7 +191,7 @@ impl ConnectionHandle {
             let endpoint_id: Option<Vec<u8>> = row.get(3)?;
 
             if let (Some(name), Some(endpoint_id)) = (contact_name, endpoint_id) {
-                chat_ref.members.push(nw::Contact {
+                chat_ref.members.push(nw::NwContact {
                     name,
                     endpoint_id,
                 });
@@ -311,7 +207,7 @@ impl ConnectionHandle {
         Ok(chat)
     }
 
-    fn get_chat_messages(&self, topic_id: &[u8]) -> Result<Vec<nw::Message>> {
+    pub fn get_chat_messages(&self, topic_id: &[u8]) -> Result<Vec<nw::NwMessage>> {
 
         let mut stmt = self.conn.prepare(
             "
@@ -326,7 +222,7 @@ impl ConnectionHandle {
         let mut messages = Vec::new();
 
         while let Some(row) = rows.next()? {
-            messages.push(nw::Message {
+            messages.push(nw::NwMessage {
                 topic_id: row.get(0)?,
                 from_me: row.get::<_, i32>(1)? != 0,
                 endpoint_id: row.get(2)?,
@@ -338,7 +234,7 @@ impl ConnectionHandle {
         Ok(messages)
     }
 
-    fn get_messages(&self) -> Result<Vec<nw::Message>> {
+    pub fn get_messages(&self) -> Result<Vec<nw::NwMessage>> {
 
         let mut stmt = self.conn.prepare(
             "
@@ -352,7 +248,7 @@ impl ConnectionHandle {
         let mut messages = Vec::new();
 
         while let Some(row) = rows.next()? {
-            messages.push(nw::Message {
+            messages.push(nw::NwMessage {
                 topic_id: row.get(0)?,
                 from_me: row.get::<_, i32>(1)? != 0,
                 endpoint_id: row.get(2)?,

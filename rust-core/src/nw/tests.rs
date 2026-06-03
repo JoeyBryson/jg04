@@ -10,8 +10,8 @@ fn remove_test_db(db_path: &str) {
     let _ = fs::remove_file(db_path);
 }
 
-fn spawn_db_worker(db_path: &'static str) -> (mpsc::Sender<db::Command>, thread::JoinHandle<()>, Arc<Mutex<Option<String>>>) {
-    let (db_tx, db_rx) = mpsc::channel::<db::Command>(32);
+fn spawn_db_worker(db_path: &'static str) -> (mpsc::Sender<db::NWRequest>, thread::JoinHandle<()>, Arc<Mutex<Option<String>>>) {
+    let (db_tx, db_rx) = mpsc::channel::<db::NWRequest>(32);
     let db_panic_msg = Arc::new(Mutex::new(None));
     let db_panic_msg_clone = db_panic_msg.clone();
     let handle = thread::spawn(move || {

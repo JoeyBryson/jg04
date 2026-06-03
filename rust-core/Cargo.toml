@@ -14,5 +14,3 @@ log = { version = "0.4", features = ["std"] }
 # This as well.
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
-# Put this only if you moved lib.rs.
-path = "rust/lib.rs"

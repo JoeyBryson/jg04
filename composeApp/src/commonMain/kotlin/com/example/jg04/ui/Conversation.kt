@@ -22,12 +22,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.jg04.data.UIChatWithMessages
-import com.example.jg04.data.UIMessage
+import uniffi.rust_api.UiChatWithMessages // Replaced old class with your exact UniFFI models
+import uniffi.rust_api.UiMessage
+import uniffi.rust_api.UiSender
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-
 
 fun formatTime(epochMillis: Long): String {
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -38,28 +38,34 @@ fun formatTime(epochMillis: Long): String {
 }
 
 @Composable
-fun Conversation(chat: UIChatWithMessages) {
+fun ChatScreen(chat: UiChatWithMessages) {
     LazyColumn {
-        items(chat.messages) {message ->
+        items(chat.messages) { message ->
             MessageRow(message)
         }
     }
 }
 
 @Composable
-fun MessageRow(msg: UIMessage) {
+fun MessageRow(msg: UiMessage) {
+    // Check if the sender pattern matches 'Me' to decide layout arrangement
+    val arrangement = when (msg.sender) {
+        is UiSender.Me -> Arrangement.End
+        is UiSender.Other -> Arrangement.Start
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (msg.fromMe) Arrangement.End else Arrangement.Start
+        horizontalArrangement = arrangement
     ) {
         MessageCard(msg)
     }
 }
 
 @Composable
-fun MessageCard(msg: UIMessage) {
+fun MessageCard(msg: UiMessage) {
     var isSelected by remember { mutableStateOf(false) }
-    // surfaceColor will be updated gradually from one color to the other
+
     val surfaceColor by animateColorAsState(
         if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
     )
@@ -67,30 +73,28 @@ fun MessageCard(msg: UIMessage) {
     Surface(
         shape = MaterialTheme.shapes.medium,
         shadowElevation = 1.dp,
-        // surfaceColor color will be changing gradually from primary to surface
         color = surfaceColor,
-        // animateContentSize will change the Surface size gradually
-        modifier = Modifier.animateContentSize()
+        modifier = Modifier
+            .animateContentSize()
             .padding(1.dp)
-            .clickable(true, onClick = {isSelected = !isSelected})
+            .clickable(enabled = true, onClick = { isSelected = !isSelected })
     ) {
+        Column(modifier = Modifier.padding(all = 8.dp)) {
 
-        Column {
-            msg.contact?.let { contact ->
-                Row(modifier = Modifier.padding(all = 8.dp)) {
+            when (val sender = msg.sender) {
+                is UiSender.Other -> {
                     Text(
-                        text = contact.name,
+                        text = sender.v1.name,
                         color = MaterialTheme.colorScheme.tertiary,
                         style = MaterialTheme.typography.titleSmall
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
+                is UiSender.Me -> {}
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = msg.content,
-                modifier = Modifier.padding(all = 4.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -98,12 +102,8 @@ fun MessageCard(msg: UIMessage) {
 
             Text(
                 text = formatTime(msg.sentAt),
-                modifier = Modifier.padding(all = 4.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
-
         }
     }
 }
-
-

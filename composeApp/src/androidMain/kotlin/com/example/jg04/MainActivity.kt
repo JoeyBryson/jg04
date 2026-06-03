@@ -7,10 +7,12 @@ import androidx.activity.enableEdgeToEdge
 import android.content.Context
 import com.example.jg04.ui.App
 import uniffi.rust_api.initNativeLogger
-import uniffi.rust_api.setupTestDb
+import uniffi.rust_api.UiDbClient
+import uniffi.rust_api.UiDbManager
 import android.util.Log
 import com.example.jg04.KotlinLogger
-
+import uniffi.rust_api.UiChat
+import uniffi.rust_api.deleteDb
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,7 +28,10 @@ class MainActivity : ComponentActivity() {
 
         KotlinLogger.error("TESTING_LOGGING", "it works!")
 
-        val dB = setupTestDb(dbPath)
+        deleteDb(dbPath)
+        var manager = UiDbManager.spawn(dbPath)
+
+        var dB = manager.getClient()
 
         setContent {
             App(dB)

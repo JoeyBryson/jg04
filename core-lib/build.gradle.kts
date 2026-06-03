@@ -17,15 +17,6 @@ kotlin {
     }
     
     jvm() // Let Gobley handle the internal resources naturally
-
-    sourceSets {
-        val commonMain by getting {
-            dependencies {
-                // Keep your normal dependencies here...
-            }
-        }
-        // Cleaned up the manual jvmMain block that was conflicting
-    }
 }
 
 cargo {
@@ -35,16 +26,7 @@ cargo {
         android {}
 
         jvm {
-            // Gobley handles embedding automatically!
             embedRustLibrary = rustTarget == RustPosixTarget.LinuxX64 
-        }
-
-        linux {
-            embedRustLibrary = rustTarget == RustPosixTarget.LinuxX64 
-        }
-
-        mingw {
-            embedRustLibrary = false
         }
     }
 }
@@ -73,16 +55,3 @@ publishing {
     }
 }
 
-// THIS IS THE KEY RULE FOR GOBLEY + JNA
-// Gobley embeds the file, and this rule maps it to the folder JNA expects
-tasks.withType<ProcessResources>().configureEach {
-    // 1. Ensure the Cargo build task runs first
-    val cargoTask = tasks.matching { it.name == "cargoBuildLinuxX64Release" }
-    dependsOn(cargoTask)
-
-    // 2. Explicitly pull the file from your cargo output and place it correctly
-    from("path/to/your/rust/target/x86_64-unknown-linux-gnu/release") {
-        include("librust_api.so")
-        into("linux-x86-64") // This cleanly places it into resources/linux-x86-64/
-    }
-}
