@@ -1,53 +1,97 @@
-package com.example.jg04.data
-
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import com.example.jg04.KotlinLogger
+import kotlinx.coroutines.channels.Channel
 import uniffi.rust_api.UiEvent
 import uniffi.rust_api.UiEventListener
 
-class UiQuery<T>(
-    private val query: () -> T,
-    events: Flow<UiEvent>,
-    scope: CoroutineScope
-) {
-    var state by mutableStateOf(query())
-        private set
+class UiEventListenerImpl : UiEventListener {
 
-    init {
-        scope.launch(Dispatchers.Main) {
-            events.collect {
-                state = query()
+    val events = Channel<UiEvent>(capacity = 128)
+
+    override fun onEvent(event: UiEvent) {
+        val result = events.trySend(event)
+
+        if (result.isFailure) {
+            KotlinLogger.error(
+                "Notification system",
+                "UI event dropped (buffer full): $event"
+            )
+        }
+    }
+}
+
+class UiEventProcessor(
+    private val listener: UiEventListenerImpl
+) {
+
+    fun start(scope: CoroutineScope) {
+
+        scope.launch {
+
+            while (true) {
+
+                val first = listener.events.receive()
+
+                val batch = mutableListOf(first)
+
+                while (true) {
+                    val next = listener.events.tryReceive().getOrNull()
+                        ?: break
+                    batch.add(next)
+                }
+
+                handleBatch(batch)
             }
         }
     }
 
-    fun refresh() {
-        state = query()
+    private fun handleBatch(batch: List<UiEvent>) {
+
+        var chatsDirty = false
+        var contactsDirty = false
+
+        val messageTopics = mutableSetOf<String>()
+
+        for (event in batch) {
+            when (event) {
+
+                is UiEvent.ChatListChanged -> {
+                    chatsDirty = true
+                }
+
+                is UiEvent.ContactsChanged -> {
+                    contactsDirty = true
+                }
+
+                is UiEvent.ChatMessagesChanged -> {
+                    messageTopics.add(event.topicId)
+                }
+            }
+        }
+
+        if (chatsDirty) {
+            reloadChats()
+        }
+
+        if (contactsDirty) {
+            reloadContacts()
+        }
+
+        if (messageTopics.isNotEmpty()) {
+            reloadMessages(messageTopics)
+        }
     }
-}
 
-class UiEventBus {
-
-    private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 64)
-    val events = _events.asSharedFlow()
-
-    fun emit(event: UiEvent) {
-        _events.tryEmit(event)
+    private fun reloadChats() {
+        KotlinLogger.info("UI", "reloadChats")
     }
-}
 
-class UiEventListenerImpl(
-    private val bus: UiEventBus
-) : UiEventListener {
+    private fun reloadContacts() {
+        KotlinLogger.info("UI", "reloadContacts")
+    }
 
-    override fun onEvent(event: UiEvent) {
-        bus.emit(event)
+    private fun reloadMessages(topics: Set<String>) {
+        KotlinLogger.info("UI", "reloadMessages: $topics")
     }
 }

@@ -1,7 +1,7 @@
 use tokio::{sync::{mpsc}};
 use anyhow::Result;
 use tokio::sync::oneshot;
-use std::{sync::{Arc, Mutex}, thread::JoinHandle};
+use std::sync::Arc;
 
 use crate::db::{DbManager};
 use crate::notifications::UiEventListener;
@@ -30,14 +30,6 @@ pub struct NwChat {
     pub members: Vec<NwContact>,
     pub topic_id: Vec<u8>,
 }
-
-pub async fn network_engine(
-    db_tx: mpsc::Sender<NwDbRequest>,
-    ) -> Result<()>
-    {
-        todo!()
-    }
-
 
 pub enum NwDbRequest {
     AddMessage {

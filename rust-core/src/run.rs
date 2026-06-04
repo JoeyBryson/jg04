@@ -1,45 +1,12 @@
-use std::thread;
-use rusqlite::Error::ToSqlConversionFailure;
-use tokio::{runtime::Runtime, sync::{mpsc}};
+
+use tokio::{runtime::Runtime};
 use std::result::Result;
 // use crate::nw::network_engine;
 use crate::nw::NwDbManager;
 use crate::ui::UiDbError;
 use std::path::PathBuf;
-use crate::notifications::{UiEventListener, UiEvent};
-
-
-
-
-
-// fn main() -> Result<()>{
-//     let (db_tx, db_rx) = mpsc::channel::<Command>(32); //Rust Engine to DataBase
-//     let (db_panic_tx, db_panic_rx) = tokio::sync::oneshot::channel();
-
-//     thread::spawn(move || {
-//     let result = std::panic::catch_unwind(move || {
-//             worker(db_rx, "app.db");
-//         });
-
-//         if let Err(err) = result {
-//             let _ = db_panic_tx.send(err);
-//         }
-//     });
-
-//     let ne_rt = Runtime::new()?;
-
-//     ne_rt.block_on(async {
-//         tokio::select! {
-//             ne_result = network_engine(db_tx) => {
-//                 ne_result
-//             },
-//             err = db_panic_rx => {
-//                 Err(anyhow!("DB thread panicked: {err:?}"))
-//             }
-//         }
-//     })
-
-// }
+use crate::notifications::{UiEventListener};
+use crate::db::SCHEMA;
 
 
 fn parse_path(path_str: &str) -> PathBuf {
@@ -48,35 +15,86 @@ fn parse_path(path_str: &str) -> PathBuf {
 }
 
 
+
 #[uniffi::export]
-pub fn delete_db(db_path_string: String) -> Result<(), UiDbError> {
+pub fn reset_db_for_wal(db_path_string: String) -> Result<(), UiDbError> {
     let db_path = parse_path(&db_path_string);
+    
     if db_path.exists() {
         std::fs::remove_file(&db_path).map_err(|e| UiDbError::InternalError {
-            msg: format!("Invalid path: {}", e),
+            msg: format!("Failed to delete db file: {}", e),
         })?;
-    };
-    Ok(())
-}
-struct NoopListener;
+    }
 
-impl UiEventListener for NoopListener {
-    fn on_event(&self, _event: UiEvent) {}
+    let wal_path = parse_path(&format!("{}-wal", db_path_string));
+    if wal_path.exists() {
+        let _ = std::fs::remove_file(&wal_path);
+    }
+
+    let shm_path = parse_path(&format!("{}-shm", db_path_string));
+    if shm_path.exists() {
+        let _ = std::fs::remove_file(&shm_path);
+    }
+
+    let connection = rusqlite::Connection::open(&db_path).map_err(|e| UiDbError::InternalError {
+        msg: format!("Failed to create empty database: {}", e),
+    })?;
+
+    let _: String = connection
+        .query_row("PRAGMA journal_mode=WAL;", [], |row| row.get(0))
+        .map_err(|e| UiDbError::InternalError {
+            msg: format!("Failed to set WAL mode: {}", e),
+        })?;
+
+    // Execute the schema batch directly on the fresh connection
+    connection.execute_batch(SCHEMA).map_err(|e| {
+        log::error!("[DB] schema failed: {}", e);
+        UiDbError::InternalError {
+            msg: format!("Schema execution failed: {}", e),
+        }
+    })?;
+
+    Ok(())
 }
 
 
 #[uniffi::export]
-pub fn add_sample_messages(db_path_string: String) -> Result<(), UiDbError>{
-
+pub fn add_sample_messages(
+    db_path_string: String,
+    listener: Box<dyn UiEventListener>,
+) -> Result<(), UiDbError> {
     let manager = NwDbManager::spawn(parse_path(&db_path_string))?;
+    let client = manager.create_client(listener);
 
-    let client = manager.create_client(Box::new(NoopListener));
-
-    let rt = Runtime::new().map_err(|e| UiDbError::InternalError { msg: e.to_string() })?;
+    let rt = Runtime::new()
+        .map_err(|e| UiDbError::InternalError { msg: e.to_string() })?;
 
     rt.block_on(async move {
-        client.add_sample_chat().await;
-    });
+        client.add_sample_chat().await
+    }).map_err(|e| UiDbError::InternalError { 
+        msg: format!("Failed to add sample chat: {}", e) 
+    })?;
+
+    Ok(())
+}
+#[uniffi::export]
+pub fn add_sample_message(
+    db_path_string: String,
+    listener: Box<dyn UiEventListener>,
+    time: i32,
+) -> Result<(), UiDbError> {
+    let manager = NwDbManager::spawn(parse_path(&db_path_string))?;
+
+    let client = manager.create_client(listener);
+
+    let rt = Runtime::new()
+        .map_err(|e| UiDbError::InternalError { msg: e.to_string() })?;
+
+    rt.block_on(async move {
+        client.add_sample_message(time).await
+    }).map_err(|e| UiDbError::InternalError { 
+        msg: format!("Failed to add sample message: {}", e) 
+    })?;
 
     Ok(())
 }

@@ -1,9 +1,10 @@
-
 use tokio::sync::oneshot;
 
-use super::{NwDbClient, NwMessage, NwChat, NwContact, NwDbRequest};
+use super::{NwChat, NwContact, NwDbClient, NwDbRequest, NwMessage};
 
 use anyhow::{Context, Result};
+
+use hex;
 
 use crate::notifications::UiEvent;
 
@@ -13,7 +14,6 @@ impl NwDbClient {
         request: NwDbRequest,
         rx: oneshot::Receiver<Result<T>>,
     ) -> Result<T> {
-
         self.worker_tx
             .send(request)
             .await
@@ -28,21 +28,12 @@ impl NwDbClient {
     }
 }
 
-
 impl NwDbClient {
-
-    fn notify(
-        &self,
-        event: UiEvent,
-    ) {
+    fn notify(&self, event: UiEvent) {
         self.ui_listener.on_event(event);
     }
 
-    pub async fn add_message(
-        &self,
-        message: NwMessage,
-    ) -> Result<()> {
-
+    pub async fn add_message(&self, message: NwMessage) -> Result<()> {
         let topic_id = message.topic_id.clone();
 
         let (tx, rx) = oneshot::channel();
@@ -53,22 +44,15 @@ impl NwDbClient {
                 reply: tx,
             },
             rx,
-        ).await?;
+        )
+        .await?;
 
-        self.notify(
-            UiEvent::ChatMessagesChanged {
-                topic_id,
-            }
-        );
+        self.notify(UiEvent::ChatMessagesChanged { topic_id: hex::encode(topic_id) });
 
         Ok(())
     }
 
-    pub async fn add_contact(
-        &self,
-        contact: NwContact,
-    ) -> Result<()> {
-
+    pub async fn add_contact(&self, contact: NwContact) -> Result<()> {
         let (tx, rx) = oneshot::channel();
 
         self.send_request(
@@ -77,20 +61,15 @@ impl NwDbClient {
                 reply: tx,
             },
             rx,
-        ).await?;
+        )
+        .await?;
 
-        self.notify(
-            UiEvent::ContactsChanged
-        );
+        self.notify(UiEvent::ContactsChanged);
 
         Ok(())
     }
 
-    pub async fn add_chat(
-        &self,
-        chat: NwChat,
-    ) -> Result<()> {
-
+    pub async fn add_chat(&self, chat: NwChat) -> Result<()> {
         let (tx, rx) = oneshot::channel();
 
         self.send_request(
@@ -99,11 +78,10 @@ impl NwDbClient {
                 reply: tx,
             },
             rx,
-        ).await?;
+        )
+        .await?;
 
-        self.notify(
-            UiEvent::ChatListChanged
-        );
+        self.notify(UiEvent::ChatListChanged);
 
         Ok(())
     }
@@ -111,10 +89,8 @@ impl NwDbClient {
     pub async fn get_chats(&self) -> Result<Vec<NwChat>> {
         let (tx, rx) = oneshot::channel();
 
-        self.send_request(
-            NwDbRequest::GetChats { reply: tx },
-            rx,
-        ).await
+        self.send_request(NwDbRequest::GetChats { reply: tx }, rx)
+            .await
     }
 
     pub async fn get_chat_members(
@@ -126,16 +102,15 @@ impl NwDbClient {
         self.send_request(
             NwDbRequest::GetChatMembers { topic_id, reply: tx },
             rx,
-        ).await
+        )
+        .await
     }
 
     pub async fn get_chat(&self, topic_id: Vec<u8>) -> Result<NwChat> {
         let (tx, rx) = oneshot::channel();
 
-        self.send_request(
-            NwDbRequest::GetChat { topic_id, reply: tx },
-            rx,
-        ).await
+        self.send_request(NwDbRequest::GetChat { topic_id, reply: tx }, rx)
+            .await
     }
 
     pub async fn get_chat_messages(
@@ -147,20 +122,18 @@ impl NwDbClient {
         self.send_request(
             NwDbRequest::GetChatMessages { topic_id, reply: tx },
             rx,
-        ).await
+        )
+        .await
     }
 
     pub async fn get_messages(&self) -> Result<Vec<NwMessage>> {
         let (tx, rx) = oneshot::channel();
 
-        self.send_request(
-            NwDbRequest::GetMessages { reply: tx },
-            rx,
-        ).await
+        self.send_request(NwDbRequest::GetMessages { reply: tx }, rx)
+            .await
     }
 
     pub async fn add_sample_chat(&self) -> Result<()> {
-
         let alice = NwContact {
             name: "Alice".to_string(),
             endpoint_id: vec![0u8; 32],
@@ -172,7 +145,6 @@ impl NwDbClient {
         };
 
         self.add_contact(alice.clone()).await?;
-
         self.add_contact(bob.clone()).await?;
 
         let topic_id = vec![2u8; 32];
@@ -184,33 +156,49 @@ impl NwDbClient {
         };
 
         self.add_chat(chat).await?;
-        let mut sent_at = 1779490800000i64;
 
-        for i in 0..30 {
-            let from_me = i % 3 == 0;
 
-            let endpoint_id = if from_me {
-                None
+        Ok(())
+    }
+
+    pub async fn add_sample_message(&self, time: i32) -> Result<()> {
+        let alice = NwContact {
+            name: "Alice".to_string(),
+            endpoint_id: vec![0u8; 32],
+        };
+
+        let bob = NwContact {
+            name: "Bob".to_string(),
+            endpoint_id: vec![1u8; 32],
+        };
+
+
+        let topic_id = vec![2u8; 32];
+
+
+        let sent_at = 1779490800000i64 + 60000*(time as i64);
+
+        let from_me = time % 3 == 0;
+
+        let endpoint_id = if from_me {
+            None
+        } else {
+            Some(if time % 2 == 0 {
+                alice.endpoint_id.clone()
             } else {
-                Some(if i % 2 == 0 {
-                    alice.endpoint_id.clone()
-                } else {
-                    bob.endpoint_id.clone()
-                })
-            };
+                bob.endpoint_id.clone()
+            })
+        };
 
-            let message = NwMessage {
-                topic_id: topic_id.clone(),
-                from_me,
-                endpoint_id,
-                content: format!("Sample message {}", i + 1),
-                sent_at,
-            };
+        let message = NwMessage {
+            topic_id: topic_id.clone(),
+            from_me,
+            endpoint_id,
+            content: format!("Sample message {}", time + 1),
+            sent_at,
+        };
 
-            self.add_message(message).await?;
-
-            sent_at += 60000;
-        }
+        self.add_message(message).await?;
 
         Ok(())
     }

@@ -4,20 +4,26 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import android.content.Context
+import androidx.lifecycle.lifecycleScope
+import com.example.jg04.data.AppController
+import com.example.jg04.data.AppEventBridge
+import com.example.jg04.data.AppModel
 import com.example.jg04.ui.App
-import uniffi.rust_api.initNativeLogger
-import uniffi.rust_api.UiDbClient
+import kotlinx.coroutines.launch
 import uniffi.rust_api.UiDbManager
-import android.util.Log
-import com.example.jg04.KotlinLogger
-import uniffi.rust_api.UiChat
-import uniffi.rust_api.deleteDb
+import uniffi.rust_api.addSampleMessages
+import uniffi.rust_api.addSampleMessage
+import uniffi.rust_api.resetDbForWal
+import uniffi.rust_api.initNativeLogger
+import com.example.jg04.data.AppBackgroundTicker
+
 class MainActivity : ComponentActivity() {
+
+    // Keep a strong reference here so the Garbage Collector never drops it!
+    private lateinit var bridge: AppEventBridge
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         enableEdgeToEdge()
 
         initNativeLogger(NativeLogForwarder())
@@ -28,13 +34,36 @@ class MainActivity : ComponentActivity() {
 
         KotlinLogger.error("TESTING_LOGGING", "it works!")
 
-        deleteDb(dbPath)
-        var manager = UiDbManager.spawn(dbPath)
+        resetDbForWal(dbPath)
 
-        var dB = manager.getClient()
+        val dbPathString = dbPath
+        val manager = UiDbManager.spawn(dbPathString)
+        val dB = manager.getClient()
+
+        val model = AppModel()
+        val controller = AppController(model, dB)
+
+        // Assign to the class-level property
+        bridge = AppEventBridge(controller)
+
+        addSampleMessages(dbPath, bridge)
+
+        val ticker = AppBackgroundTicker(
+            lifecycleScope,
+            dbPath,
+            bridge,
+            { path, eventBridge, count ->
+                addSampleMessage(path, eventBridge, count)
+            }
+        )
+        ticker.start()
+
+        lifecycleScope.launch {
+            controller.loadInitialState()
+        }
 
         setContent {
-            App(dB)
+            App(model) // Clean and separate!
         }
     }
 }

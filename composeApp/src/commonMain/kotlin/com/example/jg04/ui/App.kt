@@ -1,32 +1,32 @@
 package com.example.jg04.ui
 
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import uniffi.rust_api.UiDbClient
-import com.example.jg04.data.*
-
-
+import androidx.compose.ui.Modifier
+import com.example.jg04.ui.theme.ComposeTutorialTheme
+import com.example.jg04.data.AppModel
+import com.example.jg04.ui.ChatScreen
 
 
 @Composable
-fun App(dB: UiDbClient) {
-    _root_ide_package_.com.example.jg04.ui.theme.ComposeTutorialTheme {
+fun App(model: AppModel) {
+    ComposeTutorialTheme {
+        val topicId = remember { "0202020202020202020202020202020202020202020202020202020202020202" }
 
-        val topicId = ByteArray(32) { 2 }
-
-        val chatQuery = UiQuery {
-            dB.getChatWithMessages(topicId)
-        }
+        val allChatData by model.chatData.collectAsState()
+        val currentChat = allChatData[topicId]
 
         Surface(modifier = Modifier.fillMaxSize()) {
-            ChatScreen(chatQuery.state)
+            if (currentChat != null) {
+                ChatScreen(currentChat)
+            } else {
+                CircularProgressIndicator()
+            }
         }
     }
 }

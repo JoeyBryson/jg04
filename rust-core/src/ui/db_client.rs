@@ -1,6 +1,5 @@
 use std::result::Result;
 use tokio::sync::oneshot;
-use crate::ui::UiDbManager;
 
 use super::{UiDbClient, UiDbError, UiMessage, UiContact, UiChat, UiChatWithMessages, UiDbRequest};
 use anyhow;
@@ -27,27 +26,27 @@ impl UiDbClient {
         Ok(self.send_request(UiDbRequest::GetChats { reply: tx }, rx)?)
     }
 
-    pub fn get_chat(&self, topic_id: Vec<u8>) -> Result<UiChat, UiDbError> {
+    pub fn get_chat(&self, topic_id: String) -> Result<UiChat, UiDbError> {
         let (tx, rx) = oneshot::channel();
         Ok(self.send_request(UiDbRequest::GetChat { topic_id, reply: tx }, rx)?)
     }
 
-    pub fn get_chat_members(&self, topic_id: Vec<u8>) -> Result<Vec<UiContact>, UiDbError> {
+    pub fn get_chat_members(&self, topic_id: String) -> Result<Vec<UiContact>, UiDbError> {
         let (tx, rx) = oneshot::channel();
         Ok(self.send_request(UiDbRequest::GetChatMembers { topic_id, reply: tx }, rx)?)
     }
 
-    pub fn get_chat_messages(&self, topic_id: Vec<u8>) -> Result<Vec<UiMessage>, UiDbError> {
+    pub fn get_chat_messages(&self, topic_id: String) -> Result<Vec<UiMessage>, UiDbError> {
         let (tx, rx) = oneshot::channel();
         Ok(self.send_request(UiDbRequest::GetChatMessages { topic_id, reply: tx }, rx)?)
     }
 
-    pub fn get_chat_last_message(&self, topic_id: Vec<u8>) -> Result<UiMessage, UiDbError> {
+    pub fn get_chat_last_message(&self, topic_id: String) -> Result<Option<UiMessage>, UiDbError> {
         let (tx, rx) = oneshot::channel();
         Ok(self.send_request(UiDbRequest::GetChatLastMessage { topic_id, reply: tx }, rx)?)
     }
 
-    pub fn get_chat_with_messages(&self, topic_id: Vec<u8>) -> Result<UiChatWithMessages, UiDbError> {
+    pub fn get_chat_with_messages(&self, topic_id: String) -> Result<UiChatWithMessages, UiDbError> {
         let (tx, rx) = oneshot::channel();
         Ok(self.send_request(UiDbRequest::GetChatWithMessages { topic_id, reply: tx }, rx)?)
     }

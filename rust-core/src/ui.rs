@@ -1,20 +1,11 @@
 use crate::db::DbManager;
-use crate::nw;
-use crate::notifications::UiEventListener;
-use tokio::{sync::{mpsc}};
-use std::result::Result;
-use std::sync::OnceLock;
-use std::thread::JoinHandle;
-
+use tokio::sync::mpsc;
 use tokio::sync::oneshot;
-// use uniffi;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use anyhow;
 use uniffi;
 mod db_client;
 mod db_manager;
-
-use uniffi::Enum;
 
 
 #[derive(uniffi::Error, Debug)]
@@ -49,17 +40,16 @@ pub enum UiSender {
 #[derive(uniffi::Record)]
 pub struct UiContact {
     pub name: String,
-    pub endpoint_id: Vec<u8>,
+    pub endpoint_id: String,
 }
 
 #[derive(uniffi::Record)]
 pub struct UiChat {
     pub name: Option<String>,
     pub members: Vec<UiContact>,
-    pub topic_id: Vec<u8>,
-    pub last_message: UiMessage
+    pub topic_id: String,
+    pub last_message: Option<UiMessage>
 }
-
 #[derive(uniffi::Record)]
 pub struct UiMessage {
     pub sender: UiSender,
@@ -78,23 +68,23 @@ pub enum UiDbRequest {
         reply: oneshot::Sender<anyhow::Result<Vec<UiChat>>>,
     },
     GetChat {
-        topic_id: Vec<u8>,
+        topic_id: String,
         reply: oneshot::Sender<anyhow::Result<UiChat>>,
     },
     GetChatMembers {
-        topic_id: Vec<u8>,
+        topic_id: String,
         reply: oneshot::Sender<anyhow::Result<Vec<UiContact>>>,
     },
     GetChatMessages {
-        topic_id: Vec<u8>,
+        topic_id: String,
         reply: oneshot::Sender<anyhow::Result<Vec<UiMessage>>>,
     },
     GetChatLastMessage {
-        topic_id: Vec<u8>,
-        reply: oneshot::Sender<anyhow::Result<UiMessage>>,
+        topic_id: String,
+        reply: oneshot::Sender<anyhow::Result<Option<UiMessage>>>,
     },
     GetChatWithMessages {
-        topic_id: Vec<u8>,
+        topic_id: String,
         reply: oneshot::Sender<anyhow::Result<UiChatWithMessages>>,
     },
     GetContacts {

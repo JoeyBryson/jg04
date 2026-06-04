@@ -1,13 +1,6 @@
-use std::sync::{Arc, OnceLock};
-use std::thread::{JoinHandle, spawn};
-use std::path::{self, PathBuf};
-use std::thread;
-use std::sync::Mutex;
-use tokio::{runtime::Runtime, sync::{mpsc}};
+use std::path::PathBuf;
+use tokio::sync::mpsc;
 use anyhow::{Result};
-
-use crate::db::{ NwDbClient};
-use crate::db::{worker};
 
 use super::{DbManager, DbWorker, WorkerImplemented};
 
@@ -43,14 +36,15 @@ where
 
         if let Some(parent) = db_path.parent() {
             std::fs::create_dir_all(parent)?;
+            log::info!("CREATED DIR");
         }
+        log::info!("GOT HERE!");
 
         let (worker_tx, worker_rx) = mpsc::channel::<TRequest>(32);
 
         let join_handle = std::thread::spawn(move || {
             let result = (|| -> Result<()> {
                 let worker = DbWorker::start(worker_rx, db_path)?;
-                worker.execute_schema()?;
                 Ok(worker.request_loop())
             })();
 
@@ -59,9 +53,10 @@ where
                 Err(error) => log::error!("worker exited with error: {}", error),
             }
         });
+        
 
         Ok(Self {
-            join_handle,
+            _join_handle: join_handle,
             worker_tx,
         })
     }

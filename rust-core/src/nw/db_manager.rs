@@ -1,6 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
-use super::{NwDbManager, NwDbRequest, NwDbClient};
-use crate::db::{DbManager};
+use super::{NwDbManager, NwDbClient};
 use crate::notifications::UiEventListener;
 use std::sync::Arc;
 
