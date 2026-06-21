@@ -1,10 +1,8 @@
 use tokio::{sync::{mpsc}};
 use anyhow::Result;
 use tokio::sync::oneshot;
-use std::sync::Arc;
 
-use crate::db::{DbManager};
-use crate::notifications::UiEventListener;
+use crate::db::{NwDbManager};
 
 mod db_client;
 mod db_manager;
@@ -65,14 +63,9 @@ pub enum NwDbRequest {
 }
 
 pub struct NwDbClient {
-    worker_tx: mpsc::Sender<NwDbRequest>,
-    ui_listener: Arc<dyn UiEventListener>
+    worker_tx: mpsc::Sender<NwDbRequest>
 }
 
-///Network Database Client
-/// 
-/// 
-pub type NwDbManager = DbManager<NwDbRequest>;
 
 //#[cfg(test)]
 //#[path = "nw/tests.rs"]

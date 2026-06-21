@@ -7,7 +7,7 @@ import kotlinx.coroutines.launch
 import uniffi.rust_api.UiDbClient
 import uniffi.rust_api.UiEvent
 
-class AppController(
+class ModelController(
     private val model: AppModel,
     private val db: UiDbClient
 ) {
@@ -43,15 +43,12 @@ class AppController(
     suspend fun loadInitialState() {
         KotlinLogger.info("AppController", "Loading initial state...")
 
-        // 1. Refresh the baseline contact list
         refreshContacts()
 
-        // 2. Fetch all baseline chat configurations from the DB
         val chats = db.getChats()
         model.replaceChats(chats)
         KotlinLogger.info("AppController", "Found ${chats.size} chats. Pre-fetching message data...")
 
-        // 3. Loop through every chat found and hydrate its message data cache
         chats.forEach { chat ->
             refreshChat(chat.topicId)
         }

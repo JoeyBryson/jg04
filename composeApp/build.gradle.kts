@@ -44,8 +44,8 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
-            implementation(libs.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(compose.materialIconsExtended)
+            implementation(compose.components.resources)
             implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
             implementation("com.jg04:core-lib:1.0.0")
         }

@@ -10,8 +10,7 @@ import kotlinx.coroutines.launch
 class AppBackgroundTicker(
     private val applicationScope: CoroutineScope,
     private val dbPath: String,
-    private val bridge: AppEventBridge,
-    private val onTick: suspend (dbPath: String, bridge: AppEventBridge, count: Int) -> Unit
+    private val onTick: suspend (dbPath: String, count: Int) -> Unit
 ) {
     private val tickerFlow = flow {
         var counter = 0
@@ -25,7 +24,7 @@ class AppBackgroundTicker(
     fun start() {
         applicationScope.launch {
             tickerFlow.collect { count ->
-                onTick(dbPath, bridge, count)
+                onTick(dbPath,count)
             }
         }
     }

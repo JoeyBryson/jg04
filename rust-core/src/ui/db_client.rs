@@ -1,7 +1,7 @@
 use std::result::Result;
 use tokio::sync::oneshot;
 
-use super::{UiDbClient, UiDbError, UiMessage, UiContact, UiChat, UiChatWithMessages, UiDbRequest};
+use super::{UiDbClient, UiDbError, UiMessage, UiContact, UiChat, UiChatsData, UiDbRequest};
 use anyhow;
 
 impl UiDbClient {
@@ -46,7 +46,7 @@ impl UiDbClient {
         Ok(self.send_request(UiDbRequest::GetChatLastMessage { topic_id, reply: tx }, rx)?)
     }
 
-    pub fn get_chat_with_messages(&self, topic_id: String) -> Result<UiChatWithMessages, UiDbError> {
+    pub fn get_chat_with_messages(&self, topic_id: String) -> Result<UiChatsData, UiDbError> {
         let (tx, rx) = oneshot::channel();
         Ok(self.send_request(UiDbRequest::GetChatWithMessages { topic_id, reply: tx }, rx)?)
     }

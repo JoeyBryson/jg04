@@ -1,10 +1,9 @@
-use crate::ui::{UiChat, UiChatWithMessages, UiContact, UiMessage, UiSender};
+use crate::ui::{UiChat, UiChatsData, UiContact, UiMessage, UiSender};
 use anyhow::Result;
 use rusqlite::{Row, OptionalExtension}; // Added OptionalExtension
-use super::DbWorker;
-use crate::ui::UiDbRequest;
+use super::UiDbWorker;
 
-impl DbWorker<UiDbRequest> {
+impl UiDbWorker {
 
     fn decode_hex_id(id: &str) -> Result<Vec<u8>> {
         Ok(hex::decode(id)?)
@@ -139,8 +138,8 @@ impl DbWorker<UiDbRequest> {
     pub fn get_chat_with_messages(
         &self,
         topic_id: &str
-    ) -> Result<UiChatWithMessages> {
-        Ok(UiChatWithMessages {
+    ) -> Result<UiChatsData> {
+        Ok(UiChatsData {
             chat: self.get_chat(topic_id)?,
             messages: self.get_chat_messages(topic_id)?,
         })

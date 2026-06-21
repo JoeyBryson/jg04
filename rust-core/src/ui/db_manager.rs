@@ -1,9 +1,9 @@
 use std::{path::PathBuf, str::FromStr};
 use crate::ui::Arc;
-use super::{UiDbManager, UiDbError, UiDbRequest, UiDbClient};
-use crate::db::DbManager;
+use super::{UiDbManagerUniffiObject, UiDbError, UiDbClient};
+use crate::db::UiDbManager;
 
-impl UiDbManager {
+impl UiDbManagerUniffiObject {
     fn parse_path(path_str: &str) -> Result<PathBuf, UiDbError> {
         PathBuf::from_str(path_str).map_err(|e| UiDbError::InternalError {
             msg: format!("Invalid path: {}", e),
@@ -12,20 +12,12 @@ impl UiDbManager {
 }
 
 #[uniffi::export]
-impl UiDbManager {
+impl UiDbManagerUniffiObject {
     
     #[uniffi::constructor]
     pub fn spawn(db_path_string: String) -> Result<Arc<Self>, UiDbError> {
         let db_path = Self::parse_path(&db_path_string)?;
-        let inner = DbManager::<UiDbRequest>::spawn(db_path)?;
-        
-        Ok(Arc::new(Self { inner }))
-    }
-
-    #[uniffi::constructor]
-    pub fn delete_db_then_spawn(db_path_string: String) -> Result<Arc<Self>, UiDbError> {
-        let db_path = Self::parse_path(&db_path_string)?;
-        let inner = DbManager::<UiDbRequest>::delete_db_then_spawn(db_path)?;
+        let inner = UiDbManager::spawn(db_path)?;
         
         Ok(Arc::new(Self { inner }))
     }

@@ -2,12 +2,11 @@
 use tokio::{runtime::Runtime};
 use std::result::Result;
 // use crate::nw::network_engine;
-use crate::nw::NwDbManager;
+use crate::db::NwDbManager;
 use crate::ui::UiDbError;
 use std::path::PathBuf;
-use crate::notifications::{UiEventListener};
-use crate::db::SCHEMA;
 
+pub const SCHEMA: &str = include_str!("../sql/schema.sql");
 
 fn parse_path(path_str: &str) -> PathBuf {
     // This is completely infallible and converts the &str directly into a PathBuf
@@ -61,10 +60,9 @@ pub fn reset_db_for_wal(db_path_string: String) -> Result<(), UiDbError> {
 #[uniffi::export]
 pub fn add_sample_messages(
     db_path_string: String,
-    listener: Box<dyn UiEventListener>,
 ) -> Result<(), UiDbError> {
     let manager = NwDbManager::spawn(parse_path(&db_path_string))?;
-    let client = manager.create_client(listener);
+    let client = manager.create_client();
 
     let rt = Runtime::new()
         .map_err(|e| UiDbError::InternalError { msg: e.to_string() })?;
@@ -80,12 +78,11 @@ pub fn add_sample_messages(
 #[uniffi::export]
 pub fn add_sample_message(
     db_path_string: String,
-    listener: Box<dyn UiEventListener>,
     time: i32,
 ) -> Result<(), UiDbError> {
     let manager = NwDbManager::spawn(parse_path(&db_path_string))?;
 
-    let client = manager.create_client(listener);
+    let client = manager.create_client();
 
     let rt = Runtime::new()
         .map_err(|e| UiDbError::InternalError { msg: e.to_string() })?;
@@ -99,3 +96,30 @@ pub fn add_sample_message(
     Ok(())
 }
 
+#[uniffi::export]
+pub fn add_sample_data(
+    db_path_string: String,
+) -> Result<(), UiDbError> {
+
+    let manager =
+        NwDbManager::spawn(parse_path(&db_path_string))?;
+
+    let client = manager.create_client();
+
+    let rt = Runtime::new()
+        .map_err(|e| UiDbError::InternalError {
+            msg: e.to_string()
+        })?;
+
+    rt.block_on(async move {
+        client.add_sample_data().await
+    })
+    .map_err(|e| UiDbError::InternalError {
+        msg: format!(
+            "Failed to add sample data: {}",
+            e
+        )
+    })?;
+
+    Ok(())
+}

@@ -1,38 +1,30 @@
 mod nw_requests;
 mod ui_requests;
-pub mod worker;
+pub mod workers;
 mod manager;
 use std::thread::JoinHandle;
-use std::path::PathBuf;
 use tokio::sync::mpsc;
-use anyhow::Result;
-// use crate::nw::network_engine;
 
-pub const SCHEMA: &str = include_str!("../sql/schema.sql");
+use crate::ui::UiDbRequest;
+use crate::nw::NwDbRequest;
 
-// enum DbWorkerStatus {
-//     Running,
-//     Exited(anyhow::Result<()>)
-// }
-
-///DbWorker lives on a dedicated thread
-pub struct DbWorker<TRequest>{
-    worker_rx: mpsc::Receiver<TRequest>,
+pub struct UiDbWorker{
+    worker_rx: mpsc::Receiver<UiDbRequest>,
     conn: rusqlite::Connection
 }
 
-pub struct DbManager<TRequest> {
-    worker_tx: mpsc::Sender<TRequest>,
+pub struct NwDbWorker{
+    worker_rx: mpsc::Receiver<NwDbRequest>,
+    conn: rusqlite::Connection
+}
+
+pub struct UiDbManager {
+    worker_tx: mpsc::Sender<UiDbRequest>,
     _join_handle: JoinHandle<()>,
 }
 
-pub trait WorkerImplemented: Sized {
-    type Request;
-
-    fn request_loop(self);
-
-    fn start(
-        worker_rx: mpsc::Receiver<Self::Request>,
-        db_path: PathBuf,
-    ) -> Result<Self>;
+pub struct NwDbManager {
+    worker_tx: mpsc::Sender<NwDbRequest>,
+    _join_handle: JoinHandle<()>,
 }
+

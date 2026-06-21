@@ -1,11 +1,11 @@
-use crate::nw::{self, NwDbRequest};
+use crate::nw::{NwMessage, NwContact, NwChat};
 
 use anyhow::{Result, anyhow};
 use std::collections::HashMap;
-use super::DbWorker;
+use super::NwDbWorker;
 
-impl DbWorker<NwDbRequest> {
-    pub fn add_message(&self, message: nw::NwMessage) -> Result<()>{
+impl NwDbWorker {
+    pub fn add_message(&self, message: NwMessage) -> Result<()>{
 
         self.conn.execute(
             "INSERT INTO messages (topic_id, is_me, endpoint_id, content, sent_at)
@@ -23,7 +23,7 @@ impl DbWorker<NwDbRequest> {
     }
 
 
-    pub fn add_contact(&self, contact: nw::NwContact) -> Result<()>{
+    pub fn add_contact(&self, contact: NwContact) -> Result<()>{
         self.conn.execute(
             "INSERT INTO contacts (endpoint_id, contact_name)
             VALUES (?1, ?2)",
@@ -37,7 +37,7 @@ impl DbWorker<NwDbRequest> {
     } 
 
 
-    pub fn add_chat(&mut self, chat: nw::NwChat) -> Result<()> {
+    pub fn add_chat(&mut self, chat: NwChat) -> Result<()> {
 
         let transaction = self.conn.transaction()?;
 
@@ -67,7 +67,7 @@ impl DbWorker<NwDbRequest> {
     }
 
 
-    pub fn get_chats(&self) -> Result<Vec<nw::NwChat>> {
+    pub fn get_chats(&self) -> Result<Vec<NwChat>> {
 
         let mut stmt = self.conn.prepare(
             "
@@ -93,19 +93,19 @@ impl DbWorker<NwDbRequest> {
             ))
         })?;
 
-        let mut chats: HashMap<Vec<u8>, nw::NwChat> = HashMap::new();
+        let mut chats: HashMap<Vec<u8>, NwChat> = HashMap::new();
 
         for row in rows {
             let (topic_id, chat_name, contact_name, endpoint_id) = row?;
 
-            let chat = chats.entry(topic_id.clone()).or_insert_with(|| nw::NwChat {
+            let chat = chats.entry(topic_id.clone()).or_insert_with(|| NwChat {
                 topic_id,
                 name: chat_name,
                 members: Vec::new(),
             });
 
             if let (Some(name), Some(endpoint_id)) = (contact_name, endpoint_id) {
-                chat.members.push(nw::NwContact { 
+                chat.members.push(NwContact { 
                     name, 
                     endpoint_id 
                 });
@@ -124,7 +124,7 @@ impl DbWorker<NwDbRequest> {
         Ok(chats.into_values().collect())
     }
 
-    pub fn get_chat_members(&self, topic_id: &[u8]) -> Result<Vec<nw::NwContact>> {
+    pub fn get_chat_members(&self, topic_id: &[u8]) -> Result<Vec<NwContact>> {
 
         let mut stmt = self.conn.prepare(
             "
@@ -141,7 +141,7 @@ impl DbWorker<NwDbRequest> {
         let mut members = Vec::new();
 
         while let Some(row) = rows.next()? {
-            members.push(nw::NwContact {
+            members.push(NwContact {
                 name: row.get(0)?,
                 endpoint_id: row.get(1)?,
             });
@@ -154,7 +154,7 @@ impl DbWorker<NwDbRequest> {
         Ok(members)
     }
 
-    pub fn get_chat(&self, topic_id: &[u8]) -> Result<nw::NwChat> {
+    pub fn get_chat(&self, topic_id: &[u8]) -> Result<NwChat> {
 
         let mut stmt = self.conn.prepare(
             "
@@ -174,14 +174,14 @@ impl DbWorker<NwDbRequest> {
 
         let mut rows = stmt.query([topic_id])?;
 
-        let mut chat: Option<nw::NwChat> = None;
+        let mut chat: Option<NwChat> = None;
 
         while let Some(row) = rows.next()? {
 
             let row_topic_id: Vec<u8> = row.get(0)?;
             let row_chat_name: Option<String> = row.get(1)?;
 
-            let chat_ref = chat.get_or_insert_with(|| nw::NwChat {
+            let chat_ref = chat.get_or_insert_with(|| NwChat {
                 topic_id: row_topic_id,
                 name: row_chat_name,
                 members: Vec::new(),
@@ -191,7 +191,7 @@ impl DbWorker<NwDbRequest> {
             let endpoint_id: Option<Vec<u8>> = row.get(3)?;
 
             if let (Some(name), Some(endpoint_id)) = (contact_name, endpoint_id) {
-                chat_ref.members.push(nw::NwContact {
+                chat_ref.members.push(NwContact {
                     name,
                     endpoint_id,
                 });
@@ -207,7 +207,7 @@ impl DbWorker<NwDbRequest> {
         Ok(chat)
     }
 
-    pub fn get_chat_messages(&self, topic_id: &[u8]) -> Result<Vec<nw::NwMessage>> {
+    pub fn get_chat_messages(&self, topic_id: &[u8]) -> Result<Vec<NwMessage>> {
 
         let mut stmt = self.conn.prepare(
             "
@@ -222,7 +222,7 @@ impl DbWorker<NwDbRequest> {
         let mut messages = Vec::new();
 
         while let Some(row) = rows.next()? {
-            messages.push(nw::NwMessage {
+            messages.push(NwMessage {
                 topic_id: row.get(0)?,
                 from_me: row.get::<_, i32>(1)? != 0,
                 endpoint_id: row.get(2)?,
@@ -234,7 +234,7 @@ impl DbWorker<NwDbRequest> {
         Ok(messages)
     }
 
-    pub fn get_messages(&self) -> Result<Vec<nw::NwMessage>> {
+    pub fn get_messages(&self) -> Result<Vec<NwMessage>> {
 
         let mut stmt = self.conn.prepare(
             "
@@ -248,7 +248,7 @@ impl DbWorker<NwDbRequest> {
         let mut messages = Vec::new();
 
         while let Some(row) = rows.next()? {
-            messages.push(nw::NwMessage {
+            messages.push(NwMessage {
                 topic_id: row.get(0)?,
                 from_me: row.get::<_, i32>(1)? != 0,
                 endpoint_id: row.get(2)?,

@@ -1,4 +1,4 @@
-use crate::db::DbManager;
+use crate::db::UiDbManager;
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 use std::sync::Arc;
@@ -57,7 +57,7 @@ pub struct UiMessage {
     pub sent_at: i64,
 }
 #[derive(uniffi::Record)]
-pub struct UiChatWithMessages {
+pub struct UiChatsData {
     pub chat: UiChat,
     pub messages: Vec<UiMessage>
 }
@@ -85,7 +85,7 @@ pub enum UiDbRequest {
     },
     GetChatWithMessages {
         topic_id: String,
-        reply: oneshot::Sender<anyhow::Result<UiChatWithMessages>>,
+        reply: oneshot::Sender<anyhow::Result<UiChatsData>>,
     },
     GetContacts {
         reply: oneshot::Sender<anyhow::Result<Vec<UiContact>>>,
@@ -99,6 +99,6 @@ pub struct UiDbClient {
 
 //Uniffi wrapper since it cannot handle generic definitions
 #[derive(uniffi::Object)]
-pub struct UiDbManager {
-    inner: DbManager<UiDbRequest>
+pub struct UiDbManagerUniffiObject {
+    inner: UiDbManager
 }
