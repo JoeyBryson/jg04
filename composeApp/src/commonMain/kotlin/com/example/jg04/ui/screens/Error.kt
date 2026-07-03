@@ -1,4 +1,4 @@
-package com.example.jg04.ui
+package com.example.jg04.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

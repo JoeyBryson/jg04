@@ -1,4 +1,4 @@
-package com.example.jg04.ui
+package com.example.jg04.ui.screens
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -8,15 +8,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import uniffi.rust_api.UiChatWithMessages
+import com.example.jg04.ui.icons.arrowBackIcon
+import com.example.jg04.ui.icons.sendIcon
+import uniffi.rust_api.UiChatData
 import uniffi.rust_api.UiMessage
 import uniffi.rust_api.UiSender
 import java.time.Instant
@@ -31,10 +38,9 @@ fun formatTime(epochMillis: Long): String {
         .format(formatter)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
-    chat: UiChatWithMessages,
+    chat: UiChatData,
     onBackPress: () -> Unit
 ) {
 
@@ -52,14 +58,12 @@ fun ChatScreen(
     }
 
     Scaffold(
-
         topBar = {
             ChatTopBar(
                 title = chat.chat.name ?: "Chat",
                 onBackPress = onBackPress
             )
         },
-
         bottomBar = {
             MessageInputBar(
                 messageText = messageText,
@@ -67,7 +71,6 @@ fun ChatScreen(
                 onSendClick = { sendMessage() }
             )
         }
-
     ) { paddingValues ->
 
         MessageList(
@@ -83,19 +86,14 @@ fun ChatTopBar(
     title: String,
     onBackPress: () -> Unit
 ) {
-
     TopAppBar(
-
         title = {
             Text(text = title)
         },
-
         navigationIcon = {
-
             IconButton(onClick = onBackPress) {
-
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = arrowBackIcon,
                     contentDescription = "Back"
                 )
             }
@@ -110,18 +108,11 @@ fun MessageList(
 ) {
 
     LazyColumn(
-
-        modifier = modifier
-            .fillMaxSize(),
-
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-
         verticalArrangement = Arrangement.spacedBy(8.dp)
-
     ) {
-
         items(messages) { message ->
-
             MessageRow(message)
         }
     }
@@ -142,13 +133,10 @@ fun MessageInputBar(
     ) {
 
         Row(
-
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
-
             horizontalArrangement = Arrangement.spacedBy(8.dp)
-
         ) {
 
             MessageTextField(
@@ -175,23 +163,16 @@ fun MessageTextField(
 ) {
 
     TextField(
-
         value = value,
-
         onValueChange = onValueChange,
-
         modifier = modifier,
-
         placeholder = {
             Text("Message")
         },
-
         maxLines = 4,
-
         keyboardOptions = KeyboardOptions(
             imeAction = ImeAction.Send
         ),
-
         keyboardActions = KeyboardActions(
             onSend = {
                 onSend()
@@ -210,10 +191,9 @@ fun SendButton(
         enabled = enabled,
         onClick = onClick
     ) {
-
         Icon(
-            imageVector = Icons.Default.Send,
-            contentDescription = "Send Message"
+            imageVector = sendIcon,
+            contentDescription = "Send Message",
         )
     }
 }
@@ -227,13 +207,9 @@ fun MessageRow(msg: UiMessage) {
     }
 
     Row(
-
         modifier = Modifier.fillMaxWidth(),
-
         horizontalArrangement = arrangement
-
     ) {
-
         MessageCard(msg)
     }
 }
@@ -244,31 +220,24 @@ fun MessageCard(msg: UiMessage) {
     var isSelected by remember { mutableStateOf(false) }
 
     val surfaceColor by animateColorAsState(
-
         targetValue = if (isSelected) {
             MaterialTheme.colorScheme.primaryContainer
         } else {
             MaterialTheme.colorScheme.secondaryContainer
         },
-
         label = "message_selection_color"
     )
 
     Surface(
-
         shape = MaterialTheme.shapes.medium,
-
         shadowElevation = 1.dp,
-
         color = surfaceColor,
-
         modifier = Modifier
             .animateContentSize()
             .padding(1.dp)
             .clickable {
                 isSelected = !isSelected
             }
-
     ) {
 
         Column(
@@ -276,18 +245,14 @@ fun MessageCard(msg: UiMessage) {
         ) {
 
             when (val sender = msg.sender) {
-
                 is UiSender.Other -> {
-
                     Text(
                         text = sender.v1.name,
                         color = MaterialTheme.colorScheme.tertiary,
                         style = MaterialTheme.typography.titleSmall
                     )
-
                     Spacer(modifier = Modifier.height(4.dp))
                 }
-
                 is UiSender.Me -> {}
             }
 

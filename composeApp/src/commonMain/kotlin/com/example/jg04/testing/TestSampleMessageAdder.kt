@@ -1,4 +1,4 @@
-package com.example.jg04.data
+package com.example.jg04.state
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

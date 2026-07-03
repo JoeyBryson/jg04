@@ -1,3 +1,5 @@
+package com.example.jg04.state
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import com.example.jg04.KotlinLogger
