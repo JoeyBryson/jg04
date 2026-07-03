@@ -10,12 +10,12 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
 @Suppress("CheckReturnValue")
-public val send: ImageVector
+public val sendIcon: ImageVector
     get() {
-        if (_send != null) {
-            return _send!!
+        if (_sendIcon != null) {
+            return _sendIcon!!
         }
-        _send =
+        _sendIcon =
             ImageVector.Builder(
                 name = "send",
                 defaultWidth = 24.dp,
@@ -58,7 +58,9 @@ public val send: ImageVector
                     }
                 }
                 .build()
-        return _send!!
+        return _sendIcon!!
     }
 
-private var _send: ImageVector? = null
+private var _sendIcon: ImageVector? = null
+
+

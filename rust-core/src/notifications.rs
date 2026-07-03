@@ -2,9 +2,9 @@ use std::sync::OnceLock;
 
 #[derive(uniffi::Enum, Clone)]
 pub enum UiEvent {
-    ChatListChanged,
+    ChatHeadersChanged,
     ContactsChanged,
-    ChatMessagesChanged { topic_id: String },
+    ChatDataChanged { topic_id: String },
 }
 
 #[uniffi::export(callback_interface)]

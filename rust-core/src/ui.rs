@@ -4,8 +4,7 @@ use tokio::sync::oneshot;
 use std::sync::Arc;
 use anyhow;
 use uniffi;
-mod db_client;
-mod db_manager;
+mod db;
 
 
 #[derive(uniffi::Error, Debug)]
@@ -44,7 +43,7 @@ pub struct UiContact {
 }
 
 #[derive(uniffi::Record)]
-pub struct UiChat {
+pub struct UiChatHeader {
     pub name: Option<String>,
     pub members: Vec<UiContact>,
     pub topic_id: String,
@@ -57,19 +56,19 @@ pub struct UiMessage {
     pub sent_at: i64,
 }
 #[derive(uniffi::Record)]
-pub struct UiChatsData {
-    pub chat: UiChat,
+pub struct UiChatData {
+    pub chat: UiChatHeader,
     pub messages: Vec<UiMessage>
 }
 
 
 pub enum UiDbRequest {
-    GetChats {
-        reply: oneshot::Sender<anyhow::Result<Vec<UiChat>>>,
+    GetChatHeaders {
+        reply: oneshot::Sender<anyhow::Result<Vec<UiChatHeader>>>,
     },
-    GetChat {
+    GetChatHeader {
         topic_id: String,
-        reply: oneshot::Sender<anyhow::Result<UiChat>>,
+        reply: oneshot::Sender<anyhow::Result<UiChatHeader>>,
     },
     GetChatMembers {
         topic_id: String,
@@ -83,9 +82,9 @@ pub enum UiDbRequest {
         topic_id: String,
         reply: oneshot::Sender<anyhow::Result<Option<UiMessage>>>,
     },
-    GetChatWithMessages {
+    GetChatData {
         topic_id: String,
-        reply: oneshot::Sender<anyhow::Result<UiChatsData>>,
+        reply: oneshot::Sender<anyhow::Result<UiChatData>>,
     },
     GetContacts {
         reply: oneshot::Sender<anyhow::Result<Vec<UiContact>>>,

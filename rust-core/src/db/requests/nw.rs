@@ -2,7 +2,7 @@ use crate::nw::{NwMessage, NwContact, NwChat};
 
 use anyhow::{Result, anyhow};
 use std::collections::HashMap;
-use super::NwDbWorker;
+use super::super::NwDbWorker;
 
 impl NwDbWorker {
     pub fn add_message(&self, message: NwMessage) -> Result<()>{

@@ -1,5 +1,4 @@
-mod nw_requests;
-mod ui_requests;
+mod requests;
 pub mod workers;
 mod manager;
 use std::thread::JoinHandle;

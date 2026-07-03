@@ -4,16 +4,28 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import com.example.jg04.KotlinLogger
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import uniffi.rust_api.UiEvent
 import uniffi.rust_api.UiEventListener
 
 class UiEventListenerImpl : UiEventListener {
+    
+    private val _chatHeadersInvalidated = MutableSharedFlow<Unit>(extraBufferCapacity = 16)
+    val chatHeadersInvalidated = _chatHeadersInvalidated.asSharedFlow()
+
+    private val _contactsInvalidated = MutableSharedFlow<Unit>(extraBufferCapacity = 16)
+    val contactsInvalidated = _contactsInvalidated.asSharedFlow()
+
+    private val _chatDataChanged = MutableSharedFlow<String>(extraBufferCapacity = 16)
+    val chatDataInvalidated = _chatDataChanged.asSharedFlow()
 
     val events = Channel<UiEvent>(capacity = 128)
 
     override fun onEvent(event: UiEvent) {
         val result = events.trySend(event)
 
+        KotlinLogger.info("UI events", "onEvent triggered, emitting: $result")
         if (result.isFailure) {
             KotlinLogger.error(
                 "Notification system",
@@ -21,11 +33,6 @@ class UiEventListenerImpl : UiEventListener {
             )
         }
     }
-}
-
-class UiEventProcessor(
-    private val listener: UiEventListenerImpl
-) {
 
     fun start(scope: CoroutineScope) {
 
@@ -33,12 +40,12 @@ class UiEventProcessor(
 
             while (true) {
 
-                val first = listener.events.receive()
+                val first = events.receive()
 
                 val batch = mutableListOf(first)
 
                 while (true) {
-                    val next = listener.events.tryReceive().getOrNull()
+                    val next = events.tryReceive().getOrNull()
                         ?: break
                     batch.add(next)
                 }
@@ -56,9 +63,10 @@ class UiEventProcessor(
         val messageTopics = mutableSetOf<String>()
 
         for (event in batch) {
+            KotlinLogger.info("UI events", "event observed")
             when (event) {
 
-                is UiEvent.ChatListChanged -> {
+                is UiEvent.ChatHeadersChanged -> {
                     chatsDirty = true
                 }
 
@@ -66,14 +74,15 @@ class UiEventProcessor(
                     contactsDirty = true
                 }
 
-                is UiEvent.ChatMessagesChanged -> {
+                is UiEvent.ChatDataChanged -> {
                     messageTopics.add(event.topicId)
                 }
             }
         }
 
         if (chatsDirty) {
-            reloadChats()
+            KotlinLogger.info("UI events", "chat reload triggered")
+            reloadChatHeaders()
         }
 
         if (contactsDirty) {
@@ -81,19 +90,24 @@ class UiEventProcessor(
         }
 
         if (messageTopics.isNotEmpty()) {
-            reloadMessages(messageTopics)
+            reloadChatData(messageTopics)
         }
     }
 
-    private fun reloadChats() {
-        KotlinLogger.info("UI", "reloadChats")
+    private fun reloadChatHeaders() {
+        KotlinLogger.info("EventListener", "reloadChats")
+        _chatHeadersInvalidated.tryEmit(Unit)
     }
 
     private fun reloadContacts() {
-        KotlinLogger.info("UI", "reloadContacts")
+        KotlinLogger.info("EventListener", "reloadContacts")
+        _contactsInvalidated.tryEmit(Unit)
     }
 
-    private fun reloadMessages(topics: Set<String>) {
-        KotlinLogger.info("UI", "reloadMessages: $topics")
+    private fun reloadChatData(topics: Set<String>) {
+        KotlinLogger.info("EventListener", "reloadMessages: $topics")
+        for (topic in topics) {
+            _chatDataChanged.tryEmit(topic)
+        }
     }
 }

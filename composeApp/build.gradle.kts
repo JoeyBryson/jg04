@@ -7,7 +7,8 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
-    kotlin("plugin.atomicfu") version libs.versions.kotlin
+    alias(libs.plugins.kotlinSerialization)
+    // kotlin("plugin.atomicfu") version libs.versions.kotlin
 }
 
 kotlin {
@@ -34,7 +35,6 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
         }
         commonMain.dependencies {
@@ -42,12 +42,18 @@ kotlin {
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
-            implementation(libs.compose.components.resources)
-            implementation(libs.compose.uiToolingPreview)
-            implementation(compose.materialIconsExtended)
-            implementation(compose.components.resources)
-            implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
+
             implementation("com.jg04:core-lib:1.0.0")
+
+            implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
+            implementation("org.jetbrains.androidx.navigation3:navigation3-ui:1.0.0-alpha05")
+            implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3:2.10.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-core")
+
+            implementation("androidx.navigation3:navigation3-runtime:1.1.3")
+
+            //implementation("androidx.savedstate:savedstate:1.5.0")
+            api(libs.androidx.lifecycle.viewmodel)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -56,6 +62,7 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
             runtimeOnly("com.jg04:core-lib-jvm:1.0.0:linux-x86-64")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.2")
         }
     }
 }
@@ -104,3 +111,18 @@ compose.desktop {
 
     }
 }
+
+compose.resources {
+    packageOfResClass = "com.example.jg04.resources"
+}
+
+//configurations.all {
+//    resolutionStrategy.eachDependency {
+//        // Redirect any Google AndroidX Compose core dependencies to JetBrains versions
+//        if (requested.group.startsWith("androidx.compose")) {
+//            // Exclude compiler or runtime modules if necessary, but target the main UI/Foundation layers
+//            val targetGroup = requested.group.replace("androidx.compose", "org.jetbrains.compose")
+//            useTarget("$targetGroup:${requested.name}:${requested.version}")
+//        }
+//    }
+//}

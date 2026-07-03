@@ -2,33 +2,29 @@ package com.example.jg04
 
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import com.example.jg04.initializeApp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import com.example.jg04.ui.App
+import uniffi.rust_api.UiDbManagerUniffiObject
+import com.example.jg04.state.DbManagerProvider
+import com.example.jg04.state.AppCore
+import com.example.jg04.ui.MainComposable
+import uniffi.rust_api.addSampleData
+import uniffi.rust_api.initNativeLogger
+import uniffi.rust_api.resetDbForWal
 
-import java.io.File
 
 fun main() = application {
+    //initNativeLogger(NativeLogForwarder())
 
-    val dbPath = File(
-        System.getProperty("user.home"),
-        ".jg04/app.db"
-    ).apply {
-        parentFile?.mkdirs()
-    }.absolutePath
+    val dbPath = System.getProperty("user.home") + "/app.db"
 
-    val runtime = initializeApp(
-        AppDependencies(
-            dbPath = dbPath,
-            scope = CoroutineScope(Dispatchers.Default)
-        )
-    )
+    resetDbForWal(dbPath)
+    addSampleData(dbPath)
+
+    AppCore.initialize(dbPath)
 
     Window(
         onCloseRequest = ::exitApplication,
         title = "jg04"
     ) {
-        App(runtime.model)
+        MainComposable()
     }
 }

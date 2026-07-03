@@ -1,4 +1,4 @@
-package com.example.test
+package com.example.jg04.ui.icons
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathFillType
@@ -10,12 +10,12 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
 @Suppress("CheckReturnValue")
-public val settings: ImageVector
+public val settingsIcon: ImageVector
     get() {
-        if (_settings != null) {
-            return _settings!!
+        if (_settingsIcon != null) {
+            return _settingsIcon!!
         }
-        _settings =
+        _settingsIcon =
             ImageVector.Builder(
                 name = "settings",
                 defaultWidth = 24.dp,
@@ -122,7 +122,7 @@ public val settings: ImageVector
                     }
                 }
                 .build()
-        return _settings!!
+        return _settingsIcon!!
     }
 
-private var _settings: ImageVector? = null
+private var _settingsIcon: ImageVector? = null

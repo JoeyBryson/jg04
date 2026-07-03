@@ -4,8 +4,7 @@ use tokio::sync::oneshot;
 
 use crate::db::{NwDbManager};
 
-mod db_client;
-mod db_manager;
+mod db;
 
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct NwMessage {

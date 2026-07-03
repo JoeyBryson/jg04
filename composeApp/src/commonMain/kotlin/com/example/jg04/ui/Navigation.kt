@@ -1,259 +1,144 @@
 package com.example.jg04.ui
 
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import uniffi.rust_api.UiChat
-import uniffi.rust_api.UiChatWithMessages
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBar
-import uniffi.rust_api.UiContact
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.ui.NavDisplay
+import androidx.navigation3.runtime.rememberNavBackStack
+import kotlinx.serialization.Serializable
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.*
+import kotlinx.serialization.modules.polymorphic
+import kotlinx.serialization.modules.subclass
+import androidx.savedstate.serialization.SavedStateConfiguration
+import com.example.jg04.KotlinLogger
+import com.example.jg04.state.HomePageVM
+import com.example.jg04.state.ChatPageVM
+import com.example.jg04.state.NewChatPageVM
+import com.example.jg04.state.HomePageVMFactory
+import com.example.jg04.state.chatPageVMFactory
+import com.example.jg04.state.NewChatPageVMFactory
+import com.example.jg04.ui.screens.ChatListScreen
+import com.example.jg04.ui.screens.ChatScreen
+import com.example.jg04.ui.screens.NewChatContent
+import com.example.jg04.ui.screens.NewChatScreen
+import com.example.jg04.ui.screens.PlaceholderScreen
+import kotlinx.serialization.modules.SerializersModule
+
+
+@Serializable data object Home : NavKey
+@Serializable data object NewChat : NavKey
+@Serializable data object ContactShare : NavKey
+@Serializable data object AddContact : NavKey
+@Serializable data object Settings : NavKey
+@Serializable data object Contacts : NavKey
+@Serializable data class Chat(val topicId: String) : NavKey
+
+
+
+val screenKeyConfig = SavedStateConfiguration {
+    serializersModule = SerializersModule {
+        polymorphic(NavKey::class) {
+            subclass(Home::class)
+            subclass(NewChat::class)
+            subclass(ContactShare::class)
+            subclass(AddContact::class)
+            subclass(Settings::class)
+            subclass(Contacts::class)
+            subclass(Chat::class)
+        }
+    }
+}
+
 
 @Composable
-fun AppNavigation(
-    currentScreen: Screen,
-    chatList: List<UiChat>,
-    chatsWithMessages: Map<String, UiChatWithMessages>,
-    contacts: Map<String, UiContact>,
-    onNavigateToChat: (String) -> Unit,
-    onNavigateToShareProfile: () -> Unit,
-    onNavigateToNewChat: () -> Unit,
-    onNavigateToNewContact: () -> Unit,
-    onNavigateToContacts: () -> Unit,
-    onNavigateToSettings: () -> Unit,
-    onBack: () -> Unit
-) {
+fun Navigator() {
+    val backStack = rememberNavBackStack(
+        configuration = screenKeyConfig,
+        Home
+    )
 
-    AnimatedContent(
-        targetState = currentScreen,
-        transitionSpec = { fadeIn() togetherWith fadeOut() }
-    ) { targetScreen ->
+    val onBack: () -> Unit = {
+        KotlinLogger.info("Navigation", "back button pressed")
+        backStack.removeLastOrNull()
+    }
 
-        when (targetScreen) {
+    fun fadeContentTransform() = ContentTransform(
+        targetContentEnter = fadeIn(tween(300)),
+        initialContentExit = fadeOut(tween(300))
+    )
 
-            is Screen.ChatLists -> {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        NavDisplay(
+            backStack = backStack,
+            onBack = onBack,
+            transitionSpec = {fadeContentTransform()},
+            predictivePopTransitionSpec = {fadeContentTransform()},
+            popTransitionSpec = {fadeContentTransform()},
 
-                ChatListScreen(
-                    chats = chatList,
-                    onChatClick = onNavigateToChat,
-                    onShareProfileClick = onNavigateToShareProfile,
-                    onNewChatClick = onNavigateToNewChat,
-                    onNewContactClick = onNavigateToNewContact,
-                    onContactsClick = onNavigateToContacts,
-                    onSettingsClick = onNavigateToSettings
-                )
-            }
+            entryDecorators = listOf(
+                rememberSaveableStateHolderNavEntryDecorator(),
+                rememberViewModelStoreNavEntryDecorator()
+            ),
+            entryProvider = { key ->
+            when (key) {
+                is Home -> NavEntry(key) {
+                    val vm: HomePageVM = viewModel(factory = HomePageVMFactory)
+                    val chatheaders by vm.chatHeaders.collectAsState()
+                    val chatList by remember(chatheaders) { derivedStateOf { chatheaders.values.toList() } }
 
-            is Screen.Chat -> {
-
-                val fullChatData =
-                    chatsWithMessages[targetScreen.topicId]
-
-                if (fullChatData != null) {
-
+                    ChatListScreen(
+                        chats = chatList,
+                        onChatClick = { backStack.add(Chat(it)) },
+                        onShareProfileClick = { backStack.add(ContactShare) },
+                        onNewChatClick = { backStack.add(NewChat) },
+                        onNewContactClick = { backStack.add(AddContact) },
+                        onContactsClick = { backStack.add(Contacts) },
+                        onSettingsClick = { backStack.add(Settings) }
+                    )
+                }
+                is Chat -> NavEntry(key) {
+                    val vm: ChatPageVM = viewModel(factory = chatPageVMFactory(key.topicId))
+                    val chatData by vm.chatData.collectAsState()
                     ChatScreen(
-                        chat = fullChatData,
+                        chatData,
                         onBackPress = onBack
                     )
+                }
+                is NewChat -> NavEntry(key) {
+                    val vm: NewChatPageVM = viewModel(factory = NewChatPageVMFactory)
+                    val contacts by vm.contacts.collectAsState()
+                    NewChatScreen(
+                        contacts,
+                        onBackPress = onBack,
+                        onCreateChat = {})
 
-                } else {
-
-                    ErrorScreen("Chat data failed to load")
+                }
+                else -> NavEntry(key) {
+                    PlaceholderScreen(
+                        title = "Placeholder Screen",
+                        onBack = onBack,
+                        {}
+                    )
                 }
             }
-
-            is Screen.ShareProfile -> {
-                ShareProfileScreen(onBack = onBack)
-            }
-
-            is Screen.NewChat -> {
-                NewChatScreen(onBack = onBack,
-                    contacts,
-                    {})
-            }
-
-            is Screen.NewContact -> {
-                NewContactScreen(onBack = onBack)
-            }
-
-            is Screen.Contacts -> {
-                ContactsScreen(onBack = onBack)
-            }
-
-            is Screen.Settings -> {
-                SettingsScreen(onBack = onBack)
-            }
         }
-    }
-}
-
-class NavigationController(initialScreen: Screen) {
-
-    private val _stack =
-        mutableStateListOf<Screen>(initialScreen)
-
-    val currentScreen: Screen
-        get() = _stack.last()
-
-    fun navigateTo(screen: Screen) {
-        _stack.add(screen)
-    }
-
-    fun pop(): Boolean {
-
-        return if (_stack.size > 1) {
-
-            _stack.removeAt(_stack.lastIndex)
-            true
-
-        } else {
-
-            false
-        }
-    }
-}
-
-sealed interface Screen {
-
-    data object ChatLists : Screen
-
-    data class Chat(
-        val topicId: String
-    ) : Screen
-
-    data object ShareProfile : Screen
-
-    data object NewChat : Screen
-
-    data object NewContact : Screen
-
-    data object Contacts : Screen
-
-    data object Settings : Screen
-}
-
-@Composable
-fun ShareProfileScreen(
-    onBack: () -> Unit
-) {
-    PlaceholderScreen(
-        title = "Share Profile Screen",
-        onBack = onBack,
-        {}
-    )
-}
-
-@Composable
-fun NewChatScreen(
-    onBack: () -> Unit,
-    contacts: Map<String, UiContact>,
-    onCreateChat: (List<UiContact>) -> Unit
-) {
-
-    PlaceholderScreen(
-        title = "New Chat",
-        onBack = onBack
-    ) {
-
-        NewChatContent(
-            contacts = contacts,
-            onCreateChat = onCreateChat
         )
-    }
-}
-
-@Composable
-fun NewContactScreen(
-    onBack: () -> Unit
-) {
-    PlaceholderScreen(
-        title = "New Contact Screen",
-        onBack = onBack,
-        {}
-    )
-}
-
-@Composable
-fun ContactsScreen(
-    onBack: () -> Unit
-) {
-    PlaceholderScreen(
-        title = "Contacts Screen",
-        onBack = onBack,
-        {}
-    )
-}
-
-@Composable
-fun SettingsScreen(
-    onBack: () -> Unit
-) {
-    PlaceholderScreen(
-        title = "Settings Screen",
-        onBack = onBack,
-        {}
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PlaceholderScreen(
-    title: String,
-    onBack: () -> Unit,
-    content: @Composable () -> Unit
-) {
-
-    Scaffold(
-
-        topBar = {
-
-            TopAppBar(
-
-                title = {
-                    Text(title)
-                },
-
-                navigationIcon = {
-
-                    IconButton(
-                        onClick = onBack
-                    ) {
-
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            )
-        }
-
-    ) { paddingValues ->
-
-        Box(
-
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-
-        ) {
-
-            content()
-        }
     }
 }

@@ -4,6 +4,7 @@ use hex;
 
 use super::{NwChat, NwContact, NwDbClient, NwDbRequest, NwMessage};
 use crate::notifications::{UiEvent, emit_ui_event};
+use super::{NwDbManager};
 
 impl NwDbClient {
     async fn send_request<T>(
@@ -37,9 +38,10 @@ impl NwDbClient {
         )
         .await?;
 
-        emit_ui_event(UiEvent::ChatMessagesChanged { 
+        emit_ui_event(UiEvent::ChatDataChanged { 
             topic_id: hex::encode(topic_id) 
         });
+        emit_ui_event(UiEvent::ChatHeadersChanged);
 
         Ok(())
     }
@@ -73,7 +75,7 @@ impl NwDbClient {
         )
         .await?;
 
-        emit_ui_event(UiEvent::ChatListChanged);
+        emit_ui_event(UiEvent::ChatHeadersChanged);
 
         Ok(())
     }
@@ -149,8 +151,12 @@ impl NwDbClient {
             endpoint_id: vec![1u8; 32],
         };
 
-        let topic_id = vec![2u8; 32];
-        let sent_at = 1779490800000i64 + 60000 * (time as i64);
+        let topic_id = vec![100 as u8; 32];
+        let sent_at = 1779490800000i64 + 60000 * (((time as i64) +300));
+        // let sent_at =
+        //             1779490800000i64
+        //             + (chat_index as i64 * 1_000_000)
+        //             + (message_index as i64 * 60_000)
         let from_me = time % 3 == 0;
 
         let endpoint_id = if from_me {
@@ -167,7 +173,7 @@ impl NwDbClient {
             topic_id: topic_id.clone(),
             from_me,
             endpoint_id,
-            content: format!("Sample message {}", time + 1),
+            content: format!("Sample message {}", 300+time + 1),
             sent_at,
         };
 
@@ -235,7 +241,7 @@ impl NwDbClient {
 
             self.add_chat(chat).await?;
 
-            for message_index in 0..10 {
+            for message_index in 0..300 {
 
                 let sent_at =
                     1779490800000i64
@@ -272,4 +278,19 @@ impl NwDbClient {
         Ok(())
     }
 
+}
+
+
+
+impl NwDbManager {
+    pub fn create_client(
+        &self
+    ) -> NwDbClient {
+
+        let worker_tx = self.worker_tx();
+
+        NwDbClient {
+            worker_tx
+        }
+    }
 }

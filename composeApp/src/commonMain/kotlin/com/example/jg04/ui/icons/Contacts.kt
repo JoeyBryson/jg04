@@ -10,12 +10,12 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
 @Suppress("CheckReturnValue")
-public val ContactsIcon: ImageVector
+public val contactsIcon: ImageVector
     get() {
-        if (_ContactsIcon != null) {
-            return _ContactsIcon!!
+        if (_contactsIcon != null) {
+            return _contactsIcon!!
         }
-        _ContactsIcon =
+        _contactsIcon =
             ImageVector.Builder(
                 name = "group",
                 defaultWidth = 24.dp,
@@ -113,7 +113,7 @@ public val ContactsIcon: ImageVector
                     }
                 }
                 .build()
-        return _ContactsIcon!!
+        return _contactsIcon!!
     }
 
-private var _ContactsIcon: ImageVector? = null
+private var _contactsIcon: ImageVector? = null

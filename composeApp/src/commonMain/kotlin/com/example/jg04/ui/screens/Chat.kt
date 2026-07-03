@@ -1,14 +1,23 @@
 package com.example.jg04.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -18,11 +27,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.jg04.ui.icons.arrowBackIcon
 import com.example.jg04.ui.icons.sendIcon
+import com.example.jg04.ui.icons.doubleArrowDownIcon
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import uniffi.rust_api.UiChatData
 import uniffi.rust_api.UiMessage
 import uniffi.rust_api.UiSender
@@ -43,17 +56,57 @@ fun ChatScreen(
     chat: UiChatData,
     onBackPress: () -> Unit
 ) {
-
     var messageText by remember { mutableStateOf("") }
+
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // ---- bottom detection (stable + cheap) ----
+    val isAtBottom by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()
+                ?: return@derivedStateOf true
+
+            lastVisible.index >= layoutInfo.totalItemsCount - 1
+        }
+    }
+
+    // ---- single scroll controller ----
+    val scrollJob = remember { mutableStateOf<Job?>(null) }
+
+    fun scrollToBottom(animated: Boolean) {
+        scrollJob.value?.cancel()
+        scrollJob.value = coroutineScope.launch {
+            val target = (chat.messages.size - 1).coerceAtLeast(0)
+
+            if (animated) {
+                listState.animateScrollToItem(target)
+            } else {
+                listState.scrollToItem(target)
+            }
+        }
+    }
+
+    // ---- initial load jump (no animation) ----
+    LaunchedEffect(chat.messages.isNotEmpty()) {
+        if (chat.messages.isNotEmpty()) {
+            listState.scrollToItem(chat.messages.lastIndex)
+        }
+    }
+
+    // ---- auto-follow only when already at bottom ----
+    LaunchedEffect(chat.messages.size) {
+        if (chat.messages.isNotEmpty() && isAtBottom) {
+            listState.scrollToItem(chat.messages.lastIndex)
+        }
+    }
 
     fun sendMessage() {
         val trimmed = messageText.trim()
-
         if (trimmed.isBlank()) return
 
-        // TODO:
-        // SendMessage(chat.chat.topicId, trimmed)
-
+        // TODO: send message
         messageText = ""
     }
 
@@ -73,10 +126,37 @@ fun ChatScreen(
         }
     ) { paddingValues ->
 
-        MessageList(
-            messages = chat.messages,
-            modifier = Modifier.padding(paddingValues)
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            MessageList(
+                messages = chat.messages,
+                listState = listState,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            if (!isAtBottom) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                ) {
+                    FloatingActionButton(
+                        onClick = { scrollToBottom(animated = false) },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = doubleArrowDownIcon,
+                            contentDescription = "Scroll to bottom"
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -87,15 +167,10 @@ fun ChatTopBar(
     onBackPress: () -> Unit
 ) {
     TopAppBar(
-        title = {
-            Text(text = title)
-        },
+        title = { Text(text = title) },
         navigationIcon = {
             IconButton(onClick = onBackPress) {
-                Icon(
-                    imageVector = arrowBackIcon,
-                    contentDescription = "Back"
-                )
+                Icon(imageVector = arrowBackIcon, contentDescription = "Back")
             }
         }
     )
@@ -104,10 +179,11 @@ fun ChatTopBar(
 @Composable
 fun MessageList(
     messages: List<UiMessage>,
+    listState: LazyListState,
     modifier: Modifier = Modifier
 ) {
-
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -124,28 +200,22 @@ fun MessageInputBar(
     onMessageTextChanged: (String) -> Unit,
     onSendClick: () -> Unit
 ) {
-
     Surface(
         shadowElevation = 4.dp,
-        modifier = Modifier.windowInsetsPadding(
-            WindowInsets.navigationBars
-        )
+        modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
     ) {
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-
             MessageTextField(
                 value = messageText,
                 onValueChange = onMessageTextChanged,
                 onSend = onSendClick,
                 modifier = Modifier.weight(1f)
             )
-
             SendButton(
                 enabled = messageText.isNotBlank(),
                 onClick = onSendClick
@@ -161,23 +231,14 @@ fun MessageTextField(
     onSend: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
     TextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
-        placeholder = {
-            Text("Message")
-        },
+        placeholder = { Text("Message") },
         maxLines = 4,
-        keyboardOptions = KeyboardOptions(
-            imeAction = ImeAction.Send
-        ),
-        keyboardActions = KeyboardActions(
-            onSend = {
-                onSend()
-            }
-        )
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+        keyboardActions = KeyboardActions(onSend = { onSend() })
     )
 }
 
@@ -186,26 +247,17 @@ fun SendButton(
     enabled: Boolean,
     onClick: () -> Unit
 ) {
-
-    IconButton(
-        enabled = enabled,
-        onClick = onClick
-    ) {
-        Icon(
-            imageVector = sendIcon,
-            contentDescription = "Send Message",
-        )
+    IconButton(enabled = enabled, onClick = onClick) {
+        Icon(imageVector = sendIcon, contentDescription = "Send Message")
     }
 }
 
 @Composable
 fun MessageRow(msg: UiMessage) {
-
     val arrangement = when (msg.sender) {
         is UiSender.Me -> Arrangement.End
         is UiSender.Other -> Arrangement.Start
     }
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = arrangement
@@ -216,7 +268,6 @@ fun MessageRow(msg: UiMessage) {
 
 @Composable
 fun MessageCard(msg: UiMessage) {
-
     var isSelected by remember { mutableStateOf(false) }
 
     val surfaceColor by animateColorAsState(
@@ -235,15 +286,9 @@ fun MessageCard(msg: UiMessage) {
         modifier = Modifier
             .animateContentSize()
             .padding(1.dp)
-            .clickable {
-                isSelected = !isSelected
-            }
+            .clickable { isSelected = !isSelected }
     ) {
-
-        Column(
-            modifier = Modifier.padding(8.dp)
-        ) {
-
+        Column(modifier = Modifier.padding(8.dp)) {
             when (val sender = msg.sender) {
                 is UiSender.Other -> {
                     Text(
@@ -256,13 +301,8 @@ fun MessageCard(msg: UiMessage) {
                 is UiSender.Me -> {}
             }
 
-            Text(
-                text = msg.content,
-                style = MaterialTheme.typography.bodyMedium
-            )
-
+            Text(text = msg.content, style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(4.dp))
-
             Text(
                 text = formatTime(msg.sentAt),
                 style = MaterialTheme.typography.bodySmall,

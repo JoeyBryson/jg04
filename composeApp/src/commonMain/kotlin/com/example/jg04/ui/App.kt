@@ -2,98 +2,68 @@ package com.example.jg04.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.example.jg04.data.AppModel
+import androidx.compose.ui.unit.dp
 import com.example.jg04.ui.theme.ComposeTutorialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.dp
+
+import com.example.jg04.testing.FpsCounter
 
 @Composable
-fun App(model: AppModel) {
-
+fun MainComposable() {
     ComposeTutorialTheme {
+        Box {
+            Navigator()
 
-        val navController =
-            remember {
-                NavigationController(
-                    initialScreen = Screen.ChatLists
-                )
-            }
-
-        val chats by model.chats.collectAsState()
-        val chatsWithMessages by model.chatData.collectAsState()
-        val contacts by model.contacts.collectAsState()
-
-        Surface(
-            modifier = Modifier.fillMaxSize()
-        ) {
-
-            val chatList by remember(chats) { derivedStateOf { chats.values.toList() } }
-
-            if (chatList.isNotEmpty()) {
-
-                AppNavigation(
-                    currentScreen = navController.currentScreen,
-                    chatList = chatList,
-                    chatsWithMessages = chatsWithMessages,
-                    contacts = contacts,
-                    onNavigateToChat = { id ->
-                        navController.navigateTo(
-                            Screen.Chat(topicId = id)
-                        )
-                    },
-
-                    onNavigateToShareProfile = {
-                        navController.navigateTo(
-                            Screen.ShareProfile
-                        )
-                    },
-
-                    onNavigateToNewChat = {
-                        navController.navigateTo(
-                            Screen.NewChat
-                        )
-                    },
-
-                    onNavigateToNewContact = {
-                        navController.navigateTo(
-                            Screen.NewContact
-                        )
-                    },
-
-                    onNavigateToContacts = {
-                        navController.navigateTo(
-                            Screen.Contacts
-                        )
-                    },
-
-                    onNavigateToSettings = {
-                        navController.navigateTo(
-                            Screen.Settings
-                        )
-                    },
-
-                    onBack = {
-                        navController.pop()
-                    }
-                )
-
-            } else {
-
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-
-                    CircularProgressIndicator()
-                }
-            }
+            FpsOverlay(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            )
         }
+    }
+}
+
+@Composable
+fun FpsOverlay(
+    modifier: Modifier = Modifier
+) {
+    val fpsCounter = remember { FpsCounter() }
+
+    LaunchedEffect(Unit) {
+        fpsCounter.start(this)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            fpsCounter.stop()
+        }
+    }
+
+    Surface(
+        modifier = modifier,
+        tonalElevation = 4.dp
+    ) {
+        Text(
+            "FPS: ${fpsCounter.fps}",
+            modifier = Modifier.padding(8.dp)
+        )
     }
 }

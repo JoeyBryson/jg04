@@ -58,10 +58,10 @@ impl UiDbWorker {
 
         while let Some(request) = self.worker_rx.blocking_recv() {
             match request {
-                UiDbRequest::GetChats { reply } => 
+                UiDbRequest::GetChatHeaders { reply } => 
                     send_reply(reply, self.get_chats()),
 
-                UiDbRequest::GetChat { topic_id, reply } => 
+                UiDbRequest::GetChatHeader { topic_id, reply } => 
                     send_reply(reply, self.get_chat(&topic_id)),
 
                 UiDbRequest::GetChatMembers { topic_id, reply } => 
@@ -73,7 +73,7 @@ impl UiDbWorker {
                 UiDbRequest::GetChatLastMessage { topic_id, reply } => 
                     send_reply(reply, self.get_chat_last_message(&topic_id)),
 
-                UiDbRequest::GetChatWithMessages { topic_id, reply } => 
+                UiDbRequest::GetChatData { topic_id, reply } => 
                     send_reply(reply, self.get_chat_with_messages(&topic_id)),
 
                 UiDbRequest::GetContacts { reply } => 

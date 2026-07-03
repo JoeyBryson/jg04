@@ -1,7 +1,7 @@
-use crate::ui::{UiChat, UiChatsData, UiContact, UiMessage, UiSender};
+use crate::ui::{UiChatHeader, UiChatData, UiContact, UiMessage, UiSender};
 use anyhow::Result;
 use rusqlite::{Row, OptionalExtension}; // Added OptionalExtension
-use super::UiDbWorker;
+use super::super::UiDbWorker;
 
 impl UiDbWorker {
 
@@ -84,7 +84,7 @@ impl UiDbWorker {
     pub fn get_chat(
         &self,
         topic_id: &str
-    ) -> Result<UiChat> {
+    ) -> Result<UiChatHeader> {
         let topic_id_bytes = Self::decode_hex_id(topic_id)?;
 
         let name: Option<String> = self.conn.query_row(
@@ -93,7 +93,7 @@ impl UiDbWorker {
             |row| row.get(0),
         )?;
 
-        Ok(UiChat {
+        Ok(UiChatHeader {
             name,
             members: self.get_chat_members(topic_id)?,
             topic_id: topic_id.to_string(),
@@ -101,7 +101,7 @@ impl UiDbWorker {
         })
     }
 
-    pub fn get_chats(&self) -> Result<Vec<UiChat>> {
+    pub fn get_chats(&self) -> Result<Vec<UiChatHeader>> {
         let mut stmt = self.conn.prepare("SELECT topic_id FROM chats")?;
 
         let topic_ids = stmt
@@ -138,8 +138,8 @@ impl UiDbWorker {
     pub fn get_chat_with_messages(
         &self,
         topic_id: &str
-    ) -> Result<UiChatsData> {
-        Ok(UiChatsData {
+    ) -> Result<UiChatData> {
+        Ok(UiChatData {
             chat: self.get_chat(topic_id)?,
             messages: self.get_chat_messages(topic_id)?,
         })

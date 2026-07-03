@@ -1,4 +1,4 @@
-package com.example.jg04.state
+package com.example.jg04.testing
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

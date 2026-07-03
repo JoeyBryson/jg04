@@ -14,13 +14,11 @@ import androidx.compose.ui.unit.dp
 import uniffi.rust_api.UiChatHeader
 
 // Import the generated Res bundle and your explicit icons
-import com.example.jg04.resources.Res
-import com.example.jg04.resources.add_comment
-import com.example.jg04.resources.group
-import com.example.jg04.resources.person_add
-import com.example.jg04.resources.settings
-import com.example.jg04.resources.share
-import org.jetbrains.compose.resources.painterResource
+import com.example.jg04.ui.icons.shareIcon
+import com.example.jg04.ui.icons.contactsIcon
+import com.example.jg04.ui.icons.settingsIcon
+import com.example.jg04.ui.icons.newChatIcon
+import com.example.jg04.ui.icons.personAddIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,33 +74,36 @@ fun ChatListTopBar(
     TopAppBar(
         title = { Text("Chats") },
         actions = {
-            IconButton(onClick = onShareProfileClick) {
-                Icon(
-                    painter = painterResource(Res.drawable.share),
-                    contentDescription = "Share Profile"
-                )
-            }
             IconButton(onClick = onNewChatClick) {
                 Icon(
-                    painter = painterResource(Res.drawable.add_comment),
+                    imageVector = newChatIcon,
                     contentDescription = "New Chat"
                 )
             }
+            IconButton(onClick = onShareProfileClick) {
+                Icon(
+                    imageVector = shareIcon,
+                    contentDescription = "Share Profile"
+                )
+            }
+
             IconButton(onClick = onNewContactClick) {
                 Icon(
-                    painter = painterResource(Res.drawable.person_add),
+                    imageVector = personAddIcon,
                     contentDescription = "New Contact"
                 )
             }
+
             IconButton(onClick = onContactsClick) {
                 Icon(
-                    painter = painterResource(Res.drawable.group),
-                    contentDescription = "Contacts"
+                    imageVector = contactsIcon,
+                    contentDescription = "New Contact"
                 )
             }
+
             IconButton(onClick = onSettingsClick) {
                 Icon(
-                    painter = painterResource(Res.drawable.settings),
+                    imageVector = settingsIcon,
                     contentDescription = "Settings"
                 )
             }
