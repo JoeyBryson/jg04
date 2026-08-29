@@ -2,13 +2,13 @@
 use tokio::{runtime::Runtime};
 use std::result::Result;
 // use crate::nw::network_engine;
-use crate::db::NwDbManager;
-use crate::ui::UiDbError;
+use crate::database::NwDbManager;
+use crate::ffi_error::FfiError;
 use std::path::PathBuf;
 
 pub const SCHEMA: &str = include_str!("../sql/schema.sql");
 
-fn parse_path(path_str: &str) -> PathBuf {
+pub fn parse_path(path_str: &str) -> PathBuf {
     // This is completely infallible and converts the &str directly into a PathBuf
     PathBuf::from(path_str)
 }
@@ -16,11 +16,11 @@ fn parse_path(path_str: &str) -> PathBuf {
 
 
 #[uniffi::export]
-pub fn reset_db_for_wal(db_path_string: String) -> Result<(), UiDbError> {
+pub fn reset_db_for_wal(db_path_string: String) -> Result<(), FfiError> {
     let db_path = parse_path(&db_path_string);
     
     if db_path.exists() {
-        std::fs::remove_file(&db_path).map_err(|e| UiDbError::InternalError {
+        std::fs::remove_file(&db_path).map_err(|e| FfiError::Internal {
             msg: format!("Failed to delete db file: {}", e),
         })?;
     }
@@ -35,20 +35,20 @@ pub fn reset_db_for_wal(db_path_string: String) -> Result<(), UiDbError> {
         let _ = std::fs::remove_file(&shm_path);
     }
 
-    let connection = rusqlite::Connection::open(&db_path).map_err(|e| UiDbError::InternalError {
+    let connection = rusqlite::Connection::open(&db_path).map_err(|e| FfiError::Internal {
         msg: format!("Failed to create empty database: {}", e),
     })?;
 
     let _: String = connection
         .query_row("PRAGMA journal_mode=WAL;", [], |row| row.get(0))
-        .map_err(|e| UiDbError::InternalError {
+        .map_err(|e| FfiError::Internal {
             msg: format!("Failed to set WAL mode: {}", e),
         })?;
 
     // Execute the schema batch directly on the fresh connection
     connection.execute_batch(SCHEMA).map_err(|e| {
         log::error!("[DB] schema failed: {}", e);
-        UiDbError::InternalError {
+        FfiError::Internal {
             msg: format!("Schema execution failed: {}", e),
         }
     })?;
@@ -60,16 +60,16 @@ pub fn reset_db_for_wal(db_path_string: String) -> Result<(), UiDbError> {
 #[uniffi::export]
 pub fn add_sample_messages(
     db_path_string: String,
-) -> Result<(), UiDbError> {
+) -> Result<(), FfiError> {
     let manager = NwDbManager::spawn(parse_path(&db_path_string))?;
     let client = manager.create_client();
 
     let rt = Runtime::new()
-        .map_err(|e| UiDbError::InternalError { msg: e.to_string() })?;
+        .map_err(|e| FfiError::Internal { msg: e.to_string() })?;
 
     rt.block_on(async move {
         client.add_sample_chat().await
-    }).map_err(|e| UiDbError::InternalError { 
+    }).map_err(|e| FfiError::Internal { 
         msg: format!("Failed to add sample chat: {}", e) 
     })?;
 
@@ -79,17 +79,17 @@ pub fn add_sample_messages(
 pub fn add_sample_message(
     db_path_string: String,
     time: i32,
-) -> Result<(), UiDbError> {
+) -> Result<(), FfiError> {
     let manager = NwDbManager::spawn(parse_path(&db_path_string))?;
 
     let client = manager.create_client();
 
     let rt = Runtime::new()
-        .map_err(|e| UiDbError::InternalError { msg: e.to_string() })?;
+        .map_err(|e| FfiError::Internal { msg: e.to_string() })?;
 
     rt.block_on(async move {
         client.add_sample_message(time).await
-    }).map_err(|e| UiDbError::InternalError { 
+    }).map_err(|e| FfiError::Internal { 
         msg: format!("Failed to add sample message: {}", e) 
     })?;
 
@@ -99,7 +99,7 @@ pub fn add_sample_message(
 #[uniffi::export]
 pub fn add_sample_data(
     db_path_string: String,
-) -> Result<(), UiDbError> {
+) -> Result<(), FfiError> {
 
     let manager =
         NwDbManager::spawn(parse_path(&db_path_string))?;
@@ -107,14 +107,14 @@ pub fn add_sample_data(
     let client = manager.create_client();
 
     let rt = Runtime::new()
-        .map_err(|e| UiDbError::InternalError {
+        .map_err(|e| FfiError::Internal {
             msg: e.to_string()
         })?;
 
     rt.block_on(async move {
         client.add_sample_data().await
     })
-    .map_err(|e| UiDbError::InternalError {
+    .map_err(|e| FfiError::Internal {
         msg: format!(
             "Failed to add sample data: {}",
             e

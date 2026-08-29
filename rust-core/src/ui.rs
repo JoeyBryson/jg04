@@ -1,34 +1,11 @@
-use crate::db::UiDbManager;
+use crate::database::UiDbManager;
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 use std::sync::Arc;
 use anyhow;
 use uniffi;
-mod db;
+mod db_client;
 
-
-#[derive(uniffi::Error, Debug)]
-pub enum UiDbError {
-    InternalError { msg: String },
-}
-
-impl std::fmt::Display for UiDbError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            UiDbError::InternalError { msg } => write!(f, "Internal error: {}", msg),
-        }
-    }
-}
-
-impl From<anyhow::Error> for UiDbError {
-    fn from(err: anyhow::Error) -> Self {
-        UiDbError::InternalError {
-            msg: err.to_string(),
-        }
-    }
-}
-
-impl std::error::Error for UiDbError {}
 
 #[derive(uniffi::Enum)]
 pub enum UiSender {
@@ -63,6 +40,9 @@ pub struct UiChatData {
 
 
 pub enum UiDbRequest {
+    ProfileExists {
+        reply: oneshot::Sender<anyhow::Result<bool>>,
+    },
     GetChatHeaders {
         reply: oneshot::Sender<anyhow::Result<Vec<UiChatHeader>>>,
     },
@@ -93,11 +73,5 @@ pub enum UiDbRequest {
 
 #[derive(uniffi::Object)]
 pub struct UiDbClient {
-    worker_tx: mpsc::Sender<UiDbRequest>
-}
-
-//Uniffi wrapper since it cannot handle generic definitions
-#[derive(uniffi::Object)]
-pub struct UiDbManagerUniffiObject {
-    inner: UiDbManager
+    pub worker_tx: mpsc::Sender<UiDbRequest>
 }

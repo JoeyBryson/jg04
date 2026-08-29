@@ -1,5 +1,10 @@
 PRAGMA foreign_keys = ON;
 
+CREATE TABLE user_profile (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    secret_key BLOB NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS contacts (
     endpoint_id BLOB PRIMARY KEY,
     contact_name TEXT NOT NULL

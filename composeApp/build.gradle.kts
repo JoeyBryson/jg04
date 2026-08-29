@@ -61,7 +61,7 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
-            runtimeOnly("com.jg04:core-lib-jvm:1.0.0:linux-x86-64")
+            runtimeOnly("com.jg04:core-lib-jvm:1.0.0:linux-x86-64-debug")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.2")
         }
     }

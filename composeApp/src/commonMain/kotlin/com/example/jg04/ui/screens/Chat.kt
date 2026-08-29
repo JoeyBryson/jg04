@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -56,49 +57,45 @@ fun ChatScreen(
     chat: UiChatData,
     onBackPress: () -> Unit
 ) {
-    var messageText by remember { mutableStateOf("") }
+    var messageText by rememberSaveable { mutableStateOf("") }
+    var autoFollow by rememberSaveable { mutableStateOf(true) }
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // ---- bottom detection (stable + cheap) ----
-    val isAtBottom by remember {
-        derivedStateOf {
-            val layoutInfo = listState.layoutInfo
-            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()
-                ?: return@derivedStateOf true
+    val followThreshold = 1
 
-            lastVisible.index >= layoutInfo.totalItemsCount - 1
-        }
-    }
-
-    // ---- single scroll controller ----
-    val scrollJob = remember { mutableStateOf<Job?>(null) }
-
-    fun scrollToBottom(animated: Boolean) {
-        scrollJob.value?.cancel()
-        scrollJob.value = coroutineScope.launch {
-            val target = (chat.messages.size - 1).coerceAtLeast(0)
-
-            if (animated) {
-                listState.animateScrollToItem(target)
-            } else {
-                listState.scrollToItem(target)
-            }
-        }
-    }
-
-    // ---- initial load jump (no animation) ----
-    LaunchedEffect(chat.messages.isNotEmpty()) {
-        if (chat.messages.isNotEmpty()) {
-            listState.scrollToItem(chat.messages.lastIndex)
-        }
-    }
-
-    // ---- auto-follow only when already at bottom ----
     LaunchedEffect(chat.messages.size) {
-        if (chat.messages.isNotEmpty() && isAtBottom) {
+
+        if (autoFollow && chat.messages.isNotEmpty()) {
+
             listState.scrollToItem(chat.messages.lastIndex)
+        }
+    }
+
+    LaunchedEffect(listState,  chat.messages.size) {
+        snapshotFlow {
+            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+        }.collect { lastVisible ->
+            val lastIndex = chat.messages.lastIndex
+            val newAutoFollow =
+                lastVisible != null &&
+                        lastVisible >= lastIndex - followThreshold
+
+            autoFollow = newAutoFollow
+        }
+    }
+
+
+
+    fun scrollToBottom() {
+
+        autoFollow = true
+
+        coroutineScope.launch {
+            if (chat.messages.isNotEmpty()) {
+                listState.scrollToItem(chat.messages.lastIndex)
+            }
         }
     }
 
@@ -125,7 +122,6 @@ fun ChatScreen(
             )
         }
     ) { paddingValues ->
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -137,23 +133,20 @@ fun ChatScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            if (!isAtBottom) {
-                Box(
+            if (!autoFollow) {
+                FloatingActionButton(
+                    onClick = ::scrollToBottom,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
+                        .size(48.dp),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
-                    FloatingActionButton(
-                        onClick = { scrollToBottom(animated = false) },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = doubleArrowDownIcon,
-                            contentDescription = "Scroll to bottom"
-                        )
-                    }
+                    Icon(
+                        imageVector = doubleArrowDownIcon,
+                        contentDescription = "Scroll to bottom"
+                    )
                 }
             }
         }
@@ -201,8 +194,7 @@ fun MessageInputBar(
     onSendClick: () -> Unit
 ) {
     Surface(
-        shadowElevation = 4.dp,
-        modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+        shadowElevation = 4.dp
     ) {
         Row(
             modifier = Modifier

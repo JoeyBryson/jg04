@@ -6,7 +6,7 @@ import com.example.jg04.testing.AppBackgroundTicker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharedFlow
-import uniffi.rust_api.UiDbManagerUniffiObject
+import uniffi.rust_api.UiDbManager
 import uniffi.rust_api.addSampleMessage
 import uniffi.rust_api.initNativeLogger
 import uniffi.rust_api.registerUiEventListener
@@ -17,7 +17,7 @@ object AppCore {
 
     lateinit var _dbPath: String
         private set
-    lateinit var dbManager: UiDbManagerUniffiObject
+    lateinit var dbManager: UiDbManager
         private set
 
     lateinit var ticker: AppBackgroundTicker
@@ -40,30 +40,41 @@ object AppCore {
         _dbPath = dbPath
         KotlinLogger.info("AppCore", "Initializing Native Core Components...")
 
-        dbManager = UiDbManagerUniffiObject.spawn(dbPath)
+        dbManager = UiDbManager.spawn(dbPath)
+        start_listener()
+        start_ticker()
 
-        val success = registerUiEventListener(dbEventListener)
-        if (!success) {
-            KotlinLogger.error(
-                "AppCore",
-                "Event Listener Registration failed (already registered?)."
-            )
+        KotlinLogger.info("AppCore", "Initialization complete.")
+        initialized = true
+    }
+
+    fun profile_exists(): Boolean {
+        val dbClient = dbManager.getClient()
+        return dbClient.profileExists()
+    }
+
+    fun start_listener() {
+        runCatching {
+            registerUiEventListener(dbEventListener)
+        }.onFailure {
+            KotlinLogger.error("AppCore", "${it.message}")
         }
-        dbEventListener.start(CoroutineScope(Dispatchers.Default))
 
+        dbEventListener.start(CoroutineScope(Dispatchers.Default))
+    }
+
+    fun start_ticker() {
         ticker = AppBackgroundTicker(
             CoroutineScope(Dispatchers.Default),
-            dbPath = dbPath,
+            dbPath = _dbPath,
             onTick = { dbPath, count -> addSampleMessage(dbPath, count) }
         )
 
         ticker.start()
-
-        KotlinLogger.info("AppCore", "Initialization complete.")
     }
 }
 
 interface DbManagerProvider {
-    val dbManager: UiDbManagerUniffiObject
+    val dbManager: UiDbManager
 }
 

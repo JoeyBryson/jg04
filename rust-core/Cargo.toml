@@ -5,12 +5,17 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-uniffi = "0.29.4"
-anyhow = "1.0.102"
+uniffi = "0.29.5"
+anyhow = "1.0.104"
 rusqlite = { version = "0.39.0", features = ["bundled"] }
-tokio = { version = "1.52.0", features = ["full"] }
+tokio = { version = "1.53.1", features = ["full"] }
 log = { version = "0.4", features = ["std"] }
 hex = "0.4"
+iroh-gossip = "0.101.0"
+iroh = "1.0.3"
+serde = "1.0.229"
+futures-lite = "2.6.1"
+thiserror = "2.0.20"
 
 # This as well.
 [lib]

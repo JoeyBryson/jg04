@@ -1,6 +1,9 @@
 import gobley.gradle.GobleyHost
 import gobley.gradle.cargo.dsl.*
 import gobley.gradle.rust.targets.*
+import gobley.gradle.Variant
+import gobley.gradle.rust.targets.RustAndroidTarget
+import gobley.gradle.rust.targets.RustPosixTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -11,22 +14,39 @@ plugins {
     kotlin("plugin.atomicfu") version libs.versions.kotlin
 }
 
+uniffi {
+    generateFromLibrary {
+        namespace = "..."
+        build = RustAndroidTarget.Arm64
+        variant = Variant.Debug
+    }
+//
+//    generateFromLibrary {
+//        namespace = "..."
+//        build = RustPosixTarget.LinuxX64
+//        variant = Variant.Release
+//    }
+}
+
 kotlin {
     androidTarget {
-        publishLibraryVariants("release")
+        publishLibraryVariants("debug")
     }
     
     jvm() // Let Gobley handle the internal resources naturally
 }
 
 cargo {
+    jvmVariant = Variant.Debug
+    jvmPublishingVariant = Variant.Debug
+
     packageDirectory = layout.projectDirectory.dir("${rootDir}/rust-core")
 
     builds {
         android {}
 
         jvm {
-            embedRustLibrary = rustTarget == RustPosixTarget.LinuxX64 
+            embedRustLibrary = rustTarget == RustPosixTarget.LinuxX64
         }
     }
 }
@@ -38,7 +58,7 @@ android {
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
         ndk {
-            abiFilters += setOf("arm64-v8a", "x86_64")
+            abiFilters += setOf("arm64-v8a")
         }
     }
 

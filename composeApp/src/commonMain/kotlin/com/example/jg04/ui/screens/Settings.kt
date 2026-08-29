@@ -7,7 +7,7 @@
 //    val dbPath: String,
 //    private val savedStateHandle: SavedStateHandle
 //) : ViewModel() {
-//    val dbManager = UiDbManagerUniffiObject.spawn(dbPath)
+//    val dbManager = UiDbManager.spawn(dbPath)
 //
 //    val db = dbManager.getClient()
 //

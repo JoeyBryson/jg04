@@ -33,7 +33,6 @@ fun ChatListScreen(
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             ChatListTopBar(
                 onShareProfileClick = onShareProfileClick,
