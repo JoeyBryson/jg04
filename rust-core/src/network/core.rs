@@ -1,18 +1,18 @@
-use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr, vec};
 use futures_lite::StreamExt;
-use iroh::{Endpoint, EndpointAddr, EndpointId, endpoint, protocol::Router};
+use iroh::{Endpoint, EndpointAddr, EndpointId, PublicKey, endpoint, protocol::Router};
 use iroh_gossip::{
     api::{Event, GossipReceiver}, net::Gossip, proto::{TopicId, topic},
 };
 use iroh::{endpoint::presets, SecretKey};
 use std::println;
 use serde::{Deserialize, Serialize};
-use super::{NwDbManager, NwDbClient, NwChat, NwProfile, SetupError};
+use super::{NwDbManager, NwChat, NwProfile, SetupError};
 use tokio::{runtime};
-use crate::run::parse_path;
-use crate::ffi_error::FfiError;
-
-
+use crate::{ffi_error::FfiError, network::chat_manager};
+use std::sync::Arc;
+use super::chat_manager::ChatManager;
+use crate::database::NwDbClient;
 
 #[derive(uniffi::Object)]
 struct NwCore {
@@ -20,89 +20,44 @@ struct NwCore {
     endpoint: Endpoint,
     gossip: Gossip,
     router: Router,
-    db_manager: NwDbManager,
+    db_client: NwDbClient,
+    chat_managers: HashMap<TopicId, ChatManager>,
 }
- 
+
+#[uniffi::export]
 impl NwCore {
-    async fn start(
-        db_manager: &NwDbManager,
-        secret_key: SecretKey,
-    ) -> Result<(Endpoint, Gossip, Router), anyhow::Error> {
-        print!("lol");
-        print!("lol");
-        print!("lol");
-        let endpoint = Endpoint::builder(presets::N0)
-            .secret_key(secret_key)
-            .alpns(vec![iroh_gossip::ALPN.to_vec()])
-            .bind()
-            .await?;
-
-        let gossip = Gossip::builder().spawn(endpoint.clone());
-
-        let router = Router::builder(endpoint.clone())
-            .accept(iroh_gossip::ALPN, gossip.clone())
-            .spawn();
-
-        db_manager
-            .create_client()
-            .get_chats()
-            .await?;
-
-        Ok((endpoint, gossip, router))
-    }
-
     #[uniffi::constructor]
-    fn spawn(db_path: String) -> Result<NwCore, FfiError> {
+    fn spawn(db_client: Arc<NwDbClient>) -> Result<NwCore, FfiError> {
         let runtime = tokio::runtime::Runtime::new()
             .map_err(anyhow::Error::from)?;
 
-        let db_manager = NwDbManager::spawn(parse_path(&db_path))?;
+        let db_client_clone = (*db_client).clone();
 
-        let (endpoint, gossip, router) = runtime.block_on(async {
-            let profile = db_manager
-                .create_client()
+        let (endpoint, gossip, router, chat_managers) = runtime.block_on(async {
+
+            let profile = db_client_clone
                 .get_profile()
                 .await?;
 
-            let secret_key: [u8; 32] = profile
-                .secret_key
-                .as_slice()
-                .try_into()?;
+            let secret_key= profile.secret_key;
 
-            Self::start(
-                &db_manager,
-                SecretKey::from_bytes(&secret_key),
-            )
-            .await
-        })?;
-
-        Ok(NwCore {
-            runtime,
-            endpoint,
-            gossip,
-            router,
-            db_manager,
-        })
-    }
-
-    #[uniffi::constructor]
-    fn initialize_and_spawn(db_path: String) -> Result<NwCore, FfiError> {
-        let runtime = tokio::runtime::Runtime::new()
-            .map_err(anyhow::Error::from)?;
-
-        let db_manager = NwDbManager::spawn(parse_path(&db_path))?;
-
-        let (endpoint, gossip, router) = runtime.block_on(async {
-            let secret_key = SecretKey::generate();
-
-            db_manager
-                .create_client()
-                .set_profile(NwProfile {
-                    secret_key: secret_key.to_bytes().to_vec(),
-                })
+            let endpoint = Endpoint::builder(presets::N0)
+                .secret_key(secret_key)
+                .alpns(vec![iroh_gossip::ALPN.to_vec()])
+                .bind()
                 .await?;
 
-            Self::start(&db_manager, secret_key).await
+            let gossip = Gossip::builder()
+                .spawn(endpoint.clone());
+
+            let router = Router::builder(endpoint.clone())
+                .accept(iroh_gossip::ALPN, gossip.clone())
+                .spawn();
+            
+            let chat_managers = Self::spawn_chat_managers(db_client_clone.clone(), &gossip)
+                .await?;
+            
+            Ok::<_, anyhow::Error>((endpoint, gossip, router, chat_managers))
         })?;
 
         Ok(NwCore {
@@ -110,69 +65,28 @@ impl NwCore {
             endpoint,
             gossip,
             router,
-            db_manager,
+            db_client: db_client_clone,
+            chat_managers,
         })
     }
 }
 
-// fn spawn(db_path: String) -> Result<NwCore, FfiError> {
-//     let runtime = tokio::runtime::Runtime::new()
-//         .map_err(anyhow::Error::from)?;
+impl NwCore {
+    async fn spawn_chat_managers(db_client: NwDbClient, gossip: &Gossip) -> anyhow::Result<HashMap<TopicId, ChatManager>>{
+        let chats = db_client
+                .get_chats()
+                .await?;
 
-//     let (endpoint, gossip, router, db_manager) = runtime.block_on(async {
-//         let db_manager = NwDbManager::spawn(parse_path(&db_path))?;
+        let mut chat_managers = HashMap::new();
 
-//         let profile_client = db_manager.create_client();
+        for chat in chats {
+            let chat_manager = ChatManager::spawn(chat.clone(), &gossip, db_client.clone())
+            .await?;
 
-//         let profile = match profile_client.get_profile().await {
-//             Ok(profile) => profile,
-//             Err(e) if e.downcast_ref::<SetupError>() == Some(&SetupError::ProfileNotSet) => {
-//                 set_profile(&profile_client).await?;
-//                 profile_client.get_profile().await?
-//             }
-//             Err(e) => return Err(e),
-//         };
+            chat_managers.insert(chat.topic_id, chat_manager);
 
-//         let secret_key: [u8; 32] = profile
-//             .secret_key
-//             .as_slice()
-//             .try_into()?;
+        }
 
-//         let endpoint = Endpoint::builder(presets::N0)
-//             .secret_key(SecretKey::from_bytes(&secret_key))
-//             .alpns(vec![iroh_gossip::ALPN.to_vec()])
-//             .bind()
-//             .await?;
-
-//         let gossip = Gossip::builder().spawn(endpoint.clone());
-
-//         let router = Router::builder(endpoint.clone())
-//             .accept(iroh_gossip::ALPN, gossip.clone())
-//             .spawn();
-
-//         let chats_client = db_manager.create_client();
-//         chats_client.get_chats().await?;
-
-//         Ok((endpoint, gossip, router, db_manager))
-//     })?;
-
-//     Ok(NwCore {
-//         runtime,
-//         endpoint,
-//         gossip,
-//         router,
-//         db_manager,
-//     })
-// }
-
-// async fn set_profile(profile_client: &NwDbClient) -> anyhow::Result<()> {
-//     let key = SecretKey::generate();
-
-//     let profile = NwProfile {
-//         secret_key: key.to_bytes().to_vec(),
-//     };
-
-//     profile_client.set_profile(profile).await?;
-
-//     Ok(())
-// }
+        Ok(chat_managers)
+    }
+}

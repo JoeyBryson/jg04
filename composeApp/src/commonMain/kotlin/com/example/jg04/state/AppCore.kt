@@ -6,71 +6,176 @@ import com.example.jg04.testing.AppBackgroundTicker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharedFlow
+import uniffi.rust_api.NwCore
+import uniffi.rust_api.NwDbManager
 import uniffi.rust_api.UiDbManager
 import uniffi.rust_api.addSampleMessage
 import uniffi.rust_api.initNativeLogger
 import uniffi.rust_api.registerUiEventListener
+import uniffi.rust_api.setSecretKey
 
 object AppCore {
 
-    var initialized: Boolean = false
+    private var initialized = false
 
     lateinit var _dbPath: String
         private set
-    lateinit var dbManager: UiDbManager
+
+    lateinit var readOnlyDbManager: UiDbManager
+        private set
+
+    lateinit var readWriteDbManager: NwDbManager
         private set
 
     lateinit var ticker: AppBackgroundTicker
         private set
+
     private val dbEventListener = UiEventListenerImpl()
 
-    fun getChatHeadersInvalidation(): SharedFlow<Unit> = dbEventListener.chatHeadersInvalidated
-    fun getContactsInvalidation(): SharedFlow<Unit> = dbEventListener.contactsInvalidated
-    fun getChatDataInvalidation(): SharedFlow<String> = dbEventListener.chatDataInvalidated
+    lateinit var nwCore: NwCore
+        private set
 
+    fun getChatHeadersInvalidation(): SharedFlow<Unit> =
+        dbEventListener.chatHeadersInvalidated
+
+    fun getContactsInvalidation(): SharedFlow<Unit> =
+        dbEventListener.contactsInvalidated
+
+    fun getChatDataInvalidation(): SharedFlow<String> =
+        dbEventListener.chatDataInvalidated
+
+    fun isNwCoreInitialized(): Boolean =
+        ::nwCore.isInitialized
 
     fun initialize(dbPath: String) {
-
         initNativeLogger(NativeLogForwarder())
 
         if (initialized) {
-            KotlinLogger.warn("AppCore", "AppCore is already initialized. Skipping.")
+            KotlinLogger.warn(
+                "AppCore",
+                "AppCore is already initialized. Skipping."
+            )
             return
         }
+
         _dbPath = dbPath
-        KotlinLogger.info("AppCore", "Initializing Native Core Components...")
+        KotlinLogger.info(
+            "AppCore",
+            "Initializing Native Core Components..."
+        )
 
-        dbManager = UiDbManager.spawn(dbPath)
-        start_listener()
-        start_ticker()
+        runCatching {
+            readOnlyDbManager = UiDbManager.spawn(dbPath)
+            readWriteDbManager = NwDbManager.spawn(dbPath)
 
-        KotlinLogger.info("AppCore", "Initialization complete.")
+            start_listener()
+        }.onFailure { exception ->
+            KotlinLogger.error(
+                "AppCore",
+                "Initialization failed: ${exception.message}"
+            )
+            return
+        }
+
+        KotlinLogger.info(
+            "AppCore",
+            "Initialization complete."
+        )
+
         initialized = true
     }
 
-    fun profile_exists(): Boolean {
-        val dbClient = dbManager.getClient()
-        return dbClient.profileExists()
+    fun profileExists(): Boolean {
+        return runCatching {
+            val dbClient = readOnlyDbManager.spawnClient()
+            dbClient.profileExists()
+        }.onFailure { exception ->
+            KotlinLogger.error(
+                "AppCore",
+                "Failed to check profile: ${exception.message}"
+            )
+        }.getOrDefault(false)
+    }
+
+    fun setProfile() {
+        runCatching {
+            val dbClient = readWriteDbManager.spawnClient()
+            setSecretKey(dbClient)
+        }.onFailure { exception ->
+            KotlinLogger.error(
+                "AppCore",
+                "Failed to set profile: ${exception.message}"
+            )
+        }
     }
 
     fun start_listener() {
         runCatching {
             registerUiEventListener(dbEventListener)
-        }.onFailure {
-            KotlinLogger.error("AppCore", "${it.message}")
+        }.onFailure { exception ->
+            KotlinLogger.error(
+                "AppCore",
+                "Failed to register UI event listener: ${exception.message}"
+            )
+            return
         }
 
-        dbEventListener.start(CoroutineScope(Dispatchers.Default))
+        dbEventListener.start(
+            CoroutineScope(Dispatchers.Default)
+        )
     }
 
     fun start_ticker() {
-        ticker = AppBackgroundTicker(
-            CoroutineScope(Dispatchers.Default),
-            dbPath = _dbPath,
-            onTick = { dbPath, count -> addSampleMessage(dbPath, count) }
-        )
+        runCatching {
+            val client = readWriteDbManager.spawnClient()
 
-        ticker.start()
+            ticker = AppBackgroundTicker(
+                CoroutineScope(Dispatchers.Default),
+                dbClient = client,
+                onTick = { count ->
+                    addSampleMessage(client, count)
+                }
+            )
+
+            ticker.start()
+        }.onFailure { exception ->
+            KotlinLogger.error(
+                "AppCore",
+                "Failed to start ticker: ${exception.message}"
+            )
+        }
+    }
+
+    fun startNetworking() {
+        spawnNwCore()
+    }
+
+    fun spawnNwCore() {
+        if (::nwCore.isInitialized) {
+            KotlinLogger.warn(
+                "AppCore",
+                "NW core already exists. Skipping."
+            )
+            return
+        }
+
+        runCatching {
+            NwCore.spawn(
+                readWriteDbManager.spawnClient()
+            )
+        }.onSuccess { core ->
+            nwCore = core
+
+            KotlinLogger.info(
+                "AppCore",
+                "NW core spawned successfully."
+            )
+        }.onFailure { exception ->
+            KotlinLogger.error(
+                "AppCore",
+                "Failed to spawn NW core: ${exception.message}"
+            )
+        }
     }
 }
 

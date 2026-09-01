@@ -42,8 +42,8 @@ class App : Application(), DbManagerProvider {
             .apply { parentFile?.mkdirs() }
             .absolutePath
 
-        resetDbForWal(dbPath)
-        addSampleData(dbPath)
+//        resetDbForWal(dbPath)
+//        addSampleData(dbPath)
 
         AppCore.initialize(dbPath)
 

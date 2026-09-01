@@ -4,13 +4,32 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.jg04.NativeLogForwarder
+import com.example.jg04.KotlinLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import uniffi.rust_api.*
 
+
+class ProfileVM : ViewModel() {
+    private val _profileExists =
+        MutableStateFlow<Boolean>(AppCore.profileExists())
+
+    val profileExists: StateFlow<Boolean> =
+        _profileExists.asStateFlow()
+
+    fun profileIsSet() {
+        if (AppCore.profileExists()) {
+            _profileExists.value = true
+            KotlinLogger.info("Profile Settup","successfully set profile")
+        }
+        else {
+            KotlinLogger.error("Profile Settup","failed to set profile")
+        }
+    }
+}
 class HomePageVM(
     private val dbClient: UiDbClient,
     private val chatHeadersInvalidated: SharedFlow<Unit>
@@ -100,10 +119,16 @@ class NewChatPageVM(
     }
 }
 
+val profileVMFactory = viewModelFactory {
+    initializer {
+        ProfileVM()
+    }
+}
+
 val HomePageVMFactory = viewModelFactory {
     initializer {
         HomePageVM(
-            dbClient = AppCore.dbManager.getClient(),
+            dbClient = AppCore.readOnlyDbManager.spawnClient(),
             chatHeadersInvalidated = AppCore.getChatHeadersInvalidation()
         )
     }
@@ -111,7 +136,7 @@ val HomePageVMFactory = viewModelFactory {
 
 fun chatPageVMFactory(topicId: String) = viewModelFactory {
     initializer {
-        val dbClient = AppCore.dbManager.getClient()
+        val dbClient = AppCore.readOnlyDbManager.spawnClient()
 
         ChatPageVM(
             dbClient = dbClient,
@@ -124,7 +149,7 @@ fun chatPageVMFactory(topicId: String) = viewModelFactory {
 val NewChatPageVMFactory = viewModelFactory {
     initializer {
         NewChatPageVM(
-            dbClient = AppCore.dbManager.getClient(),
+            dbClient = AppCore.readOnlyDbManager.spawnClient(),
             contactsInvalidated = AppCore.getContactsInvalidation()
         )
     }

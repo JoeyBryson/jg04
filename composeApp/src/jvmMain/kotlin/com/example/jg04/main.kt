@@ -16,8 +16,8 @@ fun main() = application {
 
     val dbPath = System.getProperty("user.home") + "/app.db"
 
-    resetDbForWal(dbPath)
-    addSampleData(dbPath)
+//    resetDbForWal(dbPath)
+//    addSampleData(dbPath)
 
     AppCore.initialize(dbPath)
 

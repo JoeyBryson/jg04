@@ -3,10 +3,7 @@ use tokio::sync::{mpsc, oneshot};
 use rusqlite::{Connection, OpenFlags};
 use anyhow::Result;
 
-use crate::network::NwDbRequest;
-use crate::ui::UiDbRequest;
-
-use super::{UiDbWorker, NwDbWorker};
+use super::{NwDbRequest, UiDbRequest, UiDbWorker, NwDbWorker};
 
 #[derive(Debug)]
 pub enum DbMode {

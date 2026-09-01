@@ -2,6 +2,8 @@ use crate::network::{NwChat, NwContact, NwMessage, NwProfile, SetupError};
 
 use anyhow::{Result, anyhow};
 use std::{collections::HashMap};
+use iroh::{SecretKey, PublicKey};
+use iroh_gossip::TopicId;
 use super::super::NwDbWorker;
 
 
@@ -14,12 +16,15 @@ impl NwDbWorker {
         if self.get_profile().is_ok() {
             return Err(SetupError::ProfileAlreadySet.into());
         }
+
         self.conn.execute(
             "INSERT INTO user_profile (id, secret_key)
         VALUES (?1, ?2)", 
         (
             1,
-            profile.secret_key
+            profile
+                .secret_key
+                .to_bytes()
         ))?;
         Ok(())
     }
@@ -35,7 +40,12 @@ impl NwDbWorker {
 
         let row = rows.next()?.ok_or(SetupError::ProfileNotSet)?;
 
-        let profile = NwProfile{secret_key: row.get(0)?};
+        let secret_key =
+            SecretKey::from_bytes(&row.get::<_, [u8; 32]>(0)?);
+
+        let profile = NwProfile{secret_key: 
+            secret_key
+        };
         Ok(profile)
     }
 
@@ -45,7 +55,7 @@ impl NwDbWorker {
             "INSERT INTO messages (topic_id, is_me, endpoint_id, content, sent_at)
             VALUES (?1, ?2, ?3, ?4, ?5)",
             (
-                message.topic_id.as_slice(),
+                message.topic_id.as_bytes(),
                 message.from_me as i32,
                 message.endpoint_id.as_deref(), 
                 message.content,
@@ -79,7 +89,7 @@ impl NwDbWorker {
             "INSERT INTO chats (topic_id, chat_name)
             VALUES (?1, ?2)",
             (
-                chat.topic_id.as_slice(),
+                chat.topic_id.as_bytes(),
                 chat.name,
             ),
         )?;
@@ -89,8 +99,8 @@ impl NwDbWorker {
                 "INSERT INTO chat_members (topic_id, endpoint_id)
                 VALUES (?1, ?2)",
                 (
-                    chat.topic_id.as_slice(),
-                    member.endpoint_id.as_slice(),
+                    chat.topic_id.as_bytes(),
+                    member.endpoint_id.as_bytes(),
                 ),
             )?;
         }
@@ -120,28 +130,28 @@ impl NwDbWorker {
 
         let rows = stmt.query_map([], |row| {
             Ok((
-                row.get::<_, Vec<u8>>(0)?,
+                row.get::<_, [u8;32]>(0)?,
                 row.get::<_, Option<String>>(1)?,
                 row.get::<_, Option<String>>(2)?,
-                row.get::<_, Option<Vec<u8>>>(3)?,
+                row.get::<_, Option<[u8;32]>>(3)?,
             ))
         })?;
 
-        let mut chats: HashMap<Vec<u8>, NwChat> = HashMap::new();
+        let mut chats: HashMap<[u8;32], NwChat> = HashMap::new();
 
         for row in rows {
-            let (topic_id, chat_name, contact_name, endpoint_id) = row?;
+            let (topic_id_bytes, chat_name, contact_name, endpoint_id) = row?;
 
-            let chat = chats.entry(topic_id.clone()).or_insert_with(|| NwChat {
-                topic_id,
+            let chat = chats.entry(topic_id_bytes.clone()).or_insert_with(|| NwChat {
                 name: chat_name,
                 members: Vec::new(),
+                topic_id: TopicId::from_bytes(topic_id_bytes),
             });
 
             if let (Some(name), Some(endpoint_id)) = (contact_name, endpoint_id) {
                 chat.members.push(NwContact { 
                     name, 
-                    endpoint_id 
+                    endpoint_id: PublicKey::from_bytes(&endpoint_id)? 
                 });
             }
         }
@@ -175,9 +185,11 @@ impl NwDbWorker {
         let mut members = Vec::new();
 
         while let Some(row) = rows.next()? {
+            let endpoint_id = row.get(1)?;
+            
             members.push(NwContact {
                 name: row.get(0)?,
-                endpoint_id: row.get(1)?,
+                endpoint_id: PublicKey::from_bytes(&endpoint_id)?,
             });
         }
 
@@ -212,22 +224,22 @@ impl NwDbWorker {
 
         while let Some(row) = rows.next()? {
 
-            let row_topic_id: Vec<u8> = row.get(0)?;
+            let row_topic_id_bytes: [u8; 32] = row.get(0)?;
             let row_chat_name: Option<String> = row.get(1)?;
 
             let chat_ref = chat.get_or_insert_with(|| NwChat {
-                topic_id: row_topic_id,
+                topic_id: TopicId::from_bytes(row_topic_id_bytes),
                 name: row_chat_name,
                 members: Vec::new(),
             });
 
-            let contact_name: Option<String> = row.get(2)?;
-            let endpoint_id: Option<Vec<u8>> = row.get(3)?;
+            let optional_name: Option<String> = row.get(2)?;
+            let optional_endpoint_id_bytes: Option<[u8;32]> = row.get(3)?;
 
-            if let (Some(name), Some(endpoint_id)) = (contact_name, endpoint_id) {
+            if let (Some(name), Some(endpoint_id_bytes)) = (optional_name, optional_endpoint_id_bytes) {
                 chat_ref.members.push(NwContact {
                     name,
-                    endpoint_id,
+                    endpoint_id: PublicKey::from_bytes(&(endpoint_id_bytes))?,
                 });
             }
         }
@@ -256,10 +268,16 @@ impl NwDbWorker {
         let mut messages = Vec::new();
 
         while let Some(row) = rows.next()? {
+
+            let endpoint_id = row
+                .get::<_, Option<[u8; 32]>>(2)?
+                .map(|bytes| PublicKey::from_bytes(&bytes))
+                .transpose()?;
+
             messages.push(NwMessage {
-                topic_id: row.get(0)?,
+                topic_id: TopicId::from_bytes(row.get(0)?),
                 from_me: row.get::<_, i32>(1)? != 0,
-                endpoint_id: row.get(2)?,
+                endpoint_id: endpoint_id,
                 content: row.get(3)?,
                 sent_at: row.get(4)?,
             });
@@ -282,10 +300,16 @@ impl NwDbWorker {
         let mut messages = Vec::new();
 
         while let Some(row) = rows.next()? {
+
+            let endpoint_id = row
+                .get::<_, Option<[u8; 32]>>(2)?
+                .map(|bytes| PublicKey::from_bytes(&bytes))
+                .transpose()?;
+
             messages.push(NwMessage {
-                topic_id: row.get(0)?,
+                topic_id: TopicId::from_bytes(row.get(0)?),
                 from_me: row.get::<_, i32>(1)? != 0,
-                endpoint_id: row.get(2)?,
+                endpoint_id: endpoint_id,
                 content: row.get(3)?,
                 sent_at: row.get(4)?,
             });

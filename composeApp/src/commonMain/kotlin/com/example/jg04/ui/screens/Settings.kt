@@ -9,7 +9,7 @@
 //) : ViewModel() {
 //    val dbManager = UiDbManager.spawn(dbPath)
 //
-//    val db = dbManager.getClient()
+//    val db = dbManager.spawnClient()
 //
 //    val homePageModel = HomePageModel(db)
 //

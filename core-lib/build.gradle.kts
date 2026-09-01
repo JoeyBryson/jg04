@@ -29,6 +29,7 @@ uniffi {
 }
 
 kotlin {
+    jvmToolchain(21)
     androidTarget {
         publishLibraryVariants("debug")
     }

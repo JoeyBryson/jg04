@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SetProfile(
-    onProfileCreated: () -> Unit
+    onCreateProfileButtonPressed: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -22,7 +22,7 @@ fun SetProfile(
     ) {
         Button(
             onClick = {
-                onProfileCreated()
+                onCreateProfileButtonPressed()
             },
             modifier = Modifier
                 .fillMaxWidth()

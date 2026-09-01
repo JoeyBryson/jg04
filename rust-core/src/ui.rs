@@ -4,7 +4,7 @@ use tokio::sync::oneshot;
 use std::sync::Arc;
 use anyhow;
 use uniffi;
-mod db_client;
+// mod db_client;
 
 
 #[derive(uniffi::Enum)]
@@ -39,39 +39,3 @@ pub struct UiChatData {
 }
 
 
-pub enum UiDbRequest {
-    ProfileExists {
-        reply: oneshot::Sender<anyhow::Result<bool>>,
-    },
-    GetChatHeaders {
-        reply: oneshot::Sender<anyhow::Result<Vec<UiChatHeader>>>,
-    },
-    GetChatHeader {
-        topic_id: String,
-        reply: oneshot::Sender<anyhow::Result<UiChatHeader>>,
-    },
-    GetChatMembers {
-        topic_id: String,
-        reply: oneshot::Sender<anyhow::Result<Vec<UiContact>>>,
-    },
-    GetChatMessages {
-        topic_id: String,
-        reply: oneshot::Sender<anyhow::Result<Vec<UiMessage>>>,
-    },
-    GetChatLastMessage {
-        topic_id: String,
-        reply: oneshot::Sender<anyhow::Result<Option<UiMessage>>>,
-    },
-    GetChatData {
-        topic_id: String,
-        reply: oneshot::Sender<anyhow::Result<UiChatData>>,
-    },
-    GetContacts {
-        reply: oneshot::Sender<anyhow::Result<Vec<UiContact>>>,
-    },
-}
-
-#[derive(uniffi::Object)]
-pub struct UiDbClient {
-    pub worker_tx: mpsc::Sender<UiDbRequest>
-}

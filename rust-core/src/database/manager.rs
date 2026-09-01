@@ -3,26 +3,18 @@ use tokio::sync::mpsc;
 use anyhow::Result;
 
 use crate::ffi_error::FfiError;
-use crate::network::NwDbRequest;
-use crate::ui::{UiDbRequest, UiDbClient};
 use std::{str::FromStr};
-use super::{UiDbManager, UiDbWorker, NwDbManager, NwDbWorker};
+use super::{UiDbManager, UiDbWorker, NwDbManager, NwDbWorker, UiDbRequest, UiDbClient, NwDbClient, NwDbRequest};
+use std::sync::Arc;
 
-// fn ensure_parent_dir(db_path: &Path) -> Result<()> {
-//     if let Some(parent) = db_path.parent() {
-//         std::fs::create_dir_all(parent)?;
-//         log::info!("[DB-MANAGER] created directory path={:?}", parent);
-//     }
-//     Ok(())
-// }
 
 #[uniffi::export]
 impl UiDbManager {
-
     #[uniffi::constructor]
     pub fn spawn(db_path_string: String) -> Result<Self, FfiError> {
         (move || -> anyhow::Result<Self> {
             let db_path = PathBuf::from_str(&db_path_string)?;
+
             log::info!("[UI-MANAGER] spawning worker");
 
             let (worker_tx, worker_rx) = mpsc::channel::<UiDbRequest>(32);
@@ -49,47 +41,49 @@ impl UiDbManager {
         .map_err(FfiError::from)
     }
 
-    pub fn get_client(&self) -> UiDbClient {
-        let worker_tx = self.worker_tx.clone();
-    
-        UiDbClient{worker_tx}
+    pub fn spawn_client(&self) -> Arc<UiDbClient> {
+        Arc::new(UiDbClient {
+            worker_tx: self.worker_tx.clone(),
+        })
     }
 }
 
-// impl UiDbManager {
-//     fn worker_tx(&self) -> mpsc::Sender<UiDbRequest> {
-//         self.worker_tx.clone()
-//     }
-// }
-
+#[uniffi::export]
 impl NwDbManager {
-    pub fn spawn(db_path: PathBuf) -> Result<Self> {
-        // ensure_parent_dir(&db_path)?;
-        log::info!("[NW-MANAGER] spawning worker");
+    #[uniffi::constructor]
+    pub fn spawn(db_path_string: String) -> Result<Self, FfiError> {
+        (move || -> anyhow::Result<Self> {
+            let db_path = PathBuf::from_str(&db_path_string)?;
 
-        let (worker_tx, worker_rx) = mpsc::channel::<NwDbRequest>(32);
+            log::info!("[NW-MANAGER] spawning worker");
 
-        let join_handle = std::thread::spawn(move || {
-            let result = (|| -> Result<()> {
-                let worker = NwDbWorker::start(worker_rx, db_path)?;
-                worker.request_loop();
-                Ok(())
-            })();
+            let (worker_tx, worker_rx) = mpsc::channel::<NwDbRequest>(32);
 
-            if let Err(error) = result {
-                log::error!("[NW-WORKER] exited with error: {}", error);
-            } else {
-                log::warn!("[NW-WORKER] exited without error");
-            }
-        });
+            let join_handle = std::thread::spawn(move || {
+                let result = (|| -> Result<()> {
+                    let worker = NwDbWorker::start(worker_rx, db_path)?;
+                    worker.request_loop();
+                    Ok(())
+                })();
 
-        Ok(Self {
-            _join_handle: join_handle,
-            worker_tx,
-        })
+                if let Err(error) = result {
+                    log::error!("[NW-WORKER] exited with error: {}", error);
+                } else {
+                    log::warn!("[NW-WORKER] exited without error");
+                }
+            });
+
+            Ok(Self {
+                _join_handle: join_handle,
+                worker_tx,
+            })
+        })()
+        .map_err(FfiError::from)
     }
 
-    pub fn worker_tx(&self) -> mpsc::Sender<NwDbRequest> {
-        self.worker_tx.clone()
+    pub fn spawn_client(&self) -> Arc<NwDbClient> {
+        Arc::new(NwDbClient {
+            worker_tx: self.worker_tx.clone(),
+        })
     }
 }

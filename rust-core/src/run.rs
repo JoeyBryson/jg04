@@ -5,6 +5,8 @@ use std::result::Result;
 use crate::database::NwDbManager;
 use crate::ffi_error::FfiError;
 use std::path::PathBuf;
+use std::sync::Arc;
+use crate::database::NwDbClient;
 
 pub const SCHEMA: &str = include_str!("../sql/schema.sql");
 
@@ -61,8 +63,8 @@ pub fn reset_db_for_wal(db_path_string: String) -> Result<(), FfiError> {
 pub fn add_sample_messages(
     db_path_string: String,
 ) -> Result<(), FfiError> {
-    let manager = NwDbManager::spawn(parse_path(&db_path_string))?;
-    let client = manager.create_client();
+    let manager = NwDbManager::spawn(db_path_string)?;
+    let client = manager.spawn_client();
 
     let rt = Runtime::new()
         .map_err(|e| FfiError::Internal { msg: e.to_string() })?;
@@ -75,14 +77,12 @@ pub fn add_sample_messages(
 
     Ok(())
 }
+
 #[uniffi::export]
 pub fn add_sample_message(
-    db_path_string: String,
+    client: Arc<NwDbClient>,
     time: i32,
 ) -> Result<(), FfiError> {
-    let manager = NwDbManager::spawn(parse_path(&db_path_string))?;
-
-    let client = manager.create_client();
 
     let rt = Runtime::new()
         .map_err(|e| FfiError::Internal { msg: e.to_string() })?;
@@ -102,9 +102,9 @@ pub fn add_sample_data(
 ) -> Result<(), FfiError> {
 
     let manager =
-        NwDbManager::spawn(parse_path(&db_path_string))?;
+        NwDbManager::spawn(db_path_string)?;
 
-    let client = manager.create_client();
+    let client = manager.spawn_client();
 
     let rt = Runtime::new()
         .map_err(|e| FfiError::Internal {
