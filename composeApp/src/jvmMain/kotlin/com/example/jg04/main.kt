@@ -2,7 +2,7 @@ package com.example.jg04
 
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import uniffi.rust_api.UiDbManager
+import uniffi.rust_api.DbManager
 import com.example.jg04.state.DbManagerProvider
 import com.example.jg04.state.AppCore
 import com.example.jg04.ui.MainComposable

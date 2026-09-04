@@ -6,11 +6,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
-import uniffi.rust_api.NwDbClient
+import uniffi.rust_api.DbClient
 
 class AppBackgroundTicker(
     private val applicationScope: CoroutineScope,
-    private val dbClient: NwDbClient,
+    private val dbClient: DbClient,
     private val onTick: suspend (count: Int) -> Unit
 ) {
     private val tickerFlow = flow {

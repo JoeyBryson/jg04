@@ -1,16 +1,8 @@
-use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr};
-use futures_lite::StreamExt;
-use iroh::{Endpoint, EndpointAddr, EndpointId, endpoint, protocol::Router};
+use iroh::EndpointId;
 use iroh_gossip::{
-    api::{Event, GossipReceiver, GossipSender}, net::Gossip, proto::{TopicId, topic},
+    api::{GossipReceiver, GossipSender}, net::Gossip, proto::TopicId,
 };
-use iroh::{endpoint::presets, SecretKey};
-use std::println;
-use serde::{Deserialize, Serialize};
-use super::{NwChat, NwProfile, SetupError};
-use tokio::{runtime};
-use crate::{ffi_error::FfiError, database::sample_data_insertions};
-use std::sync::Arc;
+use super::NwChat;
 use crate::database::DbClient;
 use crate::network::NwContact;
 

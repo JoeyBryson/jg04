@@ -1,15 +1,11 @@
-use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr, vec};
-use futures_lite::StreamExt;
-use iroh::{Endpoint, EndpointAddr, EndpointId, PublicKey, endpoint, protocol::Router};
+use std::{collections::HashMap, vec};
+use iroh::{Endpoint, protocol::Router};
 use iroh_gossip::{
-    api::{Event, GossipReceiver}, net::Gossip, proto::{TopicId, topic},
+    net::Gossip, proto::TopicId,
 };
-use iroh::{endpoint::presets, SecretKey};
-use std::println;
-use serde::{Deserialize, Serialize};
-use super::{DbManager, NwChat, NwProfile, SetupError};
+use iroh::endpoint::presets;
 use tokio::{runtime};
-use crate::{ffi_error::FfiError, network::chat_manager};
+use crate::ffi_error::FfiError;
 use std::sync::Arc;
 use super::chat_manager::ChatManager;
 use crate::database::DbClient;
@@ -80,7 +76,7 @@ impl NwCore {
         let mut chat_managers = HashMap::new();
 
         for chat in chats {
-            let chat_manager = ChatManager::spawn(chat.clone(), &gossip, db_client.clone())
+            let chat_manager = ChatManager::spawn(chat.clone(), gossip, db_client.clone())
             .await?;
 
             chat_managers.insert(chat.topic_id, chat_manager);

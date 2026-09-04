@@ -31,7 +31,7 @@ class ProfileVM : ViewModel() {
     }
 }
 class HomePageVM(
-    private val dbClient: UiDbClient,
+    private val dbClient: DbClient,
     private val chatHeadersInvalidated: SharedFlow<Unit>
 ) : ViewModel() {
 
@@ -54,12 +54,12 @@ class HomePageVM(
     }
 
     private suspend fun refreshChatHeaders() {
-        _chatHeaders.value = dbClient.getChatHeaders().associateBy { it.topicId }
+        _chatHeaders.value = dbClient.getUiChatHeaders().associateBy { it.topicId }
     }
 }
 
 class ChatPageVM(
-    private val dbClient: UiDbClient,
+    private val dbClient: DbClient,
     private val chatDataInvalidated: SharedFlow<String>,
     chatHeader: UiChatHeader,
     ) : ViewModel() {
@@ -87,12 +87,12 @@ class ChatPageVM(
     }
 
     private suspend fun refreshChatData() {
-        _chatData.value = dbClient.getChatData(topicId)
+        _chatData.value = dbClient.getUiChatData(topicId)
     }
 }
 
 class NewChatPageVM(
-    private val dbClient: UiDbClient,
+    private val dbClient: DbClient,
     private val contactsInvalidated: SharedFlow<Unit>
 ) : ViewModel() {
 
@@ -115,7 +115,7 @@ class NewChatPageVM(
     }
 
     private suspend fun refreshChatHeaders() {
-        _contacts.value = dbClient.getContacts().associateBy { it.endpointId }
+        _contacts.value = dbClient.getUiContacts().associateBy { it.endpointId }
     }
 }
 
@@ -128,7 +128,7 @@ val profileVMFactory = viewModelFactory {
 val HomePageVMFactory = viewModelFactory {
     initializer {
         HomePageVM(
-            dbClient = AppCore.readOnlyDbManager.spawnClient(),
+            dbClient = AppCore.dbManager.spawnClient(),
             chatHeadersInvalidated = AppCore.getChatHeadersInvalidation()
         )
     }
@@ -136,11 +136,11 @@ val HomePageVMFactory = viewModelFactory {
 
 fun chatPageVMFactory(topicId: String) = viewModelFactory {
     initializer {
-        val dbClient = AppCore.readOnlyDbManager.spawnClient()
+        val dbClient = AppCore.dbManager.spawnClient()
 
         ChatPageVM(
             dbClient = dbClient,
-            chatHeader = dbClient.getChatHeader(topicId),
+            chatHeader = dbClient.getUiChatHeader(topicId),
             chatDataInvalidated = AppCore.getChatDataInvalidation()
         )
     }
@@ -149,7 +149,7 @@ fun chatPageVMFactory(topicId: String) = viewModelFactory {
 val NewChatPageVMFactory = viewModelFactory {
     initializer {
         NewChatPageVM(
-            dbClient = AppCore.readOnlyDbManager.spawnClient(),
+            dbClient = AppCore.dbManager.spawnClient(),
             contactsInvalidated = AppCore.getContactsInvalidation()
         )
     }

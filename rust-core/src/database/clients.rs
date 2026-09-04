@@ -1,12 +1,10 @@
 use std::result::Result;
 use tokio::sync::oneshot;
-use tokio::sync::mpsc;
 
 use crate::ffi_error::FfiError;
 use crate::network::{NwChat, NwContact, NwMessage, NwProfile};
 use crate::notifications::{emit_ui_event, UiEvent};
 use crate::ui::{UiMessage, UiContact, UiChatHeader, UiChatData};
-use hex;
 
 use super::{DbClient, ReadRequest, WriteRequest};
 
@@ -108,7 +106,7 @@ impl DbClient {
     }
 
     pub async fn add_nw_message(&self, message: NwMessage) -> anyhow::Result<()> {
-        let topic_id = message.topic_id.clone();
+        let topic_id = message.topic_id;
         let (tx, rx) = oneshot::channel();
         self.send_write_request_async( WriteRequest::AddNwMessage { message, reply: tx }, rx).await?;
         emit_ui_event(UiEvent::ChatDataChanged { topic_id: hex::encode(topic_id) });

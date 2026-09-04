@@ -1,12 +1,8 @@
 use iroh::EndpointId;
-use tokio::sync::oneshot;
-use anyhow::{Context, Result};
-use hex;
+use anyhow::Result;
 use iroh_gossip::TopicId;
 
-use super::{NwChat, NwContact, DbClient, ReadRequest, NwMessage};
-use crate::{notifications::{UiEvent, emit_ui_event}};
-use super::{NwProfile};
+use super::{NwChat, NwContact, DbClient, NwMessage};
 
 impl DbClient {
     pub async fn add_sample_chat(&self) -> Result<()> {

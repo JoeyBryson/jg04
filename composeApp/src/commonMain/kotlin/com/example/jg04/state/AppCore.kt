@@ -7,8 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharedFlow
 import uniffi.rust_api.NwCore
-import uniffi.rust_api.NwDbManager
-import uniffi.rust_api.UiDbManager
+import uniffi.rust_api.DbManager
 import uniffi.rust_api.addSampleMessage
 import uniffi.rust_api.initNativeLogger
 import uniffi.rust_api.registerUiEventListener
@@ -21,12 +20,8 @@ object AppCore {
     lateinit var _dbPath: String
         private set
 
-    lateinit var readOnlyDbManager: UiDbManager
+    lateinit var dbManager: DbManager
         private set
-
-    lateinit var readWriteDbManager: NwDbManager
-        private set
-
     lateinit var ticker: AppBackgroundTicker
         private set
 
@@ -65,8 +60,7 @@ object AppCore {
         )
 
         runCatching {
-            readOnlyDbManager = UiDbManager.spawn(dbPath)
-            readWriteDbManager = NwDbManager.spawn(dbPath)
+            dbManager = DbManager.spawn(_dbPath)
 
             start_listener()
         }.onFailure { exception ->
@@ -87,7 +81,7 @@ object AppCore {
 
     fun profileExists(): Boolean {
         return runCatching {
-            val dbClient = readOnlyDbManager.spawnClient()
+            val dbClient = dbManager.spawnClient()
             dbClient.profileExists()
         }.onFailure { exception ->
             KotlinLogger.error(
@@ -99,7 +93,7 @@ object AppCore {
 
     fun setProfile() {
         runCatching {
-            val dbClient = readWriteDbManager.spawnClient()
+            val dbClient = dbManager.spawnClient()
             setSecretKey(dbClient)
         }.onFailure { exception ->
             KotlinLogger.error(
@@ -127,7 +121,7 @@ object AppCore {
 
     fun start_ticker() {
         runCatching {
-            val client = readWriteDbManager.spawnClient()
+            val client = dbManager.spawnClient()
 
             ticker = AppBackgroundTicker(
                 CoroutineScope(Dispatchers.Default),
@@ -161,7 +155,7 @@ object AppCore {
 
         runCatching {
             NwCore.spawn(
-                readWriteDbManager.spawnClient()
+                dbManager.spawnClient()
             )
         }.onSuccess { core ->
             nwCore = core
@@ -180,6 +174,6 @@ object AppCore {
 }
 
 interface DbManagerProvider {
-    val dbManager: UiDbManager
+    val dbManager: DbManager
 }
 

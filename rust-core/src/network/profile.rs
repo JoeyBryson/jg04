@@ -1,18 +1,5 @@
-use std::{collections::HashMap, fmt, str::FromStr};
-
 use anyhow::Result;
-use futures_lite::StreamExt;
-
-use iroh::{
-    protocol::Router, Endpoint, EndpointAddr, EndpointId, SecretKey,
-};
-
-use iroh_gossip::{
-    api::{GossipReceiver, Event},
-    net::Gossip,
-    proto::TopicId,
-};
-use serde::{Deserialize, Serialize};
+use iroh::SecretKey;
 use std::sync::Arc;
 use crate::ffi_error::FfiError;
 use crate::network::NwProfile;
