@@ -1,37 +1,6 @@
-pub mod workers;
-mod manager;
-mod clients;
-pub mod sample_data_insertions;
-use std::thread::JoinHandle;
-use tokio::sync::mpsc;
 use crate::network::{NwChat, NwContact, NwMessage, NwProfile};
 use tokio::sync::oneshot;
 use crate::ui::{UiMessage, UiContact, UiChatHeader, UiChatData};
-
-pub struct DbReader{
-    rx: mpsc::Receiver<ReadRequest>,
-    conn: rusqlite::Connection
-}
-
-pub struct DbWriter{
-    rx: mpsc::Receiver<WriteRequest>,
-    conn: rusqlite::Connection
-}
-
-#[derive(uniffi::Object)]
-pub struct DbManager {
-    reader_tx: mpsc::Sender<ReadRequest>,
-    writer_tx: mpsc::Sender<WriteRequest>,
-    _reader_handle: JoinHandle<()>,
-    _writer_handle: JoinHandle<()>,
-}
-
-#[derive(uniffi::Object, Clone)]
-pub struct DbClient {
-    pub reader_tx: mpsc::Sender<ReadRequest>,
-    pub writer_tx: mpsc::Sender<WriteRequest>
-}
-
 pub enum ReadRequest {
     ProfileExists {
         reply: oneshot::Sender<anyhow::Result<bool>>,

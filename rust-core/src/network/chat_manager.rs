@@ -3,7 +3,7 @@ use iroh_gossip::{
     api::{GossipReceiver, GossipSender}, net::Gossip, proto::TopicId,
 };
 use super::NwChat;
-use crate::database::DbClient;
+use crate::database::client::DbClient;
 use crate::network::NwContact;
 
 pub struct ChatManager {

@@ -8,7 +8,7 @@ use tokio::{runtime};
 use crate::ffi_error::FfiError;
 use std::sync::Arc;
 use super::chat_manager::ChatManager;
-use crate::database::DbClient;
+use crate::database::client::DbClient;
 
 #[derive(uniffi::Object)]
 struct NwCore {

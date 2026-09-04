@@ -2,7 +2,8 @@ use iroh::EndpointId;
 use anyhow::Result;
 use iroh_gossip::TopicId;
 
-use super::{NwChat, NwContact, DbClient, NwMessage};
+use super::{client::DbClient};
+use crate::network::{NwChat, NwContact, NwMessage};
 
 impl DbClient {
     pub async fn add_sample_chat(&self) -> Result<()> {

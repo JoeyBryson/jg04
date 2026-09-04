@@ -3,7 +3,7 @@ use iroh::SecretKey;
 use std::sync::Arc;
 use crate::ffi_error::FfiError;
 use crate::network::NwProfile;
-use crate::database::DbClient;
+use crate::database::client::DbClient;
 
 
 #[uniffi::export]

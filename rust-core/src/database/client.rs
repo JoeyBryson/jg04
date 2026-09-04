@@ -5,8 +5,14 @@ use crate::ffi_error::FfiError;
 use crate::network::{NwChat, NwContact, NwMessage, NwProfile};
 use crate::notifications::{emit_ui_event, UiEvent};
 use crate::ui::{UiMessage, UiContact, UiChatHeader, UiChatData};
+use tokio::sync::mpsc;
+use super::requests::{ReadRequest, WriteRequest};
 
-use super::{DbClient, ReadRequest, WriteRequest};
+#[derive(uniffi::Object, Clone)]
+pub struct DbClient {
+    pub reader_tx: mpsc::Sender<ReadRequest>,
+    pub writer_tx: mpsc::Sender<WriteRequest>
+}
 
 impl DbClient {
     fn send_read_request_sync<T>(

@@ -4,7 +4,7 @@ use anyhow::{Result, anyhow};
 use std::{collections::HashMap};
 use iroh::{SecretKey, PublicKey};
 use iroh_gossip::TopicId;
-use super::super::DbReader;
+use super::DbReader;
 
 use crate::ui::{UiChatHeader, UiChatData, UiContact, UiMessage, UiSender};
 use rusqlite::{Row, OptionalExtension}; // Added OptionalExtension

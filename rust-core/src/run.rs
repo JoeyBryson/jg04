@@ -2,11 +2,11 @@
 use tokio::{runtime::Runtime};
 use std::result::Result;
 // use crate::nw::network_engine;
-use crate::database::DbManager;
+use crate::database::manager::DbManager;
 use crate::ffi_error::FfiError;
 use std::path::PathBuf;
 use std::sync::Arc;
-use crate::database::DbClient;
+use crate::database::client::DbClient;
 
 pub const SCHEMA: &str = include_str!("../sql/schema.sql");
 

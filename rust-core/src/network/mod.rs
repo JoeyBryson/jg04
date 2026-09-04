@@ -10,6 +10,8 @@ mod profile;
 // // mod run;
 mod core;
 mod chat_manager;
+mod events;
+mod signed_message;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum SetupError {

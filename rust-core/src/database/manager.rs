@@ -1,11 +1,19 @@
 use std::path::PathBuf;
 use tokio::sync::mpsc;
 use anyhow::Result;
-
+use std::thread::JoinHandle;
 use crate::ffi_error::FfiError;
 use std::str::FromStr;
-use super::{DbManager, DbClient, DbReader, DbWriter, ReadRequest, WriteRequest};
+use super::{client::DbClient, workers::{DbReader, DbWriter}, requests::{ReadRequest, WriteRequest}};
 use std::sync::Arc;
+
+#[derive(uniffi::Object)]
+pub struct DbManager {
+    reader_tx: mpsc::Sender<ReadRequest>,
+    writer_tx: mpsc::Sender<WriteRequest>,
+    _reader_handle: JoinHandle<()>,
+    _writer_handle: JoinHandle<()>,
+}
 
 #[uniffi::export]
 impl DbManager {

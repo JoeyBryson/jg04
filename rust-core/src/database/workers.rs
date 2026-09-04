@@ -3,9 +3,20 @@ use tokio::sync::mpsc;
 use rusqlite::{Connection, OpenFlags};
 use anyhow::Result;
 
-mod reader;
-mod writer;
-use super::{ReadRequest, WriteRequest, DbReader, DbWriter};
+mod reads;
+mod writes;
+use super::requests::{ReadRequest, WriteRequest};
+
+pub struct DbReader{
+    rx: mpsc::Receiver<ReadRequest>,
+    conn: rusqlite::Connection
+}
+
+pub struct DbWriter{
+    rx: mpsc::Receiver<WriteRequest>,
+    conn: rusqlite::Connection
+}
+
 
 #[derive(Debug)]
 pub enum DbMode {
