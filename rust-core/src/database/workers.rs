@@ -3,7 +3,9 @@ use tokio::sync::{mpsc, oneshot};
 use rusqlite::{Connection, OpenFlags};
 use anyhow::Result;
 
-use super::{NwDbRequest, UiDbRequest, UiDbWorker, NwDbWorker};
+mod reader;
+mod writer;
+use super::{ReadRequest, WriteRequest, DbReader, DbWriter};
 
 #[derive(Debug)]
 pub enum DbMode {
@@ -33,108 +35,66 @@ fn start_conn(db_path: &path::Path, mode: DbMode) -> Result<Connection> {
     Ok(conn)
 }
 
-fn send_reply<T>(reply: oneshot::Sender<T>, result: T) {
-    let _ = reply.send(result);
+macro_rules! dispatch {
+    ($reply:expr, $expr:expr) => {{
+        let _ = $reply.send($expr);
+    }};
 }
 
-
-impl UiDbWorker {
-
-    pub fn start(worker_rx: mpsc::Receiver<UiDbRequest>, db_path: PathBuf) -> Result<Self> {
-        log::info!("[UI-WORKER] start db_path={:?}", db_path);
-
+impl DbReader {
+    pub fn start(worker_rx: mpsc::Receiver<ReadRequest>, db_path: PathBuf) -> Result<Self> {
+        log::info!("[DB-READER] start db_path={:?}", db_path);
         let conn = start_conn(&db_path, DbMode::ReadOnly)?;
-
-        log::info!("[UI-WORKER] started");
-
-        Ok(Self { worker_rx, conn })
+        log::info!("[DB-READER] started");
+        Ok(Self { rx: worker_rx, conn })
     }
 
     pub fn request_loop(mut self) {
-        log::info!("[UI-WORKER] loop start");
+        log::info!("[DB-READER] loop start");
 
-        while let Some(request) = self.worker_rx.blocking_recv() {
+        while let Some(request) = self.rx.blocking_recv() {
             match request {
-                UiDbRequest::ProfileExists { reply } => 
-                    send_reply(reply, self.profile_exists()),
-
-                UiDbRequest::GetChatHeaders { reply } => 
-                    send_reply(reply, self.get_chats()),
-
-                UiDbRequest::GetChatHeader { topic_id, reply } => 
-                    send_reply(reply, self.get_chat(&topic_id)),
-
-                UiDbRequest::GetChatMembers { topic_id, reply } => 
-                    send_reply(reply, self.get_chat_members(&topic_id)),
-
-                UiDbRequest::GetChatMessages { topic_id, reply } => 
-                    send_reply(reply, self.get_chat_messages(&topic_id)),
-
-                UiDbRequest::GetChatLastMessage { topic_id, reply } => 
-                    send_reply(reply, self.get_chat_last_message(&topic_id)),
-
-                UiDbRequest::GetChatData { topic_id, reply } => 
-                    send_reply(reply, self.get_chat_with_messages(&topic_id)),
-
-                UiDbRequest::GetContacts { reply } => 
-                    send_reply(reply, self.get_contacts()),
+                ReadRequest::ProfileExists { reply } => dispatch!(reply, self.profile_exists()),
+                ReadRequest::GetUiChatHeaders { reply } => dispatch!(reply, self.get_ui_chat_headers()),
+                ReadRequest::GetUiChatHeader { topic_id, reply } => dispatch!(reply, self.get_ui_chat_header(&topic_id)),
+                ReadRequest::GetUiChatMembers { topic_id, reply } => dispatch!(reply, self.get_ui_chat_members(&topic_id)),
+                ReadRequest::GetUiChatMessages { topic_id, reply } => dispatch!(reply, self.get_ui_chat_messages(&topic_id)),
+                ReadRequest::GetUiChatLastMessage { topic_id, reply } => dispatch!(reply, self.get_ui_last_chat_message(&topic_id)),
+                ReadRequest::GetUiChatData { topic_id, reply } => dispatch!(reply, self.get_ui_chat_data(&topic_id)),
+                ReadRequest::GetUiContacts { reply } => dispatch!(reply, self.get_ui_contacts()),
+                ReadRequest::GetNwProfile { reply } => dispatch!(reply, self.get_nw_profile()),
+                ReadRequest::GetNwChats { reply } => dispatch!(reply, self.get_nw_chats()),
+                ReadRequest::GetNwChatMembers { topic_id, reply } => dispatch!(reply, self.get_nw_chat_members(&topic_id)),
+                ReadRequest::GetNwChat { topic_id, reply } => dispatch!(reply, self.get_nw_chat(&topic_id)),
+                ReadRequest::GetNwChatMessages { topic_id, reply } => dispatch!(reply, self.get_nw_chat_messages(&topic_id)),
+                ReadRequest::GetNwMessages { reply } => dispatch!(reply, self.get_nw_messages()),
             }
         }
 
-        log::info!("[UI-WORKER] loop exit");
+        log::info!("[DB-READER] loop exit");
     }
 }
 
-impl NwDbWorker {
-
-    pub fn start(worker_rx: mpsc::Receiver<NwDbRequest>, db_path: PathBuf) -> Result<Self> {
-        log::info!("[NW-WORKER] start db_path={:?}", db_path);
-
+impl DbWriter {
+    pub fn start(worker_rx: mpsc::Receiver<WriteRequest>, db_path: PathBuf) -> Result<Self> {
+        log::info!("[DB-WRITER] start db_path={:?}", db_path);
         let conn = start_conn(&db_path, DbMode::ReadWrite)?;
-
-        log::info!("[NW-WORKER] ready");
-
-        Ok(Self { worker_rx, conn })
+        log::info!("[DB-WRITER] ready");
+        Ok(Self { rx: worker_rx, conn })
     }
 
     pub fn request_loop(mut self) {
-        log::info!("[NW-WORKER] loop start");
+        log::info!("[DB-WRITER] loop start");
 
-        while let Some(request) = self.worker_rx.blocking_recv() {
+        while let Some(request) = self.rx.blocking_recv() {
             match request {
-
-                NwDbRequest::SetProfile { profile, reply } => 
-                    send_reply(reply, self.set_profile(profile)),
-                    
-                NwDbRequest::GetProfile {reply } => 
-                    send_reply(reply, self.get_profile()),
-
-                NwDbRequest::AddMessage { message, reply } => 
-                    send_reply(reply, self.add_message(message)),
-
-                NwDbRequest::AddContact { contact, reply } => 
-                    send_reply(reply, self.add_contact(contact)),
-
-                NwDbRequest::AddChat { chat, reply } => 
-                    send_reply(reply, self.add_chat(chat)),
-
-                NwDbRequest::GetChats { reply } => 
-                    send_reply(reply, self.get_chats()),
-
-                NwDbRequest::GetChatMembers { topic_id, reply } => 
-                    send_reply(reply, self.get_chat_members(&topic_id)),
-
-                NwDbRequest::GetChat { topic_id, reply } => 
-                    send_reply(reply, self.get_chat(&topic_id)),
-
-                NwDbRequest::GetChatMessages { topic_id, reply } => 
-                    send_reply(reply, self.get_chat_messages(&topic_id)),
-
-                NwDbRequest::GetMessages { reply } => 
-                    send_reply(reply, self.get_messages()),
+                WriteRequest::SetNwProfile { profile, reply } => dispatch!(reply, self.set_nw_profile(profile)),
+                WriteRequest::AddNwMessage { message, reply } => dispatch!(reply, self.add_nw_message(message)),
+                WriteRequest::AddNwContact { contact, reply } => dispatch!(reply, self.add_nw_contact(contact)),
+                WriteRequest::AddNwChat { chat, reply } => dispatch!(reply, self.add_nw_chat(chat)),
             }
         }
 
-        log::info!("[NW-WORKER] loop exit");
+        log::info!("[DB-WRITER] loop exit");
     }
 }

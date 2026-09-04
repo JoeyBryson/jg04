@@ -4,11 +4,11 @@ use anyhow::{Context, Result};
 use hex;
 use iroh_gossip::TopicId;
 
-use super::{NwChat, NwContact, NwDbClient, NwDbRequest, NwMessage};
+use super::{NwChat, NwContact, DbClient, ReadRequest, NwMessage};
 use crate::{notifications::{UiEvent, emit_ui_event}};
-use super::{NwDbManager, NwProfile};
+use super::{NwProfile};
 
-impl NwDbClient {
+impl DbClient {
     pub async fn add_sample_chat(&self) -> Result<()> {
         let alice = NwContact {
             name: "Angela".to_string(),
@@ -20,8 +20,8 @@ impl NwDbClient {
             endpoint_id: EndpointId::from_bytes(&[1u8; 32])?,
         };
 
-        self.add_contact(alice.clone()).await?;
-        self.add_contact(bob.clone()).await?;
+        self.add_nw_contact(alice.clone()).await?;
+        self.add_nw_contact(bob.clone()).await?;
 
         let topic_id = TopicId::from_bytes([2u8; 32]);
 
@@ -31,7 +31,7 @@ impl NwDbClient {
             topic_id,
         };
 
-        self.add_chat(chat).await?;
+        self.add_nw_chat(chat).await?;
 
         Ok(())
     }
@@ -69,7 +69,7 @@ impl NwDbClient {
             sent_at,
         };
 
-        self.add_message(message).await?;
+        self.add_nw_message(message).await?;
 
         Ok(())
     }
@@ -101,7 +101,7 @@ impl NwDbClient {
 
         // Add contacts
         for contact in &contacts {
-            self.add_contact(contact.clone()).await?;
+            self.add_nw_contact(contact.clone()).await?;
         }
 
         for chat_index in 0..7 {
@@ -124,7 +124,7 @@ impl NwDbClient {
                 topic_id,
             };
 
-            self.add_chat(chat).await?;
+            self.add_nw_chat(chat).await?;
 
             for message_index in 0..300 {
                 let sent_at =
@@ -149,7 +149,7 @@ impl NwDbClient {
                     sent_at,
                 };
 
-                self.add_message(message).await?;
+                self.add_nw_message(message).await?;
             }
         }
 

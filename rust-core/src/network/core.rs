@@ -7,12 +7,12 @@ use iroh_gossip::{
 use iroh::{endpoint::presets, SecretKey};
 use std::println;
 use serde::{Deserialize, Serialize};
-use super::{NwDbManager, NwChat, NwProfile, SetupError};
+use super::{DbManager, NwChat, NwProfile, SetupError};
 use tokio::{runtime};
 use crate::{ffi_error::FfiError, network::chat_manager};
 use std::sync::Arc;
 use super::chat_manager::ChatManager;
-use crate::database::NwDbClient;
+use crate::database::DbClient;
 
 #[derive(uniffi::Object)]
 struct NwCore {
@@ -20,14 +20,14 @@ struct NwCore {
     endpoint: Endpoint,
     gossip: Gossip,
     router: Router,
-    db_client: NwDbClient,
+    db_client: DbClient,
     chat_managers: HashMap<TopicId, ChatManager>,
 }
 
 #[uniffi::export]
 impl NwCore {
     #[uniffi::constructor]
-    fn spawn(db_client: Arc<NwDbClient>) -> Result<NwCore, FfiError> {
+    fn spawn(db_client: Arc<DbClient>) -> Result<NwCore, FfiError> {
         let runtime = tokio::runtime::Runtime::new()
             .map_err(anyhow::Error::from)?;
 
@@ -36,7 +36,7 @@ impl NwCore {
         let (endpoint, gossip, router, chat_managers) = runtime.block_on(async {
 
             let profile = db_client_clone
-                .get_profile()
+                .get_nw_profile()
                 .await?;
 
             let secret_key= profile.secret_key;
@@ -72,9 +72,9 @@ impl NwCore {
 }
 
 impl NwCore {
-    async fn spawn_chat_managers(db_client: NwDbClient, gossip: &Gossip) -> anyhow::Result<HashMap<TopicId, ChatManager>>{
+    async fn spawn_chat_managers(db_client: DbClient, gossip: &Gossip) -> anyhow::Result<HashMap<TopicId, ChatManager>>{
         let chats = db_client
-                .get_chats()
+                .get_nw_chats()
                 .await?;
 
         let mut chat_managers = HashMap::new();

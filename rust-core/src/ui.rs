@@ -1,4 +1,3 @@
-use crate::database::UiDbManager;
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 use std::sync::Arc;

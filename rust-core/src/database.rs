@@ -1,4 +1,3 @@
-mod requests;
 pub mod workers;
 mod manager;
 mod clients;
@@ -9,107 +8,100 @@ use crate::network::{NwChat, NwContact, NwMessage, NwProfile};
 use tokio::sync::oneshot;
 use crate::ui::{UiMessage, UiContact, UiChatHeader, UiChatData};
 
-pub struct UiDbWorker{
-    worker_rx: mpsc::Receiver<UiDbRequest>,
+pub struct DbReader{
+    rx: mpsc::Receiver<ReadRequest>,
     conn: rusqlite::Connection
 }
 
-pub struct NwDbWorker{
-    worker_rx: mpsc::Receiver<NwDbRequest>,
+pub struct DbWriter{
+    rx: mpsc::Receiver<WriteRequest>,
     conn: rusqlite::Connection
 }
 
 #[derive(uniffi::Object)]
-pub struct UiDbManager {
-    worker_tx: mpsc::Sender<UiDbRequest>,
-    _join_handle: JoinHandle<()>,
-}
-#[derive(uniffi::Object)]
-pub struct NwDbManager {
-    worker_tx: mpsc::Sender<NwDbRequest>,
-    _join_handle: JoinHandle<()>,
+pub struct DbManager {
+    reader_tx: mpsc::Sender<ReadRequest>,
+    writer_tx: mpsc::Sender<WriteRequest>,
+    _reader_handle: JoinHandle<()>,
+    _writer_handle: JoinHandle<()>,
 }
 
 #[derive(uniffi::Object, Clone)]
-pub struct UiDbClient {
-    pub worker_tx: mpsc::Sender<UiDbRequest>
+pub struct DbClient {
+    pub reader_tx: mpsc::Sender<ReadRequest>,
+    pub writer_tx: mpsc::Sender<WriteRequest>
 }
 
-
-#[derive(uniffi::Object, Clone)]
-pub struct NwDbClient {
-    pub worker_tx: mpsc::Sender<NwDbRequest>
-}
-
-pub enum UiDbRequest {
+pub enum ReadRequest {
     ProfileExists {
         reply: oneshot::Sender<anyhow::Result<bool>>,
     },
-    GetChatHeaders {
+    GetUiChatHeaders {
         reply: oneshot::Sender<anyhow::Result<Vec<UiChatHeader>>>,
     },
-    GetChatHeader {
+    GetUiChatHeader {
         topic_id: String,
         reply: oneshot::Sender<anyhow::Result<UiChatHeader>>,
     },
-    GetChatMembers {
+    GetUiChatMembers {
         topic_id: String,
         reply: oneshot::Sender<anyhow::Result<Vec<UiContact>>>,
     },
-    GetChatMessages {
+    GetUiChatMessages {
         topic_id: String,
         reply: oneshot::Sender<anyhow::Result<Vec<UiMessage>>>,
     },
-    GetChatLastMessage {
+    GetUiChatLastMessage {
         topic_id: String,
         reply: oneshot::Sender<anyhow::Result<Option<UiMessage>>>,
     },
-    GetChatData {
+    GetUiChatData {
         topic_id: String,
         reply: oneshot::Sender<anyhow::Result<UiChatData>>,
     },
-    GetContacts {
+    GetUiContacts {
         reply: oneshot::Sender<anyhow::Result<Vec<UiContact>>>,
     },
-}
 
-pub enum NwDbRequest {
-    SetProfile {
-        profile: NwProfile,
-        reply: oneshot::Sender<anyhow::Result<()>>
+    GetNwProfile {
+        reply: oneshot::Sender<anyhow::Result<NwProfile>>,
     },
-    GetProfile {
-        reply: oneshot::Sender<anyhow::Result<NwProfile>>
-    },
-    AddMessage {
-        message: NwMessage,
-        reply: oneshot::Sender<anyhow::Result<()>>,
-    },
-    AddContact {
-        contact: NwContact,
-        reply: oneshot::Sender<anyhow::Result<()>>,
-    },
-    AddChat {
-        chat: NwChat,
-        reply: oneshot::Sender<anyhow::Result<()>>,
-    },
-    GetChats {
+    GetNwChats {
         reply: oneshot::Sender<anyhow::Result<Vec<NwChat>>>,
     },
-    GetChatMembers {
+    GetNwChatMembers {
         topic_id: Vec<u8>,
         reply: oneshot::Sender<anyhow::Result<Vec<NwContact>>>,
     },
-    GetChat {
+    GetNwChat {
         topic_id: Vec<u8>,
         reply: oneshot::Sender<anyhow::Result<NwChat>>,
     },
-    GetChatMessages {
+    GetNwChatMessages {
         topic_id: Vec<u8>,
         reply: oneshot::Sender<anyhow::Result<Vec<NwMessage>>>,
     },
-    GetMessages {
+    GetNwMessages {
         reply: oneshot::Sender<anyhow::Result<Vec<NwMessage>>>,
+    },
+}
+
+pub enum WriteRequest {
+    SetNwProfile {
+        profile: NwProfile,
+        reply: oneshot::Sender<anyhow::Result<()>>,
+    },
+    AddNwMessage {
+        message: NwMessage,
+        reply: oneshot::Sender<anyhow::Result<()>>,
+    },
+    AddNwContact {
+        contact: NwContact,
+        reply: oneshot::Sender<anyhow::Result<()>>,
+    },
+    AddNwChat {
+        chat: NwChat,
+        reply: oneshot::Sender<anyhow::Result<()>>,
     },
 }
 

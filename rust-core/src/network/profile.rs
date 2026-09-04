@@ -16,11 +16,11 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use crate::ffi_error::FfiError;
 use crate::network::NwProfile;
-use crate::network::NwDbClient;
+use crate::database::DbClient;
 
 
 #[uniffi::export]
-fn set_secret_key(db_client: Arc<NwDbClient>) -> Result<(), FfiError> {
+fn set_secret_key(db_client: Arc<DbClient>) -> Result<(), FfiError> {
     
     let secret_key = SecretKey::generate();
     tokio::runtime::Runtime::new()

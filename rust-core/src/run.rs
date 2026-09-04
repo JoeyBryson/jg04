@@ -2,11 +2,11 @@
 use tokio::{runtime::Runtime};
 use std::result::Result;
 // use crate::nw::network_engine;
-use crate::database::NwDbManager;
+use crate::database::DbManager;
 use crate::ffi_error::FfiError;
 use std::path::PathBuf;
 use std::sync::Arc;
-use crate::database::NwDbClient;
+use crate::database::DbClient;
 
 pub const SCHEMA: &str = include_str!("../sql/schema.sql");
 
@@ -63,7 +63,7 @@ pub fn reset_db_for_wal(db_path_string: String) -> Result<(), FfiError> {
 pub fn add_sample_messages(
     db_path_string: String,
 ) -> Result<(), FfiError> {
-    let manager = NwDbManager::spawn(db_path_string)?;
+    let manager = DbManager::spawn(db_path_string)?;
     let client = manager.spawn_client();
 
     let rt = Runtime::new()
@@ -80,7 +80,7 @@ pub fn add_sample_messages(
 
 #[uniffi::export]
 pub fn add_sample_message(
-    client: Arc<NwDbClient>,
+    client: Arc<DbClient>,
     time: i32,
 ) -> Result<(), FfiError> {
 
@@ -102,7 +102,7 @@ pub fn add_sample_data(
 ) -> Result<(), FfiError> {
 
     let manager =
-        NwDbManager::spawn(db_path_string)?;
+        DbManager::spawn(db_path_string)?;
 
     let client = manager.spawn_client();
 

@@ -16,7 +16,7 @@ use crate::ffi_error::FfiError;
 use std::sync::Arc;
 
 
-use crate::database::{NwDbManager};
+use crate::database::{DbManager};
 use thiserror::Error;
 // mod iroh_source_sample;
 mod profile;
