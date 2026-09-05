@@ -96,14 +96,14 @@ impl DbClient {
 }
 
 impl DbClient {
-    pub async fn set_profile(&self, profile: NwProfile) -> anyhow::Result<()> {
+    pub fn set_profile(&self, profile: NwProfile) -> anyhow::Result<()> {
         let (tx, rx) = oneshot::channel();
-        self.send_write_request_async( WriteRequest::SetNwProfile { profile, reply: tx }, rx).await
+        self.send_write_request_sync( WriteRequest::SetNwProfile { profile, reply: tx }, rx)
     }
 
-    pub async fn get_nw_profile(&self) -> anyhow::Result<NwProfile> {
+    pub fn get_nw_profile(&self) -> anyhow::Result<NwProfile> {
         let (tx, rx) = oneshot::channel();
-        self.send_read_request_async( ReadRequest::GetNwProfile { reply: tx }, rx).await
+        self.send_read_request_sync( ReadRequest::GetNwProfile { reply: tx }, rx)
     }
 
     pub async fn get_nw_chats(&self) -> anyhow::Result<Vec<NwChat>> {

@@ -10,14 +10,9 @@ use crate::database::client::DbClient;
 fn set_secret_key(db_client: Arc<DbClient>) -> Result<(), FfiError> {
     
     let secret_key = SecretKey::generate();
-    tokio::runtime::Runtime::new()
-        .map_err(anyhow::Error::from)?
-        .block_on(db_client
+    db_client
         .set_profile(NwProfile {
-                secret_key
-            }
-        )
-    )?;
+                secret_key})?;
     
     Ok(())
 }

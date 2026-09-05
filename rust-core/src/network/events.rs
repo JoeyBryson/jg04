@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use iroh::EndpointId;
 use iroh_gossip::api::Event as GossipEvent;
 use serde::{Deserialize, Serialize};
-use super::signed_message::{Message, WireMessage, ReceivedMessage, SignedMessage};
+use super::signed_message::{Message, SignedMessage};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]

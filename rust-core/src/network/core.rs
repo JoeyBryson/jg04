@@ -1,88 +1,103 @@
-use std::{collections::HashMap, vec};
-use iroh::{Endpoint, protocol::Router};
-use iroh_gossip::{
-    net::Gossip, proto::TopicId,
-};
-use iroh::endpoint::presets;
-use tokio::{runtime};
-use crate::ffi_error::FfiError;
+use std::collections::HashMap;
 use std::sync::Arc;
-use super::chat_manager::ChatManager;
+
+use iroh::endpoint::presets;
+use iroh::protocol::Router;
+use iroh::Endpoint;
+use iroh_gossip::api::{GossipReceiver, GossipSender};
+use iroh_gossip::net::Gossip;
+use iroh_gossip::proto::TopicId;
+use tokio::runtime::Runtime;
+
+use super::NwChat;
+use super::chat_connector::NwChatConnector;
 use crate::database::client::DbClient;
+use crate::ffi_error::FfiError;
+use crate::network::{NwContact, NwProfile};
+use tokio::sync::RwLock;
+
+
+
+use tokio::runtime::Handle;
 
 #[derive(uniffi::Object)]
-struct NwCore {
-    runtime: runtime::Runtime,
-    endpoint: Endpoint,
+pub struct NwCore {
+    runtime_handle: Handle,
+    db_client: Arc<DbClient>,
     gossip: Gossip,
     router: Router,
-    db_client: DbClient,
-    chat_managers: HashMap<TopicId, ChatManager>,
+    profile: NwProfile,
+    activity: RwLock<HashMap<TopicId, NwChatConnector>>,
 }
 
 #[uniffi::export]
 impl NwCore {
     #[uniffi::constructor]
-    fn spawn(db_client: Arc<DbClient>) -> Result<NwCore, FfiError> {
-        let runtime = tokio::runtime::Runtime::new()
-            .map_err(anyhow::Error::from)?;
+    pub fn spawn(db_client: Arc<DbClient>) -> Result<Arc<Self>, FfiError> {
+        let db_client_inner = Arc::unwrap_or_clone(db_client);
+        let profile = db_client_inner.get_nw_profile().map_err(anyhow::Error::from)?;
 
-        let db_client_clone = (*db_client).clone();
+        let runtime = tokio::runtime::Runtime::new().map_err(anyhow::Error::from)?;
+        let runtime_handle = runtime.handle().clone();
 
-        let (endpoint, gossip, router, chat_managers) = runtime.block_on(async {
-
-            let profile = db_client_clone
-                .get_nw_profile()
-                .await?;
-
-            let secret_key= profile.secret_key;
-
+        // Boot network components using the runtime handle
+        let (gossip, router) = runtime_handle.block_on(async {
             let endpoint = Endpoint::builder(presets::N0)
-                .secret_key(secret_key)
+                .secret_key(profile.secret_key.clone())
                 .alpns(vec![iroh_gossip::ALPN.to_vec()])
                 .bind()
-                .await?;
+                .await
+                .map_err(anyhow::Error::from)?;
 
-            let gossip = Gossip::builder()
-                .spawn(endpoint.clone());
+            let gossip = Gossip::builder().spawn(endpoint.clone());
 
             let router = Router::builder(endpoint.clone())
                 .accept(iroh_gossip::ALPN, gossip.clone())
                 .spawn();
-            
-            let chat_managers = Self::spawn_chat_managers(db_client_clone.clone(), &gossip)
-                .await?;
-            
-            Ok::<_, anyhow::Error>((endpoint, gossip, router, chat_managers))
+
+            Ok::<(Gossip, Router), FfiError>((gossip, router))
         })?;
 
-        Ok(NwCore {
-            runtime,
-            endpoint,
+        // Park the Tokio runtime in a dedicated OS thread so background tasks stay active
+        //To-Do: investigate if this is really needed
+        std::thread::spawn(move || {
+            runtime.block_on(std::future::pending::<()>());
+        });
+
+        Ok(Arc::new(NwCore {
+            runtime_handle,
+            db_client: db_client.clone(),
             gossip,
             router,
-            db_client: db_client_clone,
-            chat_managers,
-        })
+            profile,
+            activity: RwLock::new(HashMap::new()),
+        }))
     }
 }
 
 impl NwCore {
-    async fn spawn_chat_managers(db_client: DbClient, gossip: &Gossip) -> anyhow::Result<HashMap<TopicId, ChatManager>>{
-        let chats = db_client
-                .get_nw_chats()
-                .await?;
-
-        let mut chat_managers = HashMap::new();
+    async fn spawn_chat_connectors(
+        db_client: &DbClient,
+        gossip: &Gossip,
+    ) -> anyhow::Result<HashMap<TopicId, NwChatConnector>> {
+        let chats = db_client.get_nw_chats().await?;
+        let mut chat_connectors = HashMap::with_capacity(chats.len());
 
         for chat in chats {
-            let chat_manager = ChatManager::spawn(chat.clone(), gossip, db_client.clone())
-            .await?;
+            let topic_id = chat.topic_id;
+            
+            // Instantiates connector instantly, then connects asynchronously.
+            let mut connector = NwChatConnector::new(chat, db_client.clone());
+            let _ = connector.connect(gossip).await; // Handle error gracefully/retry in background
 
-            chat_managers.insert(chat.topic_id, chat_manager);
-
+            chat_connectors.insert(topic_id, connector);
         }
 
-        Ok(chat_managers)
+        Ok(chat_connectors)
+    }
+
+    /// 2. Periodically checks connection status across all managed topics.
+    pub async fn health_check_connectors(&mut self) {
+        todo!("Iterate over chat_managers and invoke sync_peer_state or attempt reconnection")
     }
 }
