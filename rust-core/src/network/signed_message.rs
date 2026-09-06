@@ -51,7 +51,6 @@ pub enum WireMessage {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
-    Presence { nickname: String },
     Message { text: String, nickname: String },
 }
 

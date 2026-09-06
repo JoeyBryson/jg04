@@ -20,12 +20,6 @@ pub enum NwEvent {
         sent_timestamp: u64,
     },
     #[serde(rename_all = "camelCase")]
-    Presence {
-        from: EndpointId,
-        nickname: String,
-        sent_timestamp: u64,
-    },
-    #[serde(rename_all = "camelCase")]
     NeighborUp {
         endpoint_id: EndpointId,
     },
@@ -46,11 +40,6 @@ impl TryFrom<GossipEvent> for NwEvent {
                 let message = SignedMessage::verify_and_decode(&message.content)
                     .context("failed to parse and verify signed message")?;
                 match message.message {
-                    Message::Presence { nickname } => Self::Presence {
-                        from: message.from,
-                        nickname,
-                        sent_timestamp: message.timestamp,
-                    },
                     Message::Message { text, nickname } => Self::MessageReceived {
                         from: message.from,
                         text,
