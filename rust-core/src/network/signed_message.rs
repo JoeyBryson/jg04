@@ -1,62 +1,59 @@
-use std::time::SystemTime;
-
-use anyhow::Result;
-use iroh::{EndpointId, PublicKey, SecretKey, Signature};
+use iroh::{EndpointId, SecretKey, Signature};
 use serde::{Deserialize, Serialize};
+use anyhow::Result;
+use iroh_gossip::api::Message as GossipMessage;
+use uniffi::deps::bytes;
 
+///For receiving messages, we need to know who the message is from
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MessageDataAndSender {
+    pub content: String,
+    pub sent_at: u64,
+    pub sender: EndpointId
+}
+
+///For sending messages ourselves, the sender (us) is already known 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MessageData {
+    pub content: String,
+    pub sent_at: u64,
+}
+
+///message form passed to/ received from the iroh-gossip subscriber as bytes
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignedMessage {
-    from: PublicKey,
     data: Vec<u8>,
     signature: Signature,
 }
 
-impl SignedMessage {
-    pub fn verify_and_decode(bytes: &[u8]) -> Result<ReceivedMessage> {
-        let signed_message: Self = postcard::from_bytes(bytes)?;
-        let key: PublicKey = signed_message.from;
-        key.verify(&signed_message.data, &signed_message.signature)?;
-        let message: WireMessage = postcard::from_bytes(&signed_message.data)?;
-        let WireMessage::VO { timestamp, message } = message;
-        Ok(ReceivedMessage {
-            from: signed_message.from,
-            timestamp,
-            message,
-        })
-    }
+pub fn verify_and_decode(gossip_message: GossipMessage) -> Result<MessageDataAndSender> {
+    let bytes = gossip_message.content;
+    let signed_message: SignedMessage = postcard::from_bytes(&bytes)?;
+    let sender = gossip_message.delivered_from;
 
-    pub fn sign_and_encode(secret_key: &SecretKey, message: Message) -> Result<Vec<u8>> {
-        let timestamp = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_micros() as u64;
-        let wire_message = WireMessage::VO { timestamp, message };
-        let data = postcard::to_stdvec(&wire_message)?;
-        let signature = secret_key.sign(&data);
-        let from: PublicKey = secret_key.public();
-        let signed_message = Self {
-            from,
-            data,
-            signature,
-        };
-        let encoded = postcard::to_stdvec(&signed_message)?;
-        Ok(encoded)
-    }
+    sender.verify(&signed_message.data, &signed_message.signature)?;
+
+    let message: MessageData = postcard::from_bytes(&signed_message.data)?;
+
+    Ok(MessageDataAndSender {
+        content: message.content,
+        sent_at: message.sent_at,
+        sender,
+    })
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum WireMessage {
-    VO { timestamp: u64, message: Message },
-}
+pub fn sign_and_encode(
+    secret_key: &SecretKey,
+    message_data: MessageData,
+) -> Result<Vec<u8>> {
+    let data = postcard::to_stdvec(&message_data)?;
+    let signature = secret_key.sign(&data);
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Message {
-    Message { text: String, nickname: String },
-}
+    let signed_message = SignedMessage {
+        data,
+        signature,
+    };
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ReceivedMessage {
-    pub timestamp: u64,
-    pub from: EndpointId,
-    pub message: Message,
+    let encoded = postcard::to_stdvec(&signed_message)?;
+    Ok(encoded)
 }

@@ -1,6 +1,6 @@
 use crate::network::{NwChat, NwContact, NwMessage, NwProfile, SetupError};
 
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, Context};
 use std::{collections::HashMap};
 use iroh::{SecretKey, PublicKey};
 use iroh_gossip::TopicId;
@@ -69,8 +69,10 @@ impl DbReader {
 
             if let (Some(name), Some(endpoint_id)) = (contact_name, endpoint_id) {
                 chat.members.push(NwContact {
-                    name,
-                    endpoint_id: PublicKey::from_bytes(&endpoint_id)?,
+                    name: name.clone(),
+                    endpoint_id: PublicKey::from_bytes(&endpoint_id)
+                    .map_err(anyhow::Error::from)
+                    .with_context(|| format!("invalid public key for contact '{}'", name))?
                 });
             }
         }

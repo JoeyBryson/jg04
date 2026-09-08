@@ -1,0 +1,5 @@
+Calculating task graph as no cached configuration is available for tasks: :composeApp:run [src/testing_utilities.rs:138] Endpoint_id:
+Type-safe project accessors is an incubating feature.
+
+[Incubating] Problems report is available at: file:///home/joey/jg04/build/reports/problems/problems-report.html
+Configuration cache entry stored.

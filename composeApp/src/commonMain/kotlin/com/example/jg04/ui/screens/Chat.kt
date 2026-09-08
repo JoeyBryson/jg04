@@ -1,19 +1,13 @@
 package com.example.jg04.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,12 +24,18 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.example.jg04.state.AppCore
 import com.example.jg04.ui.icons.arrowBackIcon
 import com.example.jg04.ui.icons.sendIcon
 import com.example.jg04.ui.icons.doubleArrowDownIcon
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import uniffi.rust_api.UiChatData
 import uniffi.rust_api.UiMessage
@@ -99,12 +99,9 @@ fun ChatScreen(
         }
     }
 
-    fun sendMessage() {
-        val trimmed = messageText.trim()
-        if (trimmed.isBlank()) return
-
-        // TODO: send message
-        messageText = ""
+    fun sendMessage(messageText: String) {
+        val chatId = chat.chat.topicId
+        AppCore.nwCore.send(messageText, chatId)
     }
 
     Scaffold(
@@ -118,7 +115,10 @@ fun ChatScreen(
             MessageInputBar(
                 messageText = messageText,
                 onMessageTextChanged = { messageText = it },
-                onSendClick = { sendMessage() }
+                onSendClick = {
+                    sendMessage(messageText)
+                    messageText = ""
+                }
             )
         }
     ) { paddingValues ->
@@ -226,7 +226,20 @@ fun MessageTextField(
     TextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
+        modifier = modifier.onPreviewKeyEvent { event ->
+            if ((event.key == Key.Enter || event.key == Key.NumPadEnter) && event.type == KeyEventType.KeyDown) {
+                if (!event.isShiftPressed) {
+                    if (value.isNotBlank()) {
+                        onSend()
+                    }
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        },
         placeholder = { Text("Message") },
         maxLines = 4,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),

@@ -127,9 +127,23 @@ impl DbClient {
         Ok(())
     }
 
+    pub fn add_nw_contact_sync(&self, contact: NwContact) -> anyhow::Result<()> {
+        let (tx, rx) = oneshot::channel();
+        self.send_write_request_sync( WriteRequest::AddNwContact { contact, reply: tx }, rx)?;
+        emit_ui_event(UiEvent::ContactsChanged);
+        Ok(())
+    }
+
     pub async fn add_nw_chat(&self, chat: NwChat) -> anyhow::Result<()> {
         let (tx, rx) = oneshot::channel();
         self.send_write_request_async( WriteRequest::AddNwChat { chat, reply: tx }, rx).await?;
+        emit_ui_event(UiEvent::ChatHeadersChanged);
+        Ok(())
+    }
+
+    pub fn add_nw_chat_sync(&self, chat: NwChat) -> anyhow::Result<()> {
+        let (tx, rx) = oneshot::channel();
+        self.send_write_request_sync( WriteRequest::AddNwChat { chat, reply: tx }, rx)?;
         emit_ui_event(UiEvent::ChatHeadersChanged);
         Ok(())
     }

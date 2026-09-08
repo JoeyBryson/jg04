@@ -15,7 +15,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.jg04.state.DbManagerProvider
 import com.example.jg04.state.AppCore
-import uniffi.rust_api.UiDbManager
+import uniffi.rust_api.DbManager
+import uniffi.rust_api.addContactId
+import uniffi.rust_api.addChat
 
 class MainActivity : ComponentActivity() {
 
@@ -32,7 +34,7 @@ class MainActivity : ComponentActivity() {
 
 class App : Application(), DbManagerProvider {
 
-    override lateinit var dbManager: UiDbManager
+    override lateinit var dbManager: DbManager
         private set
 
     override fun onCreate() {
@@ -42,10 +44,15 @@ class App : Application(), DbManagerProvider {
             .apply { parentFile?.mkdirs() }
             .absolutePath
 
-//        resetDbForWal(dbPath)
-//        addSampleData(dbPath)
 
         AppCore.initialize(dbPath)
+
+//        addContactId(AppCore.dbManager.spawnClient(), "computer", "d7d6dda4006dce294fdd52d4ec2eab5814aa7617a7712fa2f4ff6a2050ba15d0")
+//        val endpointIds = arrayListOf("d7d6dda4006dce294fdd52d4ec2eab5814aa7617a7712fa2f4ff6a2050ba15d0")
+//        addChat(AppCore.dbManager.spawnClient(), "it works!",
+//            endpointIds,
+//            topicIdHex = "4a2e8f1b9c3d5e7f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f"
+//            )
 
     }
 }

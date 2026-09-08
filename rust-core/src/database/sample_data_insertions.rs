@@ -1,20 +1,24 @@
-use iroh::EndpointId;
 use anyhow::Result;
+use iroh::{EndpointId, SecretKey};
 use iroh_gossip::TopicId;
 
-use super::{client::DbClient};
+use super::client::DbClient;
 use crate::network::{NwChat, NwContact, NwMessage};
+
+fn sample_endpoint_id(seed: u8) -> EndpointId {
+    SecretKey::from_bytes(&[seed; 32]).public()
+}
 
 impl DbClient {
     pub async fn add_sample_chat(&self) -> Result<()> {
         let alice = NwContact {
             name: "Angela".to_string(),
-            endpoint_id: EndpointId::from_bytes(&[0u8; 32])?,
+            endpoint_id: sample_endpoint_id(0),
         };
 
         let bob = NwContact {
             name: "Bob".to_string(),
-            endpoint_id: EndpointId::from_bytes(&[1u8; 32])?,
+            endpoint_id: sample_endpoint_id(1),
         };
 
         self.add_nw_contact(alice.clone()).await?;
@@ -36,12 +40,12 @@ impl DbClient {
     pub async fn add_sample_message(&self, time: i32) -> Result<()> {
         let alice = NwContact {
             name: "Angela".to_string(),
-            endpoint_id: EndpointId::from_bytes(&[0u8; 32])?,
+            endpoint_id: sample_endpoint_id(0),
         };
 
         let bob = NwContact {
             name: "Bob".to_string(),
-            endpoint_id: EndpointId::from_bytes(&[1u8; 32])?,
+            endpoint_id: sample_endpoint_id(1),
         };
 
         let topic_id = TopicId::from_bytes([100u8; 32]);
@@ -87,14 +91,14 @@ impl DbClient {
         .into_iter()
         .enumerate()
         .map(|(i, name)| {
-            let endpoint_id = EndpointId::from_bytes(&[i as u8; 32])?;
+            let endpoint_id = sample_endpoint_id(i as u8);
 
-            Ok(NwContact {
+            NwContact {
                 name: name.to_string(),
                 endpoint_id,
-            })
+            }
         })
-        .collect::<anyhow::Result<Vec<_>>>()?;
+        .collect();
 
         // Add contacts
         for contact in &contacts {
@@ -126,8 +130,8 @@ impl DbClient {
             for message_index in 0..300 {
                 let sent_at =
                     1779490800000i64
-                    + (chat_index as i64 * 1_000_000)
-                    + (message_index as i64 * 60_000);
+                        + (chat_index as i64 * 1_000_000)
+                        + (message_index as i64 * 60_000);
 
                 let from_me = message_index % 3 == 0;
 
@@ -152,5 +156,4 @@ impl DbClient {
 
         Ok(())
     }
-
 }

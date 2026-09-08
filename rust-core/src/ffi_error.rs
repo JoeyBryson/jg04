@@ -17,7 +17,7 @@ impl std::fmt::Display for FfiError {
 impl From<anyhow::Error> for FfiError {
     fn from(err: anyhow::Error) -> Self {
         FfiError::Internal {
-            msg: err.to_string(),
+            msg: format!("{err:#}"),
         }
     }
 }

@@ -2,7 +2,7 @@
 use iroh::EndpointId;
 use iroh_gossip::proto::TopicId;
 use iroh::SecretKey;
-
+use serde::{Deserialize, Serialize};
 
 use thiserror::Error;
 // mod iroh_source_sample;
@@ -20,6 +20,7 @@ pub enum SetupError {
     #[error("profile has already been set")]
     ProfileAlreadySet
 }
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NwMessage {

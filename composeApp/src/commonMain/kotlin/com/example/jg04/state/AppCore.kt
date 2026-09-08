@@ -8,10 +8,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharedFlow
 import uniffi.rust_api.NwCore
 import uniffi.rust_api.DbManager
+import uniffi.rust_api.addSampleData
 import uniffi.rust_api.addSampleMessage
 import uniffi.rust_api.initNativeLogger
 import uniffi.rust_api.registerUiEventListener
+import uniffi.rust_api.resetDbForWal
 import uniffi.rust_api.setSecretKey
+import uniffi.rust_api.printEndpointId
 
 object AppCore {
 
@@ -43,6 +46,10 @@ object AppCore {
         ::nwCore.isInitialized
 
     fun initialize(dbPath: String) {
+
+//        resetDbForWal(dbPath)
+//        addSampleData(dbPath)
+
         initNativeLogger(NativeLogForwarder())
 
         if (initialized) {
@@ -70,6 +77,8 @@ object AppCore {
             )
             return
         }
+
+//        start_ticker()
 
         KotlinLogger.info(
             "AppCore",
@@ -101,6 +110,8 @@ object AppCore {
                 "Failed to set profile: ${exception.message}"
             )
         }
+        val dbClient = dbManager.spawnClient()
+        printEndpointId(dbClient)
     }
 
     fun start_listener() {
