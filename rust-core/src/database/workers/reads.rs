@@ -6,7 +6,7 @@ use iroh::{SecretKey, PublicKey};
 use iroh_gossip::TopicId;
 use super::DbReader;
 
-use crate::ui::{UiChatHeader, UiChatData, UiContact, UiMessage, UiSender};
+use crate::ui::{UiChatHeader, UiChatData, UiContact, UiMessage, UiSender, UiProfile};
 use rusqlite::{Row, OptionalExtension}; // Added OptionalExtension
 
 
@@ -398,5 +398,23 @@ impl DbReader {
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
         Ok(contacts)
+    }
+
+    pub fn get_ui_profile(&self) -> Result<UiProfile> {
+        let mut stmt = self.conn.prepare(
+            "SELECT secret_key
+             FROM user_profile",
+        )?;
+
+        let mut rows = stmt.query([])?;
+        let row = rows.next()?.ok_or(SetupError::ProfileNotSet)?;
+
+        let secret_key_bytes: [u8; 32] = row.get(0)?;
+        let secret_key = SecretKey::from_bytes(&secret_key_bytes);
+        let public_key = secret_key.public();
+
+        Ok(UiProfile {
+            endpoint_id: hex::encode(public_key.as_bytes()),
+        })
     }
 }

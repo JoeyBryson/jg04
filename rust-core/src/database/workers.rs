@@ -73,6 +73,7 @@ impl DbReader {
                 ReadRequest::GetUiChatLastMessage { topic_id, reply } => dispatch!(reply, self.get_ui_last_chat_message(&topic_id)),
                 ReadRequest::GetUiChatData { topic_id, reply } => dispatch!(reply, self.get_ui_chat_data(&topic_id)),
                 ReadRequest::GetUiContacts { reply } => dispatch!(reply, self.get_ui_contacts()),
+                ReadRequest::GetUiProfile { reply } => dispatch!(reply, self.get_ui_profile()),
                 ReadRequest::GetNwProfile { reply } => dispatch!(reply, self.get_nw_profile()),
                 ReadRequest::GetNwChats { reply } => dispatch!(reply, self.get_nw_chats()),
                 ReadRequest::GetNwChatMembers { topic_id, reply } => dispatch!(reply, self.get_nw_chat_members(&topic_id)),

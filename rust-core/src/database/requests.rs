@@ -1,6 +1,6 @@
 use crate::network::{NwChat, NwContact, NwMessage, NwProfile};
 use tokio::sync::oneshot;
-use crate::ui::{UiMessage, UiContact, UiChatHeader, UiChatData};
+use crate::ui::{UiMessage, UiContact, UiChatHeader, UiChatData, UiProfile};
 pub enum ReadRequest {
     ProfileExists {
         reply: oneshot::Sender<anyhow::Result<bool>>,
@@ -30,6 +30,9 @@ pub enum ReadRequest {
     },
     GetUiContacts {
         reply: oneshot::Sender<anyhow::Result<Vec<UiContact>>>,
+    },
+    GetUiProfile {
+        reply: oneshot::Sender<anyhow::Result<UiProfile>>,
     },
 
     GetNwProfile {

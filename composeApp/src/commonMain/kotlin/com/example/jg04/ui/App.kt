@@ -60,7 +60,8 @@ fun MainComposable() {
         ) {
 
             if (profileExists) {
-                Navigator()
+                val profile by profileVM.profile.collectAsState()
+                Navigator(profile.endpointId)
             } else {
                 SetProfile(
                     onCreateProfileButtonPressed = {

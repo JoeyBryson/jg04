@@ -4,7 +4,7 @@ use tokio::sync::oneshot;
 use crate::ffi_error::FfiError;
 use crate::network::{NwChat, NwContact, NwMessage, NwProfile};
 use crate::notifications::{emit_ui_event, UiEvent};
-use crate::ui::{UiMessage, UiContact, UiChatHeader, UiChatData};
+use crate::ui::{UiMessage, UiContact, UiChatHeader, UiChatData, UiProfile};
 use tokio::sync::mpsc;
 use super::requests::{ReadRequest, WriteRequest};
 
@@ -92,6 +92,11 @@ impl DbClient {
     pub fn get_ui_contacts(&self) -> Result<Vec<UiContact>, FfiError> {
         let (tx, rx) = oneshot::channel();
         Ok(self.send_read_request_sync( ReadRequest::GetUiContacts { reply: tx }, rx)?)
+    }
+
+    pub fn get_ui_profile(&self) -> Result<UiProfile, FfiError> {
+        let (tx, rx) = oneshot::channel();
+        Ok(self.send_read_request_sync( ReadRequest::GetUiProfile { reply: tx }, rx)?)
     }
 }
 

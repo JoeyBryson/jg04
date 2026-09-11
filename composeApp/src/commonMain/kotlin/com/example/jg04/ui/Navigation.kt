@@ -13,6 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -36,7 +37,9 @@ import com.example.jg04.ui.screens.ChatScreen
 import com.example.jg04.ui.screens.NewChatContent
 import com.example.jg04.ui.screens.NewChatScreen
 import com.example.jg04.ui.screens.PlaceholderScreen
+import com.example.jg04.ui.screens.ShareProfileScreen
 import kotlinx.serialization.modules.SerializersModule
+import androidx.compose.runtime.State
 
 
 @Serializable data object Home : NavKey
@@ -65,7 +68,7 @@ val screenKeyConfig = SavedStateConfiguration {
 
 
 @Composable
-fun Navigator() {
+fun Navigator(profile_endppoint_id: String) {
     val backStack = rememberNavBackStack(
         configuration = screenKeyConfig,
         Home
@@ -97,48 +100,64 @@ fun Navigator() {
                 rememberViewModelStoreNavEntryDecorator()
             ),
             entryProvider = { key ->
-            when (key) {
-                is Home -> NavEntry(key) {
-                    val vm: HomePageVM = viewModel(factory = HomePageVMFactory)
-                    val chatheaders by vm.chatHeaders.collectAsState()
-                    val chatList by remember(chatheaders) { derivedStateOf { chatheaders.values.toList() } }
+                when (key) {
+                    is Home -> NavEntry(key) {
+                        val vm: HomePageVM = viewModel(factory = HomePageVMFactory)
+                        val chatheaders by vm.chatHeaders.collectAsState()
+                        val chatList by remember(chatheaders) {
+                            derivedStateOf { chatheaders.values.toList() }
+                        }
 
-                    ChatListScreen(
-                        chats = chatList,
-                        onChatClick = { backStack.add(Chat(it)) },
-                        onShareProfileClick = { backStack.add(ContactShare) },
-                        onNewChatClick = { backStack.add(NewChat) },
-                        onNewContactClick = { backStack.add(AddContact) },
-                        onContactsClick = { backStack.add(Contacts) },
-                        onSettingsClick = { backStack.add(Settings) }
-                    )
-                }
-                is Chat -> NavEntry(key) {
-                    val vm: ChatPageVM = viewModel(factory = chatPageVMFactory(key.topicId))
-                    val chatData by vm.chatData.collectAsState()
-                    ChatScreen(
-                        chatData,
-                        onBackPress = onBack
-                    )
-                }
-                is NewChat -> NavEntry(key) {
-                    val vm: NewChatPageVM = viewModel(factory = NewChatPageVMFactory)
-                    val contacts by vm.contacts.collectAsState()
-                    NewChatScreen(
-                        contacts,
-                        onBackPress = onBack,
-                        onCreateChat = {})
+                        ChatListScreen(
+                            chats = chatList,
+                            onChatClick = { backStack.add(Chat(it)) },
+                            onShareProfileClick = { backStack.add(ContactShare) },
+                            onNewChatClick = { backStack.add(NewChat) },
+                            onNewContactClick = { backStack.add(AddContact) },
+                            onContactsClick = { backStack.add(Contacts) },
+                            onSettingsClick = { backStack.add(Settings) }
+                        )
+                    }
 
-                }
-                else -> NavEntry(key) {
-                    PlaceholderScreen(
-                        title = "Placeholder Screen",
-                        onBack = onBack,
-                        {}
-                    )
+                    is Chat -> NavEntry(key) {
+                        val vm: ChatPageVM = viewModel(
+                            factory = chatPageVMFactory(key.topicId)
+                        )
+                        val chatData by vm.chatData.collectAsState()
+
+                        ChatScreen(
+                            chatData,
+                            onBackPress = onBack
+                        )
+                    }
+
+                    is NewChat -> NavEntry(key) {
+                        val vm: NewChatPageVM = viewModel(factory = NewChatPageVMFactory)
+                        val contacts by vm.contacts.collectAsState()
+
+                        NewChatScreen(
+                            contacts,
+                            onBackPress = onBack,
+                            onCreateChat = {}
+                        )
+                    }
+
+                    is ContactShare -> NavEntry(key) {
+                        ShareProfileScreen(
+                            endpointId = profile_endppoint_id,
+                            onBackPress = onBack
+                        )
+                    }
+
+                    else -> NavEntry(key) {
+                        PlaceholderScreen(
+                            title = "Placeholder Screen",
+                            onBack = onBack,
+                            {}
+                        )
+                    }
                 }
             }
-        }
         )
     }
 }

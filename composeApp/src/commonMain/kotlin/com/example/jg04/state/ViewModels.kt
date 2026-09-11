@@ -7,29 +7,50 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.jg04.KotlinLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import uniffi.rust_api.*
+import uniffi.rust_api.DbClient
+import uniffi.rust_api.UiProfile
+import uniffi.rust_api.UiChatHeader
+import uniffi.rust_api.UiChatData
+import uniffi.rust_api.UiContact
 
+class ProfileVM(
+    private val dbClient: DbClient
+) : ViewModel() {
 
-class ProfileVM : ViewModel() {
     private val _profileExists =
-        MutableStateFlow<Boolean>(AppCore.profileExists())
+        MutableStateFlow(AppCore.profileExists())
 
     val profileExists: StateFlow<Boolean> =
         _profileExists.asStateFlow()
 
+    private val _profile =
+        MutableStateFlow<UiProfile?>(null)
+
+    val profile: StateFlow<UiProfile> =
+        _profile.filterNotNull().stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            dbClient.getUiProfile()
+        )
+
     fun profileIsSet() {
         if (AppCore.profileExists()) {
+            _profile.value = dbClient.getUiProfile()
             _profileExists.value = true
-            KotlinLogger.info("Profile Settup","successfully set profile")
-        }
-        else {
-            KotlinLogger.error("Profile Settup","failed to set profile")
+
+            KotlinLogger.info("Profile Settup", "successfully set profile")
+        } else {
+            KotlinLogger.error("Profile Settup", "failed to set profile")
         }
     }
 }
+
 class HomePageVM(
     private val dbClient: DbClient,
     private val chatHeadersInvalidated: SharedFlow<Unit>
@@ -121,7 +142,7 @@ class NewChatPageVM(
 
 val profileVMFactory = viewModelFactory {
     initializer {
-        ProfileVM()
+        ProfileVM(dbClient = AppCore.dbManager.spawnClient())
     }
 }
 
