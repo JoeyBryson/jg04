@@ -1,6 +1,7 @@
-pub mod workers;
 pub mod manager;
 pub mod client;
 pub mod sample_data_insertions;
-pub mod requests;
+pub(crate) mod workers;
+pub(crate) mod requests;
+pub(crate) mod macros;
 

@@ -46,12 +46,6 @@ fn start_conn(db_path: &path::Path, mode: DbMode) -> Result<Connection> {
     Ok(conn)
 }
 
-macro_rules! dispatch {
-    ($reply:expr, $expr:expr) => {{
-        let _ = $reply.send($expr);
-    }};
-}
-
 impl DbReader {
     pub fn start(worker_rx: mpsc::Receiver<ReadRequest>, db_path: PathBuf) -> Result<Self> {
         log::info!("[DB-READER] start db_path={:?}", db_path);
@@ -64,23 +58,7 @@ impl DbReader {
         log::info!("[DB-READER] loop start");
 
         while let Some(request) = self.rx.blocking_recv() {
-            match request {
-                ReadRequest::ProfileExists { reply } => dispatch!(reply, self.profile_exists()),
-                ReadRequest::GetUiChatHeaders { reply } => dispatch!(reply, self.get_ui_chat_headers()),
-                ReadRequest::GetUiChatHeader { topic_id, reply } => dispatch!(reply, self.get_ui_chat_header(&topic_id)),
-                ReadRequest::GetUiChatMembers { topic_id, reply } => dispatch!(reply, self.get_ui_chat_members(&topic_id)),
-                ReadRequest::GetUiChatMessages { topic_id, reply } => dispatch!(reply, self.get_ui_chat_messages(&topic_id)),
-                ReadRequest::GetUiChatLastMessage { topic_id, reply } => dispatch!(reply, self.get_ui_last_chat_message(&topic_id)),
-                ReadRequest::GetUiChatData { topic_id, reply } => dispatch!(reply, self.get_ui_chat_data(&topic_id)),
-                ReadRequest::GetUiContacts { reply } => dispatch!(reply, self.get_ui_contacts()),
-                ReadRequest::GetUiProfile { reply } => dispatch!(reply, self.get_ui_profile()),
-                ReadRequest::GetNwProfile { reply } => dispatch!(reply, self.get_nw_profile()),
-                ReadRequest::GetNwChats { reply } => dispatch!(reply, self.get_nw_chats()),
-                ReadRequest::GetNwChatMembers { topic_id, reply } => dispatch!(reply, self.get_nw_chat_members(&topic_id)),
-                ReadRequest::GetNwChat { topic_id, reply } => dispatch!(reply, self.get_nw_chat(&topic_id)),
-                ReadRequest::GetNwChatMessages { topic_id, reply } => dispatch!(reply, self.get_nw_chat_messages(&topic_id)),
-                ReadRequest::GetNwMessages { reply } => dispatch!(reply, self.get_nw_messages()),
-            }
+            self.dispatch(request);
         }
 
         log::info!("[DB-READER] loop exit");
@@ -99,12 +77,7 @@ impl DbWriter {
         log::info!("[DB-WRITER] loop start");
 
         while let Some(request) = self.rx.blocking_recv() {
-            match request {
-                WriteRequest::SetNwProfile { profile, reply } => dispatch!(reply, self.set_nw_profile(profile)),
-                WriteRequest::AddNwMessage { message, reply } => dispatch!(reply, self.add_nw_message(message)),
-                WriteRequest::AddNwContact { contact, reply } => dispatch!(reply, self.add_nw_contact(contact)),
-                WriteRequest::AddNwChat { chat, reply } => dispatch!(reply, self.add_nw_chat(chat)),
-            }
+            self.dispatch(request);
         }
 
         log::info!("[DB-WRITER] loop exit");
