@@ -1,10 +1,13 @@
 package com.example.jg04.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.selection.SelectionContainer
 import com.example.jg04.ui.icons.arrowBackIcon
 import com.example.jg04.ui.icons.contentCopyIcon
@@ -48,35 +51,40 @@ fun ShareProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
+                .padding(horizontal = 24.dp), // Guarantees minimum margin on both edges
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("EndpointID:")
+            Text(
+                text = "EndpointID:",
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-            Row(
-                modifier = Modifier.padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                SelectionContainer {
+            SelectionContainer {
+                Box(
+                    modifier = Modifier.width(IntrinsicSize.Min)
+                ) {
                     OutlinedTextField(
                         value = endpointId,
                         onValueChange = {},
                         readOnly = true,
-                        singleLine = true
-                    )
-                }
-
-                IconButton(
-                    onClick = {
-                        clipboardManager.setText(
-                            AnnotatedString(endpointId)
-                        )
-                    }
-                ) {
-                    Icon(
-                        imageVector = contentCopyIcon,
-                        contentDescription = "Copy EndpointID"
+                        singleLine = false,
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    clipboardManager.setText(
+                                        AnnotatedString(endpointId)
+                                    )
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = contentCopyIcon,
+                                    contentDescription = "Copy EndpointID"
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
