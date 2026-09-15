@@ -4,7 +4,7 @@ use tokio::sync::oneshot;
 use tokio::sync::mpsc;
 use super::requests::{ReadRequest, WriteRequest};
 
-#[derive(uniffi::Object, Clone)]
+#[derive(uniffi::Object, Clone, Debug)]
 pub struct DbClient {
     pub reader_tx: mpsc::Sender<ReadRequest>,
     pub writer_tx: mpsc::Sender<WriteRequest>

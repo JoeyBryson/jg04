@@ -37,10 +37,10 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.mutableFloatStateOf
+import com.example.jg04.KotlinLogger
 
 @Composable
 fun MainComposable() {
-
     val profileVM: ProfileVM = viewModel(factory = profileVMFactory)
 
     val profileExists by profileVM.profileExists.collectAsState()
@@ -58,22 +58,31 @@ fun MainComposable() {
                 .background(MaterialTheme.colorScheme.background)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
-
             if (profileExists) {
                 val profile by profileVM.profile.collectAsState()
-                Navigator(profile.endpointId)
+
+                profile?.let {
+                    Navigator(
+                        it.endpointId,
+                        onDataBaseReset = {
+                            profileVM.profileChanged()
+                        }
+                    )
+                }
             } else {
                 SetProfile(
-                    onCreateProfileButtonPressed = {
-                        AppCore.setProfile()
-                        profileVM.profileIsSet()
+                    onCreateProfileButtonPressed = { name ->
+                        AppCore.setProfile(name)
+                        profileVM.profileChanged()
                     }
                 )
             }
-            NwCoreStatusOverlay()
         }
     }
 }
+
+
+
 @Composable
 fun NwCoreStatusOverlay() {
     var initialized by remember {

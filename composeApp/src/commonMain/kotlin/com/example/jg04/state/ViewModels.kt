@@ -23,33 +23,17 @@ class ProfileVM(
     private val dbClient: DbClient
 ) : ViewModel() {
 
-    private val _profileExists =
-        MutableStateFlow(AppCore.profileExists())
+    private val _profile = MutableStateFlow<UiProfile?>(
+        if (AppCore.profileExists()) dbClient.getUiProfile() else null
+    )
+    val profile: StateFlow<UiProfile?> = _profile.asStateFlow()
 
-    val profileExists: StateFlow<Boolean> =
-        _profileExists.asStateFlow()
-
-    private val _profile =
-        MutableStateFlow<UiProfile?>(null)
-
-    val profile: StateFlow<UiProfile> =
-        _profile.filterNotNull().stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            dbClient.getUiProfile()
-        )
-
-    fun profileIsSet() {
-        if (AppCore.profileExists()) {
-            _profile.value = dbClient.getUiProfile()
-            _profileExists.value = true
-
-            KotlinLogger.info("Profile Settup", "successfully set profile")
-        } else {
-            KotlinLogger.error("Profile Settup", "failed to set profile")
-        }
+    fun profileChanged() {
+        val exists = AppCore.profileExists()
+        _profile.value = if (exists) dbClient.getUiProfile() else null
     }
 }
+
 
 class HomePageVM(
     private val dbClient: DbClient,

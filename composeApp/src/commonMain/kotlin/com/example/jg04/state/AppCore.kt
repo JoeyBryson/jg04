@@ -12,7 +12,6 @@ import uniffi.rust_api.addSampleData
 import uniffi.rust_api.addSampleMessage
 import uniffi.rust_api.initNativeLogger
 import uniffi.rust_api.registerUiEventListener
-import uniffi.rust_api.resetDbForWal
 import uniffi.rust_api.setSecretKey
 import uniffi.rust_api.printEndpointId
 
@@ -25,6 +24,7 @@ object AppCore {
 
     lateinit var dbManager: DbManager
         private set
+
     lateinit var ticker: AppBackgroundTicker
         private set
 
@@ -45,6 +45,10 @@ object AppCore {
     fun isNwCoreInitialized(): Boolean =
         ::nwCore.isInitialized
 
+    fun reset_db() {
+        dbManager = DbManager.reset(_dbPath)
+    }
+
     fun initialize(dbPath: String) {
 
 //        resetDbForWal(dbPath)
@@ -61,6 +65,7 @@ object AppCore {
         }
 
         _dbPath = dbPath
+
         KotlinLogger.info(
             "AppCore",
             "Initializing Native Core Components..."
@@ -89,27 +94,33 @@ object AppCore {
     }
 
     fun profileExists(): Boolean {
-        return runCatching {
+        KotlinLogger.info("AppCore", "Checking for profile")
+        val result = runCatching {
             val dbClient = dbManager.spawnClient()
             dbClient.profileExists()
+        }.onSuccess { exists ->
+            KotlinLogger.info("AppCore", "Profile exists: $exists")
         }.onFailure { exception ->
             KotlinLogger.error(
                 "AppCore",
                 "Failed to check profile: ${exception.message}"
             )
         }.getOrDefault(false)
+        KotlinLogger.info("AppCore", "Returning from profile exists")
+        return result
     }
 
-    fun setProfile() {
+    fun setProfile(name: String) {
         runCatching {
             val dbClient = dbManager.spawnClient()
-            setSecretKey(dbClient)
+            setSecretKey(dbClient, name)
         }.onFailure { exception ->
             KotlinLogger.error(
                 "AppCore",
                 "Failed to set profile: ${exception.message}"
             )
         }
+
         val dbClient = dbManager.spawnClient()
         printEndpointId(dbClient)
     }
@@ -187,4 +198,3 @@ object AppCore {
 interface DbManagerProvider {
     val dbManager: DbManager
 }
-

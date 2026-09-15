@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.jg04.ui.MainComposable
 import uniffi.rust_api.addSampleData
-import uniffi.rust_api.resetDbForWal
 
 import android.app.Application
 import androidx.compose.runtime.getValue

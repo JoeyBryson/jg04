@@ -10,7 +10,7 @@ pub struct UiProfile {
     pub endpoint_id: String,
 }
 
-#[derive(uniffi::Record)]
+#[derive(uniffi::Record, Clone)]
 pub struct UiContact {
     pub name: String,
     pub endpoint_id: String,

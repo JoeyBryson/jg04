@@ -18,15 +18,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.jg04.state.AppCore
 import com.example.jg04.ui.icons.arrowBackIcon
 import uniffi.rust_api.UiContact
+import androidx.compose.material3.OutlinedTextField
+import uniffi.rust_api.UiChatHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewChatScreen(
     contacts: Map<String, UiContact>,
     onBackPress: () -> Unit,
-    onCreateChat: (List<UiContact>) -> Unit
+    onCreateChat: (String) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -54,14 +57,28 @@ fun NewChatScreen(
 @Composable
 fun NewChatContent(
     contacts: Map<String, UiContact>,
-    onCreateChat: (List<UiContact>) -> Unit,
+    onCreateChat: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val selectedContacts = rememberSaveable { mutableStateListOf<UiContact>() }
+    val selectedContacts = remember { mutableStateListOf<UiContact>() }
+    var chatName by rememberSaveable { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = modifier.fillMaxSize()
     ) {
+        OutlinedTextField(
+            value = chatName,
+            onValueChange = {
+                chatName = it
+                error = null
+            },
+            label = { Text("Chat name (optional)") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        )
+
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(vertical = 8.dp)
@@ -112,11 +129,34 @@ fun NewChatContent(
             }
         }
 
-        val canCreateChat = selectedContacts.size > 0
+        val canCreateChat = selectedContacts.isNotEmpty()
 
         Button(
             onClick = {
-                onCreateChat(selectedContacts.toList())
+                try {
+                    val client = AppCore.dbManager.spawnClient()
+
+                    val name = chatName
+                        .trim()
+                        .takeIf { it.isNotEmpty() }
+
+                    val topic_id = client.addChatUi(
+                        contacts = selectedContacts.toList(),
+                        name = name
+                    )
+
+                    AppCore.nwCore.inviteChatMembers(
+                        UiChatHeader(name,
+                            selectedContacts.toList(),
+                            topic_id,
+                            null
+                            )
+                    )
+
+                    onCreateChat(topic_id)
+                } catch (e: Exception) {
+                    error = e.toString()
+                }
             },
             enabled = canCreateChat,
             modifier = Modifier
@@ -124,6 +164,17 @@ fun NewChatContent(
                 .padding(16.dp)
         ) {
             Text("Create Chat")
+        }
+
+        error?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(
+                    horizontal = 16.dp,
+                    vertical = 8.dp
+                )
+            )
         }
     }
 }

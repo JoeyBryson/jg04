@@ -1,57 +1,41 @@
-use std::path::{self, PathBuf};
-use tokio::sync::mpsc;
-use rusqlite::{Connection, OpenFlags};
+use std::path::PathBuf;
+
 use anyhow::Result;
+use rusqlite::Connection;
+use tokio::sync::mpsc;
 
-mod reads;
+mod ui_reads;
+mod nw_reads;
 mod writes;
+
 use super::requests::{ReadRequest, WriteRequest};
+use super::manager::{start_conn, DbMode};
 
-pub struct DbReader{
+pub struct DbReader {
     rx: mpsc::Receiver<ReadRequest>,
-    conn: rusqlite::Connection
+    conn: Connection,
 }
 
-pub struct DbWriter{
+pub struct DbWriter {
     rx: mpsc::Receiver<WriteRequest>,
-    conn: rusqlite::Connection
-}
-
-
-#[derive(Debug)]
-pub enum DbMode {
-    ReadOnly,
-    ReadWrite,
-}
-
-fn start_conn(db_path: &path::Path, mode: DbMode) -> Result<Connection> {
-    let flags = match mode {
-        DbMode::ReadOnly => OpenFlags::SQLITE_OPEN_READ_ONLY,
-        DbMode::ReadWrite => {
-            OpenFlags::SQLITE_OPEN_READ_WRITE
-                | OpenFlags::SQLITE_OPEN_CREATE
-                | OpenFlags::SQLITE_OPEN_NO_MUTEX
-        }
-    };
-
-    let conn = Connection::open_with_flags(db_path, flags).map_err(|e| {
-        log::error!("[DB] open failed: {}", e);
-        e
-    })?;
-
-    if matches!(mode, DbMode::ReadWrite) {
-        let _ = conn.execute_batch("PRAGMA journal_mode = WAL;");
-    }
-
-    Ok(conn)
+    conn: Connection,
 }
 
 impl DbReader {
-    pub fn start(worker_rx: mpsc::Receiver<ReadRequest>, db_path: PathBuf) -> Result<Self> {
+    pub fn start(
+        worker_rx: mpsc::Receiver<ReadRequest>,
+        db_path: PathBuf,
+    ) -> Result<Self> {
         log::info!("[DB-READER] start db_path={:?}", db_path);
+
         let conn = start_conn(&db_path, DbMode::ReadOnly)?;
+
         log::info!("[DB-READER] started");
-        Ok(Self { rx: worker_rx, conn })
+
+        Ok(Self {
+            rx: worker_rx,
+            conn,
+        })
     }
 
     pub fn request_loop(mut self) {
@@ -66,11 +50,20 @@ impl DbReader {
 }
 
 impl DbWriter {
-    pub fn start(worker_rx: mpsc::Receiver<WriteRequest>, db_path: PathBuf) -> Result<Self> {
+    pub fn start(
+        worker_rx: mpsc::Receiver<WriteRequest>,
+        db_path: PathBuf,
+    ) -> Result<Self> {
         log::info!("[DB-WRITER] start db_path={:?}", db_path);
+
         let conn = start_conn(&db_path, DbMode::ReadWrite)?;
+
         log::info!("[DB-WRITER] ready");
-        Ok(Self { rx: worker_rx, conn })
+
+        Ok(Self {
+            rx: worker_rx,
+            conn,
+        })
     }
 
     pub fn request_loop(mut self) {

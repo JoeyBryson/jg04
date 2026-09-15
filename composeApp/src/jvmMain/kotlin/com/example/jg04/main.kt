@@ -10,7 +10,6 @@ import uniffi.rust_api.addChat
 import uniffi.rust_api.addContactId
 import uniffi.rust_api.addSampleData
 import uniffi.rust_api.initNativeLogger
-import uniffi.rust_api.resetDbForWal
 
 
 fun main() = application {

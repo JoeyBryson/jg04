@@ -40,6 +40,8 @@ import com.example.jg04.ui.screens.PlaceholderScreen
 import com.example.jg04.ui.screens.ShareProfileScreen
 import kotlinx.serialization.modules.SerializersModule
 import androidx.compose.runtime.State
+import com.example.jg04.ui.screens.AddContactScreen
+import com.example.jg04.ui.screens.SettingsScreen
 
 
 @Serializable data object Home : NavKey
@@ -68,7 +70,8 @@ val screenKeyConfig = SavedStateConfiguration {
 
 
 @Composable
-fun Navigator(profile_endppoint_id: String) {
+fun Navigator(profile_endppoint_id: String,
+              onDataBaseReset: () -> Unit) {
     val backStack = rememberNavBackStack(
         configuration = screenKeyConfig,
         Home
@@ -138,7 +141,10 @@ fun Navigator(profile_endppoint_id: String) {
                         NewChatScreen(
                             contacts,
                             onBackPress = onBack,
-                            onCreateChat = {}
+                            onCreateChat = {
+                                onBack()
+                                backStack.add(Chat(it))
+                            }
                         )
                     }
 
@@ -146,6 +152,19 @@ fun Navigator(profile_endppoint_id: String) {
                         ShareProfileScreen(
                             endpointId = profile_endppoint_id,
                             onBackPress = onBack
+                        )
+                    }
+
+                    is AddContact -> NavEntry(key) {
+                        AddContactScreen (
+                            onBackPress = onBack
+                        )
+                    }
+
+                    is Settings -> NavEntry(key) {
+                        SettingsScreen (
+                            onBackPress = onBack,
+                            onDataBaseReset = onDataBaseReset
                         )
                     }
 

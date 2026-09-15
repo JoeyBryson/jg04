@@ -93,12 +93,12 @@ fun ChatListTopBar(
                 )
             }
 
-            IconButton(onClick = onContactsClick) {
-                Icon(
-                    imageVector = contactsIcon,
-                    contentDescription = "New Contact"
-                )
-            }
+//            IconButton(onClick = onContactsClick) {
+//                Icon(
+//                    imageVector = contactsIcon,
+//                    contentDescription = "New Contact"
+//                )
+//            }
 
             IconButton(onClick = onSettingsClick) {
                 Icon(

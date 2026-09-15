@@ -101,7 +101,7 @@ fun ChatScreen(
 
     fun sendMessage(messageText: String) {
         val chatId = chat.chat.topicId
-        AppCore.nwCore.send(messageText, chatId)
+        AppCore.nwCore.sendMessage(messageText, chatId)
     }
 
     Scaffold(
