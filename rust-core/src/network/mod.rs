@@ -13,7 +13,9 @@ mod core;
 mod chat_connector;
 mod events;
 mod signed_message;
+mod control_protocol;
 
+pub(super) const CONTROL_ALPN: &[u8] = b"iroh-example/echo/0";
 
 #[derive(Error, Debug, PartialEq)]
 pub enum SetupError {
@@ -22,7 +24,8 @@ pub enum SetupError {
     #[error("profile has already been set")]
     ProfileAlreadySet
 }
-
+use control_protocol::ControlProtocol;
+use control_protocol::ControlMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NwMessage {
