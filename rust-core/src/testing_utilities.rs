@@ -1,13 +1,11 @@
 
-use iroh::{EndpointId, endpoint};
+use iroh::EndpointId;
 use tokio::{runtime::Runtime};
-use std::os::unix::process;
 use std::result::Result;
 // use crate::nw::network_engine;
 use crate::database::manager::DbManager;
 use crate::ffi_error::FfiError;
 use crate::network::{NwChat, NwContact};
-use crate::ui::UiContact;
 use std::path::PathBuf;
 use std::sync::Arc;
 use crate::database::client::DbClient;

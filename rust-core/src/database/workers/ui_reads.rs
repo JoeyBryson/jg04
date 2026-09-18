@@ -1,9 +1,7 @@
-use crate::network::{NwChat, NwContact, NwMessage, SetupError, NwProfile};
+use crate::network::SetupError;
 
-use anyhow::{Result, anyhow, Context};
-use std::{collections::HashMap};
-use iroh::{SecretKey, PublicKey, EndpointId};
-use iroh_gossip::TopicId;
+use anyhow::Result;
+use iroh::SecretKey;
 use super::DbReader;
 
 use crate::ui::{UiChatHeader, UiChatData, UiContact, UiMessage, UiSender, UiProfile};
@@ -171,21 +169,30 @@ impl DbReader {
         Ok(contacts)
     }
 
-    pub fn get_ui_profile(&self) -> Result<UiProfile> {
+    pub fn get_ui_profile(&self) -> Result<Option<UiProfile>> {
         let mut stmt = self.conn.prepare(
-            "SELECT secret_key
-             FROM user_profile",
+            "SELECT secret_key, contact_name
+            FROM user_profile",
         )?;
 
         let mut rows = stmt.query([])?;
-        let row = rows.next()?.ok_or(SetupError::ProfileNotSet)?;
 
-        let secret_key_bytes: [u8; 32] = row.get(0)?;
-        let secret_key = SecretKey::from_bytes(&secret_key_bytes);
-        let public_key = secret_key.public();
+        let profile = match rows.next()? {
+            Some(row) => {
+                let secret_key_bytes: [u8; 32] = row.get(0)?;
+                let name: String = row.get(1)?;
 
-        Ok(UiProfile {
-            endpoint_id: hex::encode(public_key.as_bytes()),
-        })
-    }
+                let secret_key = SecretKey::from_bytes(&secret_key_bytes);
+                let public_key = secret_key.public();
+
+                Some(UiProfile {
+                    name,
+                    endpoint_id: hex::encode(public_key.as_bytes()),
+                })
+            }
+            None => None,
+        };
+
+        Ok(profile)
+}
 }

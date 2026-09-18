@@ -32,7 +32,7 @@ db_requests! {
         GetUiChatLastMessage(topic_id: String) -> Option<UiMessage> => get_ui_last_chat_message { ffi_sync get_ui_chat_last_message };
         GetUiChatData(topic_id: String) -> UiChatData => get_ui_chat_data { ffi_sync get_ui_chat_data };
         GetUiContacts() -> Vec<UiContact> => get_ui_contacts { ffi_sync get_ui_contacts };
-        GetUiProfile() -> UiProfile => get_ui_profile { ffi_sync get_ui_profile };
+        GetUiProfile() -> Option<UiProfile> => get_ui_profile { ffi_sync get_ui_profile };
 
         GetNwProfile() -> NwProfile => get_nw_profile { sync get_nw_profile };
         GetNwChats() -> Vec<NwChat> => get_nw_chats { async get_nw_chats };

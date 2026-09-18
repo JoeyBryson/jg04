@@ -2,7 +2,6 @@ use iroh::{EndpointId, SecretKey, Signature};
 use serde::{Deserialize, Serialize};
 use anyhow::Result;
 use iroh_gossip::api::Message as GossipMessage;
-use uniffi::deps::bytes;
 
 ///For receiving messages, we need to know who the message is from
 #[derive(Debug, Serialize, Deserialize)]

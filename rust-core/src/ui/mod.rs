@@ -7,6 +7,7 @@ pub enum UiSender {
 
 #[derive(uniffi::Record)]
 pub struct UiProfile {
+    pub name: String,
     pub endpoint_id: String,
 }
 

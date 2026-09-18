@@ -1,9 +1,6 @@
 
-use anyhow::{Context, Result};
 use iroh::EndpointId;
-use iroh_gossip::api::Event as GossipEvent;
 use serde::{Deserialize, Serialize};
-use crate::network::{NwMessage, signed_message::MessageData};
 
 use super::signed_message::{SignedMessage};
 

@@ -42,11 +42,10 @@ import com.example.jg04.KotlinLogger
 @Composable
 fun MainComposable() {
     val profileVM: ProfileVM = viewModel(factory = profileVMFactory)
+    val profile by profileVM.profile.collectAsState()
 
-    val profileExists by profileVM.profileExists.collectAsState()
-
-    LaunchedEffect(profileExists) {
-        if (profileExists) {
+    LaunchedEffect(profile != null) {
+        profile?.let {
             AppCore.startNetworking()
         }
     }
@@ -58,17 +57,14 @@ fun MainComposable() {
                 .background(MaterialTheme.colorScheme.background)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
-            if (profileExists) {
-                val profile by profileVM.profile.collectAsState()
-
-                profile?.let {
-                    Navigator(
-                        it.endpointId,
-                        onDataBaseReset = {
-                            profileVM.profileChanged()
-                        }
-                    )
-                }
+            val currentProfile = profile
+            if (currentProfile != null) {
+                Navigator(
+                    profile_endppoint_id = currentProfile.endpointId,
+                    onDataBaseReset = {
+                        profileVM.profileChanged()
+                    }
+                )
             } else {
                 SetProfile(
                     onCreateProfileButtonPressed = { name ->
@@ -80,7 +76,6 @@ fun MainComposable() {
         }
     }
 }
-
 
 
 @Composable

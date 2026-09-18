@@ -6,8 +6,7 @@ use iroh::{SecretKey, PublicKey, EndpointId};
 use iroh_gossip::TopicId;
 use super::DbReader;
 
-use crate::ui::{UiChatHeader, UiChatData, UiContact, UiMessage, UiSender, UiProfile};
-use rusqlite::{Row, OptionalExtension}; // Added OptionalExtension
+ // Added OptionalExtension
 
 
 impl DbReader {

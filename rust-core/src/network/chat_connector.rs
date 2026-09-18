@@ -1,10 +1,10 @@
 use futures_lite::StreamExt;
-use iroh::{EndpointId, SecretKey};
+use iroh::SecretKey;
 use iroh_gossip::{
     api::{GossipReceiver, GossipSender}, net::Gossip, proto::TopicId,
 };
 use iroh_gossip::api::Event as GossipEvent;
-use super::{NwChat, NwMessage,  events::NwEvent, signed_message::{verify_and_decode, sign_and_encode}};
+use super::{NwChat, NwMessage, signed_message::{verify_and_decode, sign_and_encode}};
 use crate::{database::client::DbClient, network::signed_message::MessageData};
 use crate::network::NwContact;
 use std::time::SystemTime;

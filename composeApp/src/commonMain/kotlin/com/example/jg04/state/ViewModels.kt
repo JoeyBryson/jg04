@@ -23,14 +23,20 @@ class ProfileVM(
     private val dbClient: DbClient
 ) : ViewModel() {
 
-    private val _profile = MutableStateFlow<UiProfile?>(
-        if (AppCore.profileExists()) dbClient.getUiProfile() else null
-    )
+    private val _profile = MutableStateFlow<UiProfile?>(fetchProfile())
     val profile: StateFlow<UiProfile?> = _profile.asStateFlow()
 
     fun profileChanged() {
-        val exists = AppCore.profileExists()
-        _profile.value = if (exists) dbClient.getUiProfile() else null
+        _profile.value = fetchProfile()
+    }
+
+    private fun fetchProfile(): UiProfile? {
+        return runCatching {
+            dbClient.getUiProfile()
+        }.getOrElse { exception ->
+            KotlinLogger.error("ProfileVM", "getUiProfile failed: $exception")
+            null
+        }
     }
 }
 
