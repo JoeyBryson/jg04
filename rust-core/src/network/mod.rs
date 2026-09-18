@@ -10,7 +10,7 @@ use thiserror::Error;
 mod profile;
 // // mod run;
 mod core;
-mod chat_connector;
+mod groupchat;
 mod events;
 mod signed_message;
 mod control_protocol;

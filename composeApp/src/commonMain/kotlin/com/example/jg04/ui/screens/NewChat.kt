@@ -134,24 +134,13 @@ fun NewChatContent(
         Button(
             onClick = {
                 try {
-                    val client = AppCore.dbManager.spawnClient()
 
                     val name = chatName
                         .trim()
                         .takeIf { it.isNotEmpty() }
 
-                    val topic_id = client.addChatUi(
-                        contacts = selectedContacts.toList(),
-                        name = name
-                    )
-
-                    AppCore.nwCore.inviteChatMembers(
-                        UiChatHeader(name,
-                            selectedContacts.toList(),
-                            topic_id,
-                            null
-                            )
-                    )
+                    val topic_id = AppCore.nwCore.crateChat(selectedContacts.toList(),
+                        name)
 
                     onCreateChat(topic_id)
                 } catch (e: Exception) {

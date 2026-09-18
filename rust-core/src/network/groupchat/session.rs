@@ -4,13 +4,13 @@ use iroh_gossip::{
     api::{GossipReceiver, GossipSender}, net::Gossip, proto::TopicId,
 };
 use iroh_gossip::api::Event as GossipEvent;
-use super::{NwChat, NwMessage, signed_message::{verify_and_decode, sign_and_encode}};
+use super::super::{NwChat, NwMessage, signed_message::{verify_and_decode, sign_and_encode}};
 use crate::{database::client::DbClient, network::signed_message::MessageData};
 use crate::network::NwContact;
 use std::time::SystemTime;
 use tokio::task::JoinHandle;
 
-pub struct NwChatConnector {
+pub struct ChatSession {
     pub secret_key: SecretKey,
     pub topic_id: TopicId,
     pub db_client: DbClient,
@@ -20,14 +20,14 @@ pub struct NwChatConnector {
 }
 
 
-impl Drop for NwChatConnector {
+impl Drop for ChatSession {
     fn drop(&mut self) {
         self.receive_handle.abort();
     }
 }
 
 
-impl NwChatConnector {
+impl ChatSession {
     pub async fn spawn(chat: NwChat, db_client: DbClient, gossip: &Gossip, secret_key: SecretKey) -> anyhow::Result<Self> {
         let topic_id = chat.topic_id;
         let members = chat.members;
@@ -52,7 +52,7 @@ impl NwChatConnector {
             }
         });
 
-        Ok(NwChatConnector {
+        Ok(ChatSession {
             topic_id,
             db_client,
             members,
@@ -121,18 +121,3 @@ pub async fn receive_loop(
     }
     Ok(())
 }
-
-//     /// 1 & 4. Joins or re-joins the gossip swarm asynchronously with retry/backoff logic.
-//     pub async fn connect(&mut self, gossip: &Gossip) -> anyhow::Result<()> {
-//         todo!("Update state to Connecting, join gossip, split channels, update state to Connected")
-//     }
-
-//     /// 4. Disconnects existing swarm handles gracefully on network drop or app pause.
-//     pub async fn disconnect(&mut self) {
-//         todo!("Drop sender/receiver channels and set state to Disconnected")
-//     }
-//     // /// 2. Returns current connection state to be surfaced over FFI.
-//     // pub fn state(&self) -> ConnectionState {
-//     //     todo!("Return current connection status")
-//     // }
-// }

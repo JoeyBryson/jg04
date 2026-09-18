@@ -12,7 +12,7 @@ use iroh_gossip::proto::TopicId;
 use serde::{Deserialize, Serialize};
 use tokio::runtime::{Handle, Runtime};
 
-use super::chat_connector::NwChatConnector;
+use super::groupchat::ChatSession;
 use super::NwChat;
 use crate::database::client::DbClient;
 use crate::ffi_error::FfiError;

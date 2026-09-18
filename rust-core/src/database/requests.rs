@@ -35,7 +35,7 @@ db_requests! {
         GetUiProfile() -> Option<UiProfile> => get_ui_profile { ffi_sync get_ui_profile };
 
         GetNwProfile() -> NwProfile => get_nw_profile { sync get_nw_profile };
-        GetNwChats() -> Vec<NwChat> => get_nw_chats { async get_nw_chats };
+        GetNwChats() -> Vec<NwChat> => get_nw_chats { async get_nw_chats, sync get_nw_chats_sync };
         GetNwChatMembers(topic_id: Vec<u8>) -> Vec<NwContact> => get_nw_chat_members { async get_nw_chat_members };
         GetNwChat(topic_id: Vec<u8>) -> NwChat => get_nw_chat { async get_nw_chat };
         GetNwChatMessages(topic_id: Vec<u8>) -> Vec<NwMessage> => get_nw_chat_messages { async get_nw_chat_messages };
