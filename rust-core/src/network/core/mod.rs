@@ -1,28 +1,13 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
-
-use anyhow::Context;
-use iroh::endpoint::{presets, Connection};
-use iroh::protocol::{AcceptError, ProtocolHandler, Router};
-use iroh::Endpoint;
+use iroh::protocol::Router;
 use iroh_gossip::net::Gossip;
-use iroh_gossip::proto::TopicId;
-use serde::{Deserialize, Serialize};
-use tokio::runtime::{Handle, Runtime};
+use tokio::runtime::Handle;
 
-use super::{groupchat::ChatSessionManager, CONTROL_ALPN, 
-    NwContact, NwProfile, ControlProtocol, ControlMessage};
 use super::NwChat;
+use super::{NwProfile, groupchat::ChatSessionManager};
 use crate::database::client::DbClient;
-use crate::ffi_error::FfiError;
-use crate::network::{};
-use crate::ui::UiContact;
-use crate::ui::UiChatHeader;
 
 mod ffi;
 mod internals;
-
 
 #[derive(uniffi::Object)]
 pub struct NwCore {
@@ -33,7 +18,6 @@ pub struct NwCore {
     profile: NwProfile,
     chat_session_manager: ChatSessionManager,
 }
-
 
 #[derive(Debug, thiserror::Error)]
 enum SendChatInviteError {

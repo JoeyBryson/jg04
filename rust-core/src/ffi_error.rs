@@ -1,6 +1,3 @@
-
-
-
 #[derive(uniffi::Error, Debug, PartialEq)]
 pub enum FfiError {
     Internal { msg: String },

@@ -4,12 +4,12 @@ use anyhow::Result;
 use rusqlite::Connection;
 use tokio::sync::mpsc;
 
-mod ui_reads;
 mod nw_reads;
+mod ui_reads;
 mod writes;
 
+use super::manager::{DbMode, start_conn};
 use super::requests::{ReadRequest, WriteRequest};
-use super::manager::{start_conn, DbMode};
 
 pub struct DbReader {
     rx: mpsc::Receiver<ReadRequest>,
@@ -22,10 +22,7 @@ pub struct DbWriter {
 }
 
 impl DbReader {
-    pub fn start(
-        worker_rx: mpsc::Receiver<ReadRequest>,
-        db_path: PathBuf,
-    ) -> Result<Self> {
+    pub fn start(worker_rx: mpsc::Receiver<ReadRequest>, db_path: PathBuf) -> Result<Self> {
         log::info!("[DB-READER] start db_path={:?}", db_path);
 
         let conn = start_conn(&db_path, DbMode::ReadOnly)?;
@@ -50,10 +47,7 @@ impl DbReader {
 }
 
 impl DbWriter {
-    pub fn start(
-        worker_rx: mpsc::Receiver<WriteRequest>,
-        db_path: PathBuf,
-    ) -> Result<Self> {
+    pub fn start(worker_rx: mpsc::Receiver<WriteRequest>, db_path: PathBuf) -> Result<Self> {
         log::info!("[DB-WRITER] start db_path={:?}", db_path);
 
         let conn = start_conn(&db_path, DbMode::ReadWrite)?;

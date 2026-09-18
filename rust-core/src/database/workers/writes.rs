@@ -1,24 +1,17 @@
+use super::DbWriter;
 use crate::network::{NwChat, NwContact, NwMessage, NwProfile};
 use crate::ui::UiContact;
 use anyhow::{Context, Result};
 use iroh_gossip::proto::TopicId;
-use super::DbWriter;
-
-
 
 impl DbWriter {
-
     pub fn set_nw_profile(&self, profile: NwProfile) -> Result<()> {
         self.conn.execute(
             "
             INSERT INTO user_profile (id, secret_key, contact_name)
             VALUES (?1, ?2, ?3)
             ",
-            (
-                1,
-                profile.secret_key.to_bytes(),
-                profile.contact.name,
-            ),
+            (1, profile.secret_key.to_bytes(), profile.contact.name),
         )?;
 
         Ok(())
@@ -44,16 +37,12 @@ impl DbWriter {
         self.conn.execute(
             "INSERT INTO contacts (endpoint_id, contact_name)
             VALUES (?1, ?2)",
-            (
-                contact.endpoint_id.as_slice(),
-                contact.name
-            ),
+            (contact.endpoint_id.as_slice(), contact.name),
         )?;
 
         Ok(())
     }
 
-    
     pub fn add_ui_contact(&self, contact: UiContact) -> Result<()> {
         let endpoint_id = contact.endpoint_id.parse()?;
 
@@ -64,7 +53,8 @@ impl DbWriter {
     }
 
     pub fn add_nw_chat(&mut self, chat: NwChat) -> Result<()> {
-        let transaction = self.conn
+        let transaction = self
+            .conn
             .transaction()
             .context("failed to start transaction")?;
 
@@ -72,10 +62,7 @@ impl DbWriter {
             .execute(
                 "INSERT INTO chats (topic_id, chat_name)
                 VALUES (?1, ?2)",
-                (
-                    chat.topic_id.as_bytes(),
-                    chat.name,
-                ),
+                (chat.topic_id.as_bytes(), chat.name),
             )
             .context("failed to insert chat")?;
 
@@ -84,10 +71,7 @@ impl DbWriter {
                 .execute(
                     "INSERT INTO chat_members (topic_id, endpoint_id)
                     VALUES (?1, ?2)",
-                    (
-                        chat.topic_id.as_bytes(),
-                        member.endpoint_id.as_bytes(),
-                    ),
+                    (chat.topic_id.as_bytes(), member.endpoint_id.as_bytes()),
                 )
                 .context("failed to insert chat member")?;
         }
@@ -109,7 +93,8 @@ impl DbWriter {
             .map(|contact| -> Result<NwContact> {
                 Ok(NwContact {
                     name: contact.name,
-                    endpoint_id: contact.endpoint_id
+                    endpoint_id: contact
+                        .endpoint_id
                         .parse()
                         .context("failed to convert UiContact to NwContact")?,
                 })

@@ -35,8 +35,8 @@ impl log::Log for LoggerBridge {
     fn log(&self, record: &log::Record) {
         let level = match record.level() {
             log::Level::Error => LogLevel::Error,
-            log::Level::Warn  => LogLevel::Warn,
-            log::Level::Info  => LogLevel::Info,
+            log::Level::Warn => LogLevel::Warn,
+            log::Level::Info => LogLevel::Info,
             log::Level::Debug => LogLevel::Debug,
             log::Level::Trace => LogLevel::Trace,
         };

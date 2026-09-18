@@ -1,22 +1,11 @@
 use std::sync::Arc;
-use std::time::Duration;
 
 use anyhow::Context;
-use iroh::endpoint::presets;
-use iroh::protocol::Router;
 use iroh_gossip::proto::TopicId;
 use tokio::runtime::Runtime;
 
+use super::super::{NwChat, NwContact};
 use super::NwCore;
-use super::super::{
-    ChatSessionManager,
-    ControlMessage,
-    ControlProtocol,
-    NwChat,
-    NwContact,
-    NwProfile,
-    CONTROL_ALPN,
-};
 
 use crate::database::client::DbClient;
 use crate::ffi_error::FfiError;
@@ -35,14 +24,11 @@ impl NwCore {
             .map_err(anyhow::Error::from)
             .with_context(|| "invalid private key")?;
 
-        let runtime = Runtime::new()
-            .map_err(anyhow::Error::from)?;
+        let runtime = Runtime::new().map_err(anyhow::Error::from)?;
 
         let runtime_handle = runtime.handle().clone();
 
-        let nw_core = runtime_handle.block_on(
-            Self::spawn_base(db_client, profile)
-        )?;
+        let nw_core = runtime_handle.block_on(Self::spawn_base(db_client, profile))?;
 
         let chats = nw_core.db_client.get_nw_chats_sync()?;
 
@@ -61,20 +47,14 @@ impl NwCore {
         Ok(nw_core)
     }
 
-    fn send_message(
-        &self,
-        content: String,
-        chat_id: String,
-    ) -> Result<(), FfiError> {
+    fn send_message(&self, content: String, chat_id: String) -> Result<(), FfiError> {
         let mut topic_id_bytes = [0u8; 32];
 
-        hex::decode_to_slice(&chat_id, &mut topic_id_bytes)
-            .map_err(anyhow::Error::from)?;
+        hex::decode_to_slice(&chat_id, &mut topic_id_bytes).map_err(anyhow::Error::from)?;
 
         let topic_id = TopicId::from_bytes(topic_id_bytes);
 
-        self.chat_session_manager
-            .send_message(topic_id, content)?;
+        self.chat_session_manager.send_message(topic_id, content)?;
 
         Ok(())
     }
@@ -101,15 +81,12 @@ impl NwCore {
         let router = self.router.clone();
 
         self.runtime_handle.spawn(async move {
-            if let Err(error) =
-                Self::invite_chat_members(router, chat_clone).await
-            {
+            if let Err(error) = Self::invite_chat_members(router, chat_clone).await {
                 log::error!("failed to invite chat members: {error}");
             }
         });
 
-        self.db_client
-            .add_nw_chat_sync(chat.clone())?;
+        self.db_client.add_nw_chat_sync(chat.clone())?;
 
         self.chat_session_manager.add_chat(chat)?;
 

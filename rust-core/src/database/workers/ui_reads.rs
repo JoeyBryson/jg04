@@ -1,14 +1,11 @@
-use crate::network::SetupError;
-
+use super::DbReader;
 use anyhow::Result;
 use iroh::SecretKey;
-use super::DbReader;
 
-use crate::ui::{UiChatHeader, UiChatData, UiContact, UiMessage, UiSender, UiProfile};
-use rusqlite::{Row, OptionalExtension}; // Added OptionalExtension
+use crate::ui::{UiChatData, UiChatHeader, UiContact, UiMessage, UiProfile, UiSender};
+use rusqlite::{OptionalExtension, Row}; // Added OptionalExtension
 
 impl DbReader {
-    
     fn decode_hex_id(id: &str) -> Result<Vec<u8>> {
         Ok(hex::decode(id)?)
     }
@@ -32,14 +29,12 @@ impl DbReader {
         Ok(UiMessage {
             sender,
             content,
-            sent_at
+            sent_at,
         })
     }
-    
-    pub fn get_ui_last_chat_message(
-        &self,
-        topic_id: &str
-    ) -> Result<Option<UiMessage>> { // Updated return type
+
+    pub fn get_ui_last_chat_message(&self, topic_id: &str) -> Result<Option<UiMessage>> {
+        // Updated return type
         let topic_id = Self::decode_hex_id(topic_id)?;
 
         let mut stmt = self.conn.prepare(
@@ -59,10 +54,7 @@ impl DbReader {
         Ok(msg)
     }
 
-    pub fn get_ui_chat_members(
-        &self,
-        topic_id: &str
-    ) -> Result<Vec<UiContact>> {
+    pub fn get_ui_chat_members(&self, topic_id: &str) -> Result<Vec<UiContact>> {
         let topic_id = Self::decode_hex_id(topic_id)?;
 
         let mut stmt = self.conn.prepare(
@@ -85,10 +77,7 @@ impl DbReader {
         Ok(members)
     }
 
-    pub fn get_ui_chat_header(
-        &self,
-        topic_id: &str
-    ) -> Result<UiChatHeader> {
+    pub fn get_ui_chat_header(&self, topic_id: &str) -> Result<UiChatHeader> {
         let topic_id_bytes = Self::decode_hex_id(topic_id)?;
 
         let name: Option<String> = self.conn.query_row(
@@ -114,16 +103,11 @@ impl DbReader {
 
         topic_ids
             .into_iter()
-            .map(|topic_id| {
-                self.get_ui_chat_header(&hex::encode(topic_id))
-            })
+            .map(|topic_id| self.get_ui_chat_header(&hex::encode(topic_id)))
             .collect()
     }
 
-    pub fn get_ui_chat_messages(
-        &self,
-        topic_id: &str
-    ) -> Result<Vec<UiMessage>> {
+    pub fn get_ui_chat_messages(&self, topic_id: &str) -> Result<Vec<UiMessage>> {
         let topic_id = Self::decode_hex_id(topic_id)?;
 
         let mut stmt = self.conn.prepare(
@@ -139,10 +123,7 @@ impl DbReader {
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
     }
 
-    pub fn get_ui_chat_data(
-        &self,
-        topic_id: &str
-    ) -> Result<UiChatData> {
+    pub fn get_ui_chat_data(&self, topic_id: &str) -> Result<UiChatData> {
         Ok(UiChatData {
             chat: self.get_ui_chat_header(topic_id)?,
             messages: self.get_ui_chat_messages(topic_id)?,
@@ -194,5 +175,5 @@ impl DbReader {
         };
 
         Ok(profile)
-}
+    }
 }

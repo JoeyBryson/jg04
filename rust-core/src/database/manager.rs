@@ -1,18 +1,18 @@
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::thread::JoinHandle;
 
 use anyhow::Result;
 use rusqlite::{Connection, OpenFlags};
 use tokio::sync::mpsc;
 
-use crate::ffi_error::FfiError;
 use super::{
     client::DbClient,
     requests::{ReadRequest, WriteRequest},
     workers::{DbReader, DbWriter},
 };
+use crate::ffi_error::FfiError;
 
 #[derive(Debug)]
 pub enum DbMode {
@@ -104,19 +104,13 @@ impl DbManager {
             }
         });
 
-        (
-            reader_tx,
-            writer_tx,
-            reader_handle,
-            writer_handle,
-        )
+        (reader_tx, writer_tx, reader_handle, writer_handle)
     }
 
     fn new(db_path: PathBuf) -> Result<Self> {
         Self::initialize_db(&db_path)?;
 
-        let (reader_tx, writer_tx, reader_handle, writer_handle) =
-            Self::spawn_workers(&db_path);
+        let (reader_tx, writer_tx, reader_handle, writer_handle) = Self::spawn_workers(&db_path);
 
         Ok(Self {
             db_path,

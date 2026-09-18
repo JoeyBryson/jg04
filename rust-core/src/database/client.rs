@@ -1,12 +1,12 @@
 use tokio::sync::oneshot;
 
-use tokio::sync::mpsc;
 use super::requests::{ReadRequest, WriteRequest};
+use tokio::sync::mpsc;
 
 #[derive(uniffi::Object, Clone, Debug)]
 pub struct DbClient {
     pub reader_tx: mpsc::Sender<ReadRequest>,
-    pub writer_tx: mpsc::Sender<WriteRequest>
+    pub writer_tx: mpsc::Sender<WriteRequest>,
 }
 
 impl DbClient {

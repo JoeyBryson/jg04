@@ -77,15 +77,7 @@ impl DbClient {
 
     pub async fn add_sample_data(&self) -> Result<()> {
         let contacts: Vec<NwContact> = vec![
-            "Angela",
-            "Bob",
-            "Charlie",
-            "Diana",
-            "Ethan",
-            "Fiona",
-            "George",
-            "Hannah",
-            "Isaac",
+            "Angela", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah", "Isaac",
             "Julia",
         ]
         .into_iter()
@@ -128,10 +120,9 @@ impl DbClient {
             self.add_nw_chat(chat).await?;
 
             for message_index in 0..300 {
-                let sent_at =
-                    1779490800000i64
-                        + (chat_index as i64 * 1_000_000)
-                        + (message_index as i64 * 60_000);
+                let sent_at = 1779490800000i64
+                    + (chat_index as i64 * 1_000_000)
+                    + (message_index as i64 * 60_000);
 
                 let from_me = message_index % 3 == 0;
 

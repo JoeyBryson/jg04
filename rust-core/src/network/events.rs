@@ -1,15 +1,14 @@
-
 use iroh::EndpointId;
 use serde::{Deserialize, Serialize};
 
-use super::signed_message::{SignedMessage};
+use super::signed_message::SignedMessage;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum NwEvent {
     #[serde(rename_all = "camelCase")]
     MessageReceived {
-        signed_message: SignedMessage
+        signed_message: SignedMessage,
     },
     #[serde(rename_all = "camelCase")]
     NeighborUp {

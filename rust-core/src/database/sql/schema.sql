@@ -19,9 +19,13 @@ CREATE TABLE IF NOT EXISTS chats (
 CREATE TABLE IF NOT EXISTS chat_members (
     topic_id BLOB NOT NULL,
     endpoint_id BLOB NOT NULL,
+    status INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (topic_id, endpoint_id),
-    FOREIGN KEY (topic_id) REFERENCES chats (topic_id) ON DELETE CASCADE,
-    FOREIGN KEY (endpoint_id) REFERENCES contacts (endpoint_id)
+    FOREIGN KEY (topic_id)
+        REFERENCES chats (topic_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (endpoint_id)
+        REFERENCES contacts (endpoint_id)
 );
 
 CREATE TABLE IF NOT EXISTS messages (

@@ -1,4 +1,3 @@
-
 macro_rules! db_read_method_body {
     ({$($attr:tt)*}, {$($asyncness:tt)*}, $send_fn:ident, {$($await_kw:tt)*}, $err_ty:ty, $variant:ident, $client_fn:ident, $ret:ty, ($($field:ident : $ty:ty),*)) => {
         $($attr)*
@@ -11,7 +10,6 @@ macro_rules! db_read_method_body {
         }
     };
 }
-
 
 macro_rules! db_read_mode {
     (ffi_sync, $($rest:tt)*) => {
@@ -27,7 +25,6 @@ macro_rules! db_read_mode {
         crate::database::macros::db_read_method_body!({}, {async}, send_read_request_async, {.await}, anyhow::Error, $($rest)*);
     };
 }
-
 
 macro_rules! db_write_method_body {
     ({$($attr:tt)*}, {$($asyncness:tt)*}, $send_fn:ident, {$($await_kw:tt)*}, $err_ty:ty, $variant:ident, $client_fn:ident, $ret:ty, ($($field:ident : $ty:ty),*), [$($event:expr),*]) => {
@@ -142,8 +139,8 @@ macro_rules! db_requests {
 
 pub(crate) use db_read_method_body;
 pub(crate) use db_read_mode;
+pub(crate) use db_read_modes;
+pub(crate) use db_requests;
 pub(crate) use db_write_method_body;
 pub(crate) use db_write_mode;
-pub(crate) use db_read_modes;
 pub(crate) use db_write_modes;
-pub(crate) use db_requests;

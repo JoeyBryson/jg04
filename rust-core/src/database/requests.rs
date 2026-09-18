@@ -1,7 +1,7 @@
-use crate::network::{NwChat, NwContact, NwMessage, NwProfile};
-use crate::ui::{UiMessage, UiContact, UiChatHeader, UiChatData, UiProfile};
 use crate::database::macros::db_requests;
-use crate::notifications::UiEvent::{ChatHeadersChanged, ChatDataChanged, ContactsChanged};
+use crate::network::{NwChat, NwContact, NwMessage, NwProfile};
+use crate::notifications::UiEvent::{ChatDataChanged, ChatHeadersChanged, ContactsChanged};
+use crate::ui::{UiChatData, UiChatHeader, UiContact, UiMessage, UiProfile};
 use iroh::EndpointId;
 //don't delete, needed
 use crate::database::client::DbClient;
@@ -50,14 +50,11 @@ db_requests! {
             emits [ContactsChanged];
         AddNwChat(chat: NwChat) -> () => add_nw_chat { async add_nw_chat, sync add_nw_chat_sync }
             emits [ChatHeadersChanged];
-        AddUiContact(contact: UiContact) -> () => add_ui_contact { ffi_sync add_ui_contact } 
+        AddUiContact(contact: UiContact) -> () => add_ui_contact { ffi_sync add_ui_contact }
             emits [ContactsChanged];
         AddChatUi(contacts: Vec<UiContact>, name: Option<String>) -> String => add_chat_ui { ffi_sync add_chat_ui }
             emits [ChatHeadersChanged];
-        ResetDatabase() -> () => reset_database {ffi_sync reset_database} 
+        ResetDatabase() -> () => reset_database {ffi_sync reset_database}
             emits [ChatHeadersChanged];
     }
 }
-
-
-

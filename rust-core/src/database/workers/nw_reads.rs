@@ -1,16 +1,14 @@
-use crate::network::{NwChat, NwContact, NwMessage, SetupError, NwProfile};
+use crate::network::{NwChat, NwContact, NwMessage, NwProfile, SetupError};
 
-use anyhow::{Result, anyhow, Context};
-use std::{collections::HashMap};
-use iroh::{SecretKey, PublicKey, EndpointId};
-use iroh_gossip::TopicId;
 use super::DbReader;
+use anyhow::{Context, Result, anyhow};
+use iroh::{EndpointId, PublicKey, SecretKey};
+use iroh_gossip::TopicId;
+use std::collections::HashMap;
 
- // Added OptionalExtension
-
+// Added OptionalExtension
 
 impl DbReader {
-
     pub fn get_nw_profile(&self) -> Result<NwProfile> {
         let mut stmt = self.conn.prepare(
             "
@@ -22,8 +20,7 @@ impl DbReader {
         let mut rows = stmt.query([])?;
         let row = rows.next()?.ok_or(SetupError::ProfileNotSet)?;
 
-        let secret_key =
-            SecretKey::from_bytes(&row.get::<_, [u8; 32]>(0)?);
+        let secret_key = SecretKey::from_bytes(&row.get::<_, [u8; 32]>(0)?);
 
         let contact = NwContact {
             name: row.get(1)?,
@@ -54,14 +51,14 @@ impl DbReader {
 
         let rows = stmt.query_map([], |row| {
             Ok((
-                row.get::<_, [u8;32]>(0)?,
+                row.get::<_, [u8; 32]>(0)?,
                 row.get::<_, Option<String>>(1)?,
                 row.get::<_, Option<String>>(2)?,
-                row.get::<_, Option<[u8;32]>>(3)?,
+                row.get::<_, Option<[u8; 32]>>(3)?,
             ))
         })?;
 
-        let mut chats: HashMap<[u8;32], NwChat> = HashMap::new();
+        let mut chats: HashMap<[u8; 32], NwChat> = HashMap::new();
 
         for row in rows {
             let (topic_id_bytes, chat_name, contact_name, endpoint_id) = row?;
@@ -76,18 +73,15 @@ impl DbReader {
                 chat.members.push(NwContact {
                     name: name.clone(),
                     endpoint_id: PublicKey::from_bytes(&endpoint_id)
-                    .map_err(anyhow::Error::from)
-                    .with_context(|| format!("invalid public key for contact '{}'", name))?
+                        .map_err(anyhow::Error::from)
+                        .with_context(|| format!("invalid public key for contact '{}'", name))?,
                 });
             }
         }
 
         for chat in chats.values() {
             if chat.members.is_empty() {
-                return Err(anyhow!(
-                    "Chat {:?} has no members",
-                    chat.topic_id
-                ));
+                return Err(anyhow!("Chat {:?} has no members", chat.topic_id));
             }
         }
 
@@ -174,7 +168,7 @@ impl DbReader {
             });
 
             let optional_name: Option<String> = row.get(2)?;
-            let optional_endpoint_id_bytes: Option<[u8;32]> = row.get(3)?;
+            let optional_endpoint_id_bytes: Option<[u8; 32]> = row.get(3)?;
 
             if let (Some(name), Some(endpoint_id_bytes)) =
                 (optional_name, optional_endpoint_id_bytes)
@@ -253,5 +247,4 @@ impl DbReader {
 
         Ok(messages)
     }
-
 }
