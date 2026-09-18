@@ -1,25 +1,30 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Context;
-use iroh::endpoint::{presets, Connection};
-use iroh::protocol::{AcceptError, ProtocolHandler, Router};
-use iroh::Endpoint;
+use iroh::protocol::Router;
+use iroh::{Endpoint};
 use iroh_gossip::net::Gossip;
-use iroh_gossip::proto::TopicId;
-use serde::{Deserialize, Serialize};
-use tokio::runtime::{Handle, Runtime};
-use super::NwCore;
-use super::super::{groupchat::ChatSession, CONTROL_ALPN, 
-    NwContact, NwProfile, ControlProtocol, ControlMessage};
+use tokio::runtime::Handle;
 
-use super::NwChat;
+use std::collections::HashMap;
+use iroh::endpoint::{presets, Connection};
+use super::{NwChat, NwCore};
 use crate::database::client::DbClient;
 use crate::ffi_error::FfiError;
 use crate::network::{};
 use crate::ui::UiContact;
 use crate::ui::UiChatHeader;
+
+
+use super::super::{
+    ChatSessionManager,
+    CONTROL_ALPN,
+    ControlMessage,
+    ControlProtocol,
+    NwContact,
+    NwProfile,
+};
 
 #[derive(Debug, thiserror::Error)]
 enum SendChatInviteError {
@@ -58,32 +63,20 @@ impl NwCore {
             .accept(iroh_gossip::ALPN, gossip.clone())
             .spawn();
 
+        let chat_session_manager = ChatSessionManager::spawn(
+            db_client.clone(),
+            gossip.clone(),
+            profile.secret_key.clone(),
+        );
+
         Ok(NwCore {
             runtime_handle: Handle::current(),
             db_client,
             gossip,
             router,
             profile,
-            chat_connectors: HashMap::new(),
+            chat_session_manager,
         })
-    }
-
-    pub fn spawn_chat_connector(&mut self, chat: NwChat) -> Result<(), FfiError> {
-        let topic_id = chat.topic_id;
-
-        let connector = self
-            .runtime_handle
-            .block_on(ChatSession::spawn(
-                chat,
-                self.db_client.clone(),
-                &self.gossip,
-                self.profile.secret_key.clone(),
-            ))
-            .with_context(|| "chat connector failed to spawn")?;
-
-        self.chat_connectors.insert(topic_id, connector);
-
-        Ok(())
     }
 
     pub async fn invite_chat_members(

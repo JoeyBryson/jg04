@@ -1,29 +1,28 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Context;
-use iroh::endpoint::{presets, Connection};
-use iroh::protocol::{AcceptError, ProtocolHandler, Router};
-use iroh::Endpoint;
-use iroh_gossip::net::Gossip;
+use iroh::endpoint::presets;
+use iroh::protocol::Router;
 use iroh_gossip::proto::TopicId;
-use serde::{Deserialize, Serialize};
-use tokio::runtime::{Handle, Runtime};
-use super::NwCore;
-use super::super::{groupchat::ChatSession, CONTROL_ALPN, 
-    NwContact, NwProfile, ControlProtocol, ControlMessage};
+use tokio::runtime::Runtime;
 
-use super::NwChat;
+use super::NwCore;
+use super::super::{
+    ChatSessionManager,
+    ControlMessage,
+    ControlProtocol,
+    NwChat,
+    NwContact,
+    NwProfile,
+    CONTROL_ALPN,
+};
+
 use crate::database::client::DbClient;
 use crate::ffi_error::FfiError;
-use crate::network::{};
 use crate::ui::UiContact;
-use crate::ui::UiChatHeader;
-
 
 #[uniffi::export]
-
 impl NwCore {
     #[uniffi::constructor]
     pub fn spawn(db_client: Arc<DbClient>) -> Result<Arc<Self>, FfiError> {
@@ -41,19 +40,18 @@ impl NwCore {
 
         let runtime_handle = runtime.handle().clone();
 
-        let mut nw_core = runtime_handle.block_on(
+        let nw_core = runtime_handle.block_on(
             Self::spawn_base(db_client, profile)
         )?;
 
         let chats = nw_core.db_client.get_nw_chats_sync()?;
 
         for chat in chats {
-            nw_core.spawn_chat_connector(chat)?;
+            nw_core.chat_session_manager.add_chat(chat)?;
         }
 
         let nw_core = Arc::new(nw_core);
 
-        //To-do: is this necessary?
         std::thread::spawn(move || {
             runtime.block_on(std::future::pending::<()>());
         });
@@ -75,19 +73,8 @@ impl NwCore {
 
         let topic_id = TopicId::from_bytes(topic_id_bytes);
 
-        let connector = self
-            .chat_connectors
-            .get(&topic_id)
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "No active connector for topic ID: {}",
-                    chat_id
-                )
-            })?;
-
-        self.runtime_handle
-            .block_on(connector.send(content))
-            .map_err(anyhow::Error::from)?;
+        self.chat_session_manager
+            .send_message(topic_id, content)?;
 
         Ok(())
     }
@@ -114,7 +101,9 @@ impl NwCore {
         let router = self.router.clone();
 
         self.runtime_handle.spawn(async move {
-            if let Err(error) = Self::invite_chat_members(router, chat_clone).await {
+            if let Err(error) =
+                Self::invite_chat_members(router, chat_clone).await
+            {
                 log::error!("failed to invite chat members: {error}");
             }
         });
@@ -122,7 +111,7 @@ impl NwCore {
         self.db_client
             .add_nw_chat_sync(chat.clone())?;
 
-        self.spawn_chat_connector(chat)?;
+        self.chat_session_manager.add_chat(chat)?;
 
         Ok(topic_id.to_string())
     }

@@ -22,4 +22,10 @@ impl From<anyhow::Error> for FfiError {
     }
 }
 
+impl FfiError {
+    pub fn internal(msg: impl Into<String>) -> Self {
+        Self::Internal { msg: msg.into() }
+    }
+}
+
 impl std::error::Error for FfiError {}

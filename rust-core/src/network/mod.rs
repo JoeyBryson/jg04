@@ -26,6 +26,7 @@ pub enum SetupError {
 }
 use control_protocol::ControlProtocol;
 use control_protocol::ControlMessage;
+use groupchat::ChatSessionManager;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NwMessage {

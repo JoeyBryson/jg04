@@ -11,7 +11,7 @@ use iroh_gossip::proto::TopicId;
 use serde::{Deserialize, Serialize};
 use tokio::runtime::{Handle, Runtime};
 
-use super::{groupchat::ChatSession, CONTROL_ALPN, 
+use super::{groupchat::ChatSessionManager, CONTROL_ALPN, 
     NwContact, NwProfile, ControlProtocol, ControlMessage};
 use super::NwChat;
 use crate::database::client::DbClient;
@@ -31,7 +31,7 @@ pub struct NwCore {
     gossip: Gossip,
     router: Router,
     profile: NwProfile,
-    chat_connectors: HashMap<TopicId, ChatSession>,
+    chat_session_manager: ChatSessionManager,
 }
 
 
