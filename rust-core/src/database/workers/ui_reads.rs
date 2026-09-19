@@ -61,7 +61,8 @@ impl DbReader {
             "SELECT c.contact_name, c.endpoint_id
              FROM chat_members cm
              JOIN contacts c ON cm.endpoint_id = c.endpoint_id
-             WHERE cm.topic_id = ?1",
+             WHERE cm.topic_id = ?1
+             ORDER BY c.contact_name, cm.endpoint_id",
         )?;
 
         let members = stmt
@@ -95,7 +96,9 @@ impl DbReader {
     }
 
     pub fn get_ui_chat_headers(&self) -> Result<Vec<UiChatHeader>> {
-        let mut stmt = self.conn.prepare("SELECT topic_id FROM chats")?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT topic_id FROM chats ORDER BY topic_id")?;
 
         let topic_ids = stmt
             .query_map([], |row| row.get::<_, Vec<u8>>(0))?

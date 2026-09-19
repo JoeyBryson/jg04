@@ -1,8 +1,9 @@
 use crate::database::macros::db_requests;
-use crate::network::{NwChat, NwContact, NwMessage, NwProfile};
+use crate::network::{NwChat, NwChatMember, NwContact, NwMessage, NwProfile};
 use crate::notifications::UiEvent::{ChatDataChanged, ChatHeadersChanged, ContactsChanged};
 use crate::ui::{UiChatData, UiChatHeader, UiContact, UiMessage, UiProfile};
 use iroh::EndpointId;
+use iroh_gossip::TopicId;
 //don't delete, needed
 use crate::database::client::DbClient;
 
@@ -36,9 +37,9 @@ db_requests! {
 
         GetNwProfile() -> NwProfile => get_nw_profile { sync get_nw_profile };
         GetNwChats() -> Vec<NwChat> => get_nw_chats { async get_nw_chats, sync get_nw_chats_sync };
-        GetNwChatMembers(topic_id: Vec<u8>) -> Vec<NwContact> => get_nw_chat_members { async get_nw_chat_members };
-        GetNwChat(topic_id: Vec<u8>) -> NwChat => get_nw_chat { async get_nw_chat };
-        GetNwChatMessages(topic_id: Vec<u8>) -> Vec<NwMessage> => get_nw_chat_messages { async get_nw_chat_messages };
+        GetNwChatMembers(topic_id: TopicId) -> Vec<NwChatMember> => get_nw_chat_members { async get_nw_chat_members };
+        GetNwChat(topic_id: TopicId) -> NwChat => get_nw_chat { async get_nw_chat };
+        GetNwChatMessages(topic_id: TopicId) -> Vec<NwMessage> => get_nw_chat_messages { async get_nw_chat_messages };
         GetNwMessages() -> Vec<NwMessage> => get_nw_messages { async get_nw_messages };
         GetNwContact(endpoint_id: EndpointId) -> NwContact => get_nw_contact {async get_nw_contact};
     }
@@ -49,6 +50,8 @@ db_requests! {
         AddNwContact(contact: NwContact) -> () => add_nw_contact { async add_nw_contact, sync add_nw_contact_sync }
             emits [ContactsChanged];
         AddNwChat(chat: NwChat) -> () => add_nw_chat { async add_nw_chat, sync add_nw_chat_sync }
+            emits [ChatHeadersChanged];
+        MarkNwChatMemberJoined(topic_id: TopicId, endpoint_id: EndpointId) -> () => mark_nw_chat_member_joined { async mark_nw_chat_member_joined }
             emits [ChatHeadersChanged];
         AddUiContact(contact: UiContact) -> () => add_ui_contact { ffi_sync add_ui_contact }
             emits [ContactsChanged];

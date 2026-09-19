@@ -1,261 +1,184 @@
-# Chat Invite System Audit
+# Chat Invite System Audit: Follow-up
 
-## Scope
-This review targets the invite flow and state lifecycle in:
-- [rust-core/src/network/core.rs](rust-core/src/network/core.rs)
-- [rust-core/src/network/control_protocol.rs](rust-core/src/network/control_protocol.rs)
-- [rust-core/src/network/chat_connector.rs](rust-core/src/network/chat_connector.rs)
-- [rust-core/src/database/sql/schema.sql](rust-core/src/database/sql/schema.sql)
+## Review basis
+
+This follow-up reviews the current working tree at commit `0491f42` (`broken state, but backing up incase I break it further`) plus its uncommitted changes. The network implementation has moved since the original audit:
+
+- `NwCore` now owns a `ChatSessionManager`.
+- `ChatSessionManager` creates `ChatSession` instances.
+- `ChatSession::spawn()` calls `gossip.subscribe()` and starts a receive loop.
+- The old `chat_connector.rs` implementation has been replaced by `network/groupchat/session.rs`.
+
+`cargo check --manifest-path rust-core/Cargo.toml` passes. It emits warnings, including unused imports and dead-code warnings, but no compilation errors.
 
 ## Executive summary
-The invite design is split between a database-backed chat record and a separate runtime gossip subscription. The critical problem is that these two layers are not kept in sync.
 
-Creating or accepting a chat writes a row to SQLite, but it does not reliably create the `NwChatConnector` that actually subscribes to gossip and sends/receives messages. The result is a state where the app thinks a chat exists, yet the network layer is missing or stale. Several edge cases also make invites fail silently or leave the app in a permanently inconsistent state.
+The sweeping refactor addresses the most visible form of findings 1 and 2: both locally created chats and accepted invites are now submitted to a shared session manager, and that manager attempts to create a gossip subscription and receive loop. Startup also restores stored chats through the same path.
 
----
+The refactor does not yet make database state and network state transactional or durable. A local chat is still inserted into SQLite before invitation success, invite failures are logged from a detached task, and the acceptance response is sent after queueing session creation rather than after the session has successfully subscribed. The database still has no chat or invite lifecycle state.
+
+### Status at a glance
+
+| Finding | Status | Summary |
+| --- | --- | --- |
+| 1. Local chat has no connector | Addressed, with residual failure handling | Local creation calls `ChatSessionManager::add_chat`; session creation subscribes to gossip. Failures are logged and the caller is not informed. |
+| 2. Accepted invite has no connector | Addressed, with an ack race | Acceptance calls `add_chat`, but `ChatInviteAccepted` is returned before the asynchronous subscription is confirmed. |
+| 3. Fire-and-forget invite persistence | Open | The chat is persisted and session creation is queued before invite completion; failures leave the chat and session state unresolved. |
+| 4. Contact bootstrap is circular | Open | Acceptance still requires `get_nw_contact(sender_id)` before processing the invite. |
+| 5. Malformed or duplicate payloads | Open | Database constraints and a transaction help contain failures, but there is no protocol-level validation or idempotent duplicate handling. |
+| 6. Chats with no members | Partially addressed | Reads reject empty chats and writes are atomic, but writes still permit empty member lists. |
+| 7. Membership versus gossip swarm | Open | Every stored member is still passed as a gossip bootstrap ID, including pending and possibly local members. |
+| 8. Enrollment is not fully confirmed | Open | The acknowledgment confirms only the topic ID, and is sent before the accepted peer has confirmed subscription success. |
+| 9. Concurrent/repeated invites | Open | There is no invite key, deduplication, lifecycle state, or synchronization around repeated creation/invitation. |
+| 10. Crash/restart recovery | Partially addressed | Startup recreates sessions for stored chats, but it cannot distinguish active, pending, failed, or previously interrupted invitations. |
 
 ## Finding 1: Local chats are created in the database but never subscribed to gossip
-Severity: Critical
 
-In [rust-core/src/network/core.rs](rust-core/src/network/core.rs), `crate_chat()`:
-1. builds a `NwChat`
-2. spawns an async invite process
-3. writes the chat to the database
-4. returns
+**Status: Addressed in the normal path; residual reliability gap remains.**
 
-It never creates a `NwChatConnector` for the new topic, even though the app later looks up connectors from `self.chat_connectors` in `send_message()`.
+`NwCore::crate_chat()` now:
 
-Relevant logic:
-- `self.chat_connectors` is initialized only during `NwCore::spawn()` for chats loaded from the database.
-- `crate_chat()` does not insert a new entry into `self.chat_connectors`.
-- `send_message()` does `self.chat_connectors.get(&topic_id)` and returns an error if missing.
+1. Builds the chat.
+2. Starts the invitation task.
+3. Persists the chat.
+4. Calls `self.chat_session_manager.add_chat(chat)`.
 
-This means a freshly created chat can exist in SQLite and still fail at runtime with:
-- `No active connector for topic ID: ...`
-- no live gossip subscription
-- no local message delivery path
-- no receive loop for the chat
+`ChatSessionManager` receives the command and calls `ChatSession::spawn()`. `ChatSession::spawn()` calls `gossip.subscribe(topic_id, bootstrap_ids)`, splits the connection, and starts the receive loop. This removes the original missing-runtime-registration bug and means an immediate send is ordered after the add command in the manager's channel.
 
-This is a fundamental state bug, not just a missing optimization.
+The fix is not complete from an error-handling perspective:
 
-### Why it is especially bad
-The app treats the database as canonical state, but the network runtime is actually the real operating state. Creating a chat in one layer without the other makes the app internally inconsistent.
+- `add_chat()` only queues a command; it does not mean that `gossip.subscribe()` succeeded.
+- `ChatSessionManager` logs subscription failures and drops the failed session.
+- `send_message()` can be accepted into the manager queue even when no session was created; the manager logs `no active chat session` and does not return that failure to the caller.
+- The session manager replaces an existing session in its `HashMap` without explicitly handling duplicate registration.
 
-### Edge cases
-- User creates a chat, then immediately sends a message; it fails.
-- App restarts; the reconnect path rebuilds connectors for stored chats, but the just-created chat is only restored if it was already persisted before the app died.
-- The invite succeeds but the local connector never starts, so the user can see the chat but cannot use it.
-
----
+The original claim that no runtime connector is created is no longer accurate. The remaining issue is that registration is asynchronous and failure is not observable through the API.
 
 ## Finding 2: Received invites are acknowledged but do not create a receive/send subscription
-Severity: Critical
 
-In [rust-core/src/network/control_protocol.rs](rust-core/src/network/control_protocol.rs), `accept()` handles an inbound `ControlMessage::ChatInvite` by:
-- fetching the sender from the database
-- rewriting members to swap local `self.profile.contact` with the sender
-- inserting the chat into the database
-- sending `ChatInviteAccepted`
+**Status: Addressed at the registration level; the acknowledgment still races activation.**
 
-It does not create a `NwChatConnector` for the accepted chat.
+After rewriting the invited member, `ControlProtocol::accept()` now:
 
-Equivalent issue to Finding 1, but on the inbound side:
-- the accepted chat exists in the database
-- the app may display it
-- but there is no `gossip.subscribe(topic_id, ...)` pipeline for that chat
-- the app cannot later send or receive messages on the topic unless some other startup path recreates it
+- inserts the chat into the database;
+- calls `self.chat_session_manager.add_chat(chat)`; and
+- sends `ChatInviteAccepted`.
 
-This means the invite handshake is only a database mutation, not a network session creation.
+The queued add command eventually creates a `ChatSession`, subscribes to gossip, and starts a receive loop. Therefore the original missing accepted-chat subscription has been addressed in code.
 
-### Consequence
-The system behaves as if “invite accepted” means “chat is live,” when really it only means “database stored a row and we replied to the inviter.”
+However, `add_chat()` returns after `try_send()` succeeds, not after `ChatSession::spawn()` succeeds. The peer can receive `ChatInviteAccepted` while the local gossip subscription is still pending or has already failed. This makes the response an acceptance of the database mutation and queue operation, not proof that the chat is live.
 
----
+There is also no rollback if session creation fails after the database insert.
 
 ## Finding 3: Invite creation is fire-and-forget, so failures leave stale chats behind
-Severity: High
 
-`crate_chat()` does this:
-- builds the chat
-- launches an async background task to call `invite_chat_members()`
-- writes the chat row to the database immediately
-- returns without waiting for the invitation to succeed
+**Status: Open and still high risk.**
 
-The background invite task can fail for many reasons: timeout, unreachable peer, connection refusal, peer rejects the invite, peer has no matching database state, or a bad ALPN path. Yet the local database has already accepted the chat as valid.
+`NwCore::crate_chat()` persists the chat synchronously, submits it to the session manager, and separately spawns `control_protocol::invite_chat_members(...)`. The caller returns before any remote invitation succeeds.
 
-This produces orphaned chats:
-- there is a row in `chats`
-- there may be rows in `chat_members`
-- but no actual network membership was established
-- no connector is created
-- the user can still click into the chat and see an empty or broken state
+The invitation routine retries for up to approximately one minute per pending member. On final failure it returns an error, but the detached task only logs that error. There is no database state transition to `failed`, no deletion or rollback of the chat, and no user-visible result. The chat remains stored with pending members and an attempted session.
 
-### Why this is poor protocol design
-The system treats a database insert as success before network confirmation. That is exactly backwards for a network handshake.
+The new `mark_nw_chat_member_joined()` update is useful after a successful acknowledgment, but it does not solve failed invitations or make the overall chat active only after confirmation.
 
-### Better behavior
-- create invite state with a pending or failed status
-- wait for a remote ack before persisting as active
-- roll back or mark as failed when invitation times out
-- only create connector once the invite is confirmed
+## Finding 4: The contact bootstrap path is circular
 
----
+**Status: Open.**
 
-## Finding 4: The contact bootstrap path is circular and can reject valid invites
-Severity: High
+`ControlProtocol::accept()` still begins by calling `db_client.get_nw_contact(sender_id)`. If the sender is not already in `contacts`, the invite is rejected before the payload is processed.
 
-In [rust-core/src/network/control_protocol.rs](rust-core/src/network/control_protocol.rs), `accept()` calls:
-
-`self.db_client.get_nw_contact(sender_id)`
-
-This will fail if the sender is not already known in the contacts table.
-
-But the invite system is exactly how a user discovers a remote contact and establishes a chat relationship. That means the onboarding flow is circular:
-1. you need a contact record to accept an invite
-2. the invite is the thing that should establish that contact
-3. but the accept path refuses the invite unless the contact already exists
-
-This creates a dead end for first-time or not-yet-synced contacts. The app assumes import/known-contact state before network trust is established, which is incompatible with a peer-to-peer invite system.
-
-### Impact
-- A fresh peer cannot be invited into a chat unless they were already known.
-- A peer who’s never been stored locally cannot join a chat through this protocol.
-- The network handshake implicitly requires out-of-band identity registration.
-
----
+The refactor changes session registration but does not change this trust/bootstrap dependency. A first-time peer still needs an existing contact record or a separate identity/trust enrollment path.
 
 ## Finding 5: Duplicate or malicious chat payloads are not guarded
-Severity: High
 
-The `ControlMessage::ChatInvite` carries a full `NwChat` payload from the peer. The receiving side does a blind `add_nw_chat(chat)` in [rust-core/src/network/control_protocol.rs](rust-core/src/network/control_protocol.rs).
+**Status: Open, with better atomic failure containment.**
 
-There is no validation for:
-- duplicate topic IDs
-- repeated member entries
-- self-membership misrepresentation
-- invalid or untrusted contact names
-- local membership that does not match the sender's actual identity
-- chat payloads that include endpoints the receiver does not know or trust
+`add_nw_chat()` now inserts the chat and all members in a SQLite transaction. That prevents a failed member insert from leaving a partially inserted chat. The schema also continues to enforce unique topic IDs and `(topic_id, endpoint_id)` pairs, valid status values, and foreign keys to contacts.
 
-The database schema in [rust-core/src/database/sql/schema.sql](rust-core/src/database/sql/schema.sql) adds some constraints, but not enough:
-- `chat_members` has `PRIMARY KEY (topic_id, endpoint_id)`
-- `chats.topic_id` is unique
-- `chat_members.endpoint_id` references `contacts.endpoint_id`
+Those constraints are not protocol validation. The receiver still accepts a full peer-supplied `NwChat` without checking:
 
-These constraints can cause failed inserts, but they do not prevent malicious or malformed invite data from getting as far as the database layer.
+- that the topic is new or is an idempotent retry;
+- that members are unique and non-empty;
+- that the local identity appears correctly;
+- that the sender is one of the declared members;
+- that all member identities are trusted or known; or
+- that names and membership data are consistent with the connection identity.
 
-### Example edge case
-If a remote user reuses a topic ID that already exists locally, the insert can fail with a DB uniqueness error. The accept path treats that as an error but the rest of the system does not cleanly recover or present a meaningful error state.
-
----
+A duplicate topic or member currently fails at the database layer and becomes an accept error rather than a well-defined duplicate-invite response.
 
 ## Finding 6: The app can silently create chats with no active members
-Severity: Medium
 
-The database reader in [rust-core/src/database/workers/nw_reads.rs](rust-core/src/database/workers/nw_reads.rs) rejects a chat if it has no members:
+**Status: Partially addressed.**
 
-`if chat.members.is_empty() ... return Err(...)`
+The reader still rejects chats with no members, while `add_nw_chat()` now uses a transaction so the chat row is not left behind if a member insertion fails. That narrows the partial-write window.
 
-But the writer in [rust-core/src/database/workers/writes.rs](rust-core/src/database/workers/writes.rs) does not enforce that a chat has at least one valid member before insertion. This leaves a window where malformed or partial invite data produces a row that the reader later rejects.
-
-The invite system can therefore create a half-valid chat record and then the app fails later during reads, without a clear recovery path.
-
----
+The writer still accepts an empty `members` vector, and the schema does not enforce a minimum member count. An invalid empty chat can therefore still be inserted and will fail later when read. This remains a validation gap rather than a fully fixed lifecycle.
 
 ## Finding 7: Membership is not reconciled with the actual gossip swarm
-Severity: Medium
 
-`NwChatConnector::spawn()` in [rust-core/src/network/chat_connector.rs](rust-core/src/network/chat_connector.rs) subscribes with a bootstrap list built from `chat.members`:
+**Status: Open.**
 
-`let bootstrap_ids = members.iter().map(|member| member.endpoint_id).collect();`
+`ChatSession::spawn()` builds bootstrap IDs from every `chat.members` entry:
 
-This is a fragile assumption. It is not clear that every member is online or reachable; it also does not exclude the local user. If the local user appears in the chat’s member list, the bootstrap list can include the local endpoint ID, which is not useful for a peer-to-peer network of distinct devices.
+```rust
+let bootstrap_ids = members
+    .iter()
+    .map(|member| member.contact.endpoint_id)
+    .collect();
+```
 
-A few edge cases:
-- all members are offline when the chat is created
-- one member is never reachable, so the swarm never forms
-- a stale membership list includes users no longer in the chat
-- the chat topic is valid but the bootstrap path never converges because the set is empty or invalid
-
-This system should treat member list as an invite hint, not a reliable swarm bootstrap mechanism.
-
----
+It does not filter pending members, exclude the local endpoint, remove duplicates, or distinguish an invite hint from an active/reachable peer. The session manager makes subscription creation more consistent, but the bootstrap model itself is unchanged in substance.
 
 ## Finding 8: The protocol never confirms chat enrollment beyond the single invite round trip
-Severity: Medium
 
-The `send_chat_invite()` handshake in [rust-core/src/network/core.rs](rust-core/src/network/core.rs) sends a `ChatInvite`, waits for a single `ChatInviteAccepted`, and then exits. That is only a half-acknowledgment.
+**Status: Open, and now more explicit because of the session manager queue.**
 
-It does not confirm that:
-- the peer actually created a local connector
-- the peer successfully inserted the chat into its own database
-- the peer subscribed to the topic
-- the peer’s chat membership list matches the inviter’s expected members
-- the peer is reachable for subsequent chat traffic
+`ChatInviteAccepted { topic_id }` confirms only that the receiver parsed the invite, inserted the database row, and queued `add_chat()`. It does not confirm that:
 
-The protocol stops at “I got a response bytes object” rather than “the peer is ready to participate in the chat.”
+- `ChatSession::spawn()` completed;
+- `gossip.subscribe()` succeeded;
+- the receive loop is running;
+- the membership set was validated; or
+- the peer is reachable on the chat topic.
 
-This is not enough for a reliable distributed chat protocol.
-
----
+The protocol still needs a readiness acknowledgment, or `add_chat()` needs an awaitable result that is completed only after subscription succeeds.
 
 ## Finding 9: Race conditions around concurrent invites and repeated chat creation
-Severity: Medium
 
-The app can issue multiple invites for the same topic or same member set without deduplication. The same chat topic can also be generated twice by random collisions, although the risk is low.
+**Status: Open.**
 
-More importantly:
-- the chat is created immediately, before confirmation
-- background retries are run per member
-- the same chat may be re-invited if the user retries or reopens the flow
-- the database does not track invite state, so there is no way to tell whether a chat is pending, active, or failed
+The database still tracks only chats, members, and a binary pending/joined member status. There is no invite ID, attempt ID, lifecycle status, uniqueness rule for an invite operation, or explicit handling for a repeated `ChatInvite`.
 
-This makes retries idempotent state management impossible.
-
----
+The manager stores sessions by topic and replaces an existing session when another `Add` command uses the same topic. That avoids multiple entries in the map, but it is not a protocol-level idempotency policy and does not prevent repeated database inserts or repeated remote invitations.
 
 ## Finding 10: The invite flow has no durable recovery model after process crash or app restart
-Severity: Medium
 
-The system has no persisted state for:
-- pending invites
-- invite retries
-- membership confirmation
-- chat lifecycle status
-- failed invites or timeouts
+**Status: Partially addressed.**
 
-After a crash, the database may contain chats that are not actually live, while the runtime has no record of which invites were in flight. On restart, `NwCore::spawn()` rebuilds connectors for all chats in the database, but it does not repair chats that were partially created or never fully bootstrapped.
+`NwCore::spawn()` loads stored chats and calls `chat_session_manager.add_chat(chat)` for each one. This improves restart behavior for chats that are already present in the database: their gossip sessions are recreated automatically.
 
-This is a classic “disappearing state” bug: the database is not enough to reconstruct a valid chat session.
+The database still cannot say whether a chat was active, pending, failed, or interrupted during an invite. On restart, every stored chat is treated as session-worthy, including chats whose invitations previously failed. Pending invite retries are not persisted or resumed, and session creation failures are only logged. Runtime rehydration is improved, but durable recovery is not solved.
 
----
+## Updated root cause
 
-## High-confidence root cause
-The underlying design issue is a mismatch between two different notions of truth:
+The original missing connector path has been repaired through `ChatSessionManager`, but the two notions of truth are still not joined by a durable state machine:
 
-- the database says “chat exists”
-- the runtime says “chat is connected and active”
+- SQLite records a chat before remote membership is confirmed.
+- The session manager attempts runtime activation asynchronously.
+- The invite protocol acknowledges before runtime activation is confirmed.
+- Failures are logged rather than represented in persistent state.
 
-The app writes the first one immediately and the second one only during startup, but never on invite creation or acceptance. As a result, the invite handshake is not an activation protocol; it is just a database mutation and a best-effort network call.
+The current design is therefore closer to "database insert plus best-effort session startup" than to an activation protocol.
 
----
+## Recommended next steps
 
-## Recommended redesign
-1. Split chat state into explicit phases: `pending`, `active`, `failed`.
-2. Do not insert a chat as active before the invite is acknowledged.
-3. Create and register a `NwChatConnector` as part of invite acceptance, not only during app startup.
-4. Add idempotent invite keys and topic dedup validation.
-5. Require a contact record or explicit trust step before accepting an invite from a new endpoint.
-6. Have the peer ack a richer protocol than just `ChatInviteAccepted` — it should confirm the topic and membership are ready.
-7. Treat the member list as advisory, not as guaranteed swarm bootstrap data.
-8. Add integration tests covering:
-   - invite accepted but connector missing
-   - invite fails and chat remains pending
-   - duplicate invite for same topic
-   - new contact invite without existing contact record
-   - chat creation followed by immediate send
-
----
+1. Add explicit chat/member lifecycle states such as `pending`, `active`, and `failed`.
+2. Make session registration return an awaitable activation result, and send `ChatInviteAccepted` only after subscription succeeds.
+3. Persist invite attempts and failure state; make retries resume safely after restart.
+4. Add protocol validation for sender identity, local membership, duplicate topics, duplicate members, and empty member sets.
+5. Define idempotent behavior for repeated invites and duplicate session registration.
+6. Filter gossip bootstrap IDs to valid remote peers and treat membership as an advisory bootstrap hint.
+7. Add tests for immediate send after creation, subscription failure after acceptance, failed invite cleanup/state, duplicate invites, unknown senders, and restart recovery.
 
 ## Conclusion
-This invite system is not robust enough to be treated as a production chat protocol. The biggest issues are not small bugs; they are structural mismatches between database state, network state, and handshake semantics. The current design can leave the app with chats that appear valid but are impossible to use, and it can reject valid invite flows due to circular dependency on preexisting contact records.
+
+The sweeping changes successfully address the original "chat exists but no connector is registered" defect for both local creation and inbound acceptance in the normal successful path. They do not yet establish that the connector is live before reporting success, and they do not prevent or recover from stale persisted chats. Findings 3, 4, 5, 7, 8, and 9 remain open; findings 6 and 10 are only partially addressed.

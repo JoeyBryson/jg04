@@ -2,7 +2,7 @@ use super::super::{
     NwChat, NwMessage,
     signed_message::{sign_and_encode, verify_and_decode},
 };
-use crate::network::NwContact;
+use crate::network::NwChatMember;
 use crate::{database::client::DbClient, network::signed_message::MessageData};
 use futures_lite::StreamExt;
 use iroh::SecretKey;
@@ -14,12 +14,12 @@ use iroh_gossip::{
 };
 use std::time::SystemTime;
 use tokio::task::JoinHandle;
-
+use crate::network::NwChatMemberStatus;
 pub struct ChatSession {
     pub secret_key: SecretKey,
     pub topic_id: TopicId,
     pub db_client: DbClient,
-    pub members: Vec<NwContact>,
+    pub members: Vec<NwChatMember>,
     pub sender: GossipSender,
     pub receive_handle: JoinHandle<()>,
 }
@@ -39,7 +39,11 @@ impl ChatSession {
     ) -> anyhow::Result<Self> {
         let topic_id = chat.topic_id;
         let members = chat.members;
-        let bootstrap_ids = members.iter().map(|member| member.endpoint_id).collect();
+        let bootstrap_ids = members
+            .iter()
+            .filter(|member| member.status == NwChatMemberStatus::Joined)
+            .map(|member| member.contact.endpoint_id)
+            .collect();
 
         let connection = gossip.subscribe(topic_id, bootstrap_ids).await?;
         let (sender, receiver) = connection.split();

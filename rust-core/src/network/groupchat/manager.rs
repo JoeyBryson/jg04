@@ -1,23 +1,30 @@
 use std::collections::HashMap;
 
-use tokio::sync::mpsc;
-
-use super::super::NwChat;
+use anyhow::Result;
+use iroh::SecretKey;
 use iroh_gossip::net::Gossip;
 use iroh_gossip::proto::TopicId;
+use tokio::sync::{mpsc, oneshot};
 
+use super::super::NwChat;
 use super::ChatSession;
 use crate::database::client::DbClient;
-use crate::ffi_error::FfiError;
-use iroh::SecretKey;
 
 #[derive(Clone, Debug)]
 pub struct ChatSessionManager {
     sender: mpsc::Sender<ChatSessionCommand>,
 }
+
 enum ChatSessionCommand {
-    Add(NwChat),
-    SendMessage { topic_id: TopicId, content: String },
+    Add {
+        chat: NwChat,
+        reply: oneshot::Sender<Result<()>>,
+    },
+    SendMessage {
+        topic_id: TopicId,
+        content: String,
+        reply: oneshot::Sender<Result<()>>,
+    },
 }
 
 impl ChatSessionManager {
@@ -29,35 +36,41 @@ impl ChatSessionManager {
 
             while let Some(command) = receiver.recv().await {
                 match command {
-                    ChatSessionCommand::Add(chat) => {
+                    ChatSessionCommand::Add { chat, reply } => {
                         let topic_id = chat.topic_id;
 
-                        match ChatSession::spawn(
+                        if sessions.contains_key(&topic_id) {
+                            let _ = reply.send(Ok(()));
+                            continue;
+                        }
+
+                        let result = ChatSession::spawn(
                             chat,
                             db_client.clone(),
                             &gossip,
                             secret_key.clone(),
                         )
                         .await
-                        {
-                            Ok(session) => {
-                                sessions.insert(topic_id, session);
-                            }
-                            Err(error) => {
-                                log::error!("failed to spawn chat session: {error}");
-                            }
-                        }
+                        .map(|session| {
+                            sessions.insert(topic_id, session);
+                        });
+
+                        let _ = reply.send(result);
                     }
 
-                    ChatSessionCommand::SendMessage { topic_id, content } => {
-                        let Some(session) = sessions.get(&topic_id) else {
-                            log::error!("no active chat session for topic ID: {topic_id}");
-                            continue;
+                    ChatSessionCommand::SendMessage {
+                        topic_id,
+                        content,
+                        reply,
+                    } => {
+                        let result = match sessions.get(&topic_id) {
+                            Some(session) => session.send(content).await,
+                            None => Err(anyhow::anyhow!(
+                                "no active chat session for topic ID: {topic_id}"
+                            )),
                         };
 
-                        if let Err(error) = session.send(content).await {
-                            log::error!("failed to send message: {error}");
-                        }
+                        let _ = reply.send(result);
                     }
                 }
             }
@@ -66,19 +79,34 @@ impl ChatSessionManager {
         Self { sender }
     }
 
-    pub fn add_chat(&self, chat: NwChat) -> Result<(), FfiError> {
-        self.sender
-            .try_send(ChatSessionCommand::Add(chat))
-            .map_err(|_| FfiError::internal("failed to send add-chat command"))?;
+    pub fn add_chat(&self, chat: NwChat) -> Result<()> {
+        let (reply, receiver) = oneshot::channel();
 
-        Ok(())
+        self.sender
+            .blocking_send(ChatSessionCommand::Add { chat, reply })?;
+
+        receiver.blocking_recv()?
     }
 
-    pub fn send_message(&self, topic_id: TopicId, content: String) -> Result<(), FfiError> {
-        self.sender
-            .try_send(ChatSessionCommand::SendMessage { topic_id, content })
-            .map_err(|_| FfiError::internal("failed to send send-message command"))?;
+    pub async fn add_chat_async(&self, chat: NwChat) -> Result<()> {
+        let (reply, receiver) = oneshot::channel();
 
-        Ok(())
+        self.sender
+            .send(ChatSessionCommand::Add { chat, reply })
+            .await?;
+
+        receiver.await?
+    }
+
+    pub fn send_message(&self, topic_id: TopicId, content: String) -> Result<()> {
+        let (reply, receiver) = oneshot::channel();
+
+        self.sender.blocking_send(ChatSessionCommand::SendMessage {
+            topic_id,
+            content,
+            reply,
+        })?;
+
+        receiver.blocking_recv()?
     }
 }

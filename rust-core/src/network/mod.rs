@@ -1,4 +1,4 @@
-use crate::ui::{UiChatHeader, UiContact};
+use crate::ui::UiContact;
 use iroh::EndpointId;
 use iroh::SecretKey;
 use iroh_gossip::proto::TopicId;
@@ -23,7 +23,8 @@ pub enum SetupError {
     #[error("profile has already been set")]
     ProfileAlreadySet,
 }
-use control_protocol::ControlMessage;
+use control_protocol::ControlRequest;
+use control_protocol::ControlResponse;
 use control_protocol::ControlProtocol;
 use groupchat::ChatSessionManager;
 
@@ -36,16 +37,29 @@ pub struct NwMessage {
     pub sent_at: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum NwChatMemberStatus{
-    Pending,
-    Joined
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[repr(i32)]
+pub enum NwChatMemberStatus {
+    Pending = 0,
+    Joined = 1,
+}
+
+impl TryFrom<i32> for NwChatMemberStatus {
+    type Error = &'static str;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::Pending),
+            1 => Ok(Self::Joined),
+            _ => Err("invalid network chat member status"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NwChatMember {
-    contact: NwContact,
-    status: NwChatMemberStatus
+    pub contact: NwContact,
+    pub status: NwChatMemberStatus,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -76,7 +90,6 @@ impl From<UiContact> for NwContact {
         }
     }
 }
-
 
 //#[cfg(test)]
 //#[path = "nw/tests.rs"]

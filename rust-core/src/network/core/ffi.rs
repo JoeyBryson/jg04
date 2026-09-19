@@ -4,7 +4,7 @@ use anyhow::Context;
 use iroh_gossip::proto::TopicId;
 use tokio::runtime::Runtime;
 
-use super::super::{NwChat, NwContact};
+use super::super::{NwChat, NwChatMember, NwChatMemberStatus, NwContact};
 use super::NwCore;
 
 use crate::database::client::DbClient;
@@ -29,6 +29,8 @@ impl NwCore {
         let runtime_handle = runtime.handle().clone();
 
         let nw_core = runtime_handle.block_on(Self::spawn_base(db_client, profile))?;
+
+        runtime_handle.block_on(nw_core.chat_invite_actor.refresh())?;
 
         let chats = nw_core.db_client.get_nw_chats_sync()?;
 
@@ -59,7 +61,7 @@ impl NwCore {
         Ok(())
     }
 
-    fn crate_chat(
+    fn create_chat(
         &self,
         contacts: Vec<UiContact>,
         name: Option<String>,
@@ -67,7 +69,11 @@ impl NwCore {
         let members = contacts
             .into_iter()
             .map(NwContact::from)
-            .collect::<Vec<NwContact>>();
+            .map(|contact| NwChatMember {
+                contact,
+                status: NwChatMemberStatus::Pending,
+            })
+            .collect::<Vec<NwChatMember>>();
 
         let topic_id = TopicId::from_bytes(rand::random());
 
@@ -77,18 +83,16 @@ impl NwCore {
             topic_id,
         };
 
-        let chat_clone = chat.clone();
-        let router = self.router.clone();
-
-        self.runtime_handle.spawn(async move {
-            if let Err(error) = Self::invite_chat_members(router, chat_clone).await {
-                log::error!("failed to invite chat members: {error}");
-            }
-        });
-
         self.db_client.add_nw_chat_sync(chat.clone())?;
 
         self.chat_session_manager.add_chat(chat)?;
+
+        let chat_invite_actor = self.chat_invite_actor.clone();
+        self.runtime_handle.spawn(async move {
+            if let Err(error) = chat_invite_actor.refresh().await {
+                log::error!("failed to refresh chat invites: {error}");
+            }
+        });
 
         Ok(topic_id.to_string())
     }

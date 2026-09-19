@@ -3,7 +3,7 @@ use iroh::{EndpointId, SecretKey};
 use iroh_gossip::TopicId;
 
 use super::client::DbClient;
-use crate::network::{NwChat, NwContact, NwMessage};
+use crate::network::{NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage};
 
 fn sample_endpoint_id(seed: u8) -> EndpointId {
     SecretKey::from_bytes(&[seed; 32]).public()
@@ -28,7 +28,13 @@ impl DbClient {
 
         let chat = NwChat {
             name: Some("Sample Chat".to_string()),
-            members: vec![alice, bob],
+            members: vec![alice, bob]
+                .into_iter()
+                .map(|contact| NwChatMember {
+                    contact,
+                    status: NwChatMemberStatus::Joined,
+                })
+                .collect(),
             topic_id,
         };
 
@@ -103,8 +109,17 @@ impl DbClient {
             let is_group = chat_index % 2 == 0;
             let count = if is_group { 4 } else { 2 };
 
-            let members: Vec<_> = (0..count)
+            let contacts: Vec<_> = (0..count)
                 .map(|i| contacts[(chat_index + i) % contacts.len()].clone())
+                .collect();
+
+            let members: Vec<_> = contacts
+                .iter()
+                .cloned()
+                .map(|contact| NwChatMember {
+                    contact,
+                    status: NwChatMemberStatus::Joined,
+                })
                 .collect();
 
             let chat = NwChat {
@@ -130,7 +145,7 @@ impl DbClient {
                     None
                 } else {
                     let sender = &members[message_index as usize % members.len()];
-                    Some(sender.endpoint_id)
+                    Some(sender.contact.endpoint_id)
                 };
 
                 let message = NwMessage {

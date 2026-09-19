@@ -5,7 +5,7 @@ use tokio::runtime::Runtime;
 use crate::database::client::DbClient;
 use crate::database::manager::DbManager;
 use crate::ffi_error::FfiError;
-use crate::network::{NwChat, NwContact};
+use crate::network::{NwChat, NwChatMember, NwChatMemberStatus, NwContact};
 use iroh_gossip::TopicId;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -160,7 +160,10 @@ fn add_chat(
             endpoint_id,
         };
 
-        members.push(member);
+        members.push(NwChatMember {
+            contact: member,
+            status: NwChatMemberStatus::Joined,
+        });
     }
 
     let topic_bytes: [u8; 32] = hex::decode(&topic_id_hex)

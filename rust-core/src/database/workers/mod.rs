@@ -8,6 +8,9 @@ mod nw_reads;
 mod ui_reads;
 mod writes;
 
+#[cfg(test)]
+mod test;
+
 use super::manager::{DbMode, start_conn};
 use super::requests::{ReadRequest, WriteRequest};
 
