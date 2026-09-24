@@ -74,6 +74,7 @@ fun MainComposable() {
                 )
             }
         }
+//        NwCoreStatusOverlay()
     }
 }
 

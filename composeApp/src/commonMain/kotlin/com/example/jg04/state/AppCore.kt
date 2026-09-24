@@ -93,23 +93,6 @@ object AppCore {
         initialized = true
     }
 
-    fun profileExists(): Boolean {
-        KotlinLogger.info("AppCore", "Checking for profile")
-        val result = runCatching {
-            val dbClient = dbManager.spawnClient()
-            dbClient.profileExists()
-        }.onSuccess { exists ->
-            KotlinLogger.info("AppCore", "Profile exists: $exists")
-        }.onFailure { exception ->
-            KotlinLogger.error(
-                "AppCore",
-                "Failed to check profile: ${exception.message}"
-            )
-        }.getOrDefault(false)
-        KotlinLogger.info("AppCore", "Returning from profile exists")
-        return result
-    }
-
     fun setProfile(name: String) {
         runCatching {
             val dbClient = dbManager.spawnClient()

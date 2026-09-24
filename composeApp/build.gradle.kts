@@ -54,6 +54,8 @@ kotlin {
 
             implementation("androidx.navigation3:navigation3-runtime:1.1.3")
 
+            implementation("network.chaintech:qr-kit:3.1.3")
+
             //implementation("androidx.savedstate:savedstate:1.5.0")
             api(libs.androidx.lifecycle.viewmodel)
         }

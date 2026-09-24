@@ -182,7 +182,7 @@ impl ProtocolHandler for ControlProtocol {
         match request {
             ControlRequest::ChatInvite { mut chat } => {
                 for member in &mut chat.members {
-                    if member.contact == self.profile.contact {
+                    if member.contact.endpoint_id == self.profile.contact.endpoint_id {
                         member.contact = sender.clone();
                         member.status = NwChatMemberStatus::Joined;
                     }

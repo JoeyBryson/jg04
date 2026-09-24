@@ -139,7 +139,7 @@ fun NewChatContent(
                         .trim()
                         .takeIf { it.isNotEmpty() }
 
-                    val topic_id = AppCore.nwCore.crateChat(selectedContacts.toList(),
+                    val topic_id = AppCore.nwCore.createChat(selectedContacts.toList(),
                         name)
 
                     onCreateChat(topic_id)

@@ -22,6 +22,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.jg04.state.AppCore
 import com.example.jg04.ui.icons.arrowBackIcon
+import qrscanner.CameraLens
+import qrscanner.OverlayShape
+import qrscanner.QrScanner
 import uniffi.rust_api.UiContact
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,6 +35,7 @@ fun AddContactScreen(
     var name by remember { mutableStateOf("") }
     var endpointId by remember { mutableStateOf("") }
 
+    var scanning by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var success by remember { mutableStateOf(false) }
 
@@ -52,76 +56,118 @@ fun AddContactScreen(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            OutlinedTextField(
-                value = name,
-                onValueChange = {
-                    name = it
+
+        if (scanning) {
+            QrScanner(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                flashlightOn = false,
+                cameraLens = CameraLens.Back,
+                openImagePicker = false,
+                onCompletion = { result ->
+                    endpointId = result
+                    scanning = false
                     error = null
                     success = false
                 },
-                label = { Text("Name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = endpointId,
-                onValueChange = {
-                    endpointId = it
-                    error = null
-                    success = false
+                imagePickerHandler = {},
+                onFailure = {
+                    error = it.ifEmpty { "Invalid QR code" }
                 },
-                label = { Text("Endpoint ID") },
-                singleLine = false,
-                modifier = Modifier.fillMaxWidth()
+                overlayShape = OverlayShape.Square
             )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    val contact = UiContact(name, endpointId)
-                    val client = AppCore.dbManager.spawnClient()
-
-                    try {
-                        client.addUiContact(contact)
-                        success = true
-                        error = null
-                    } catch (e: Exception) {
-                        success = false
-                        error = e.message ?: "Failed to add contact"
-                    }
-                },
-                enabled = canAdd,
-                modifier = Modifier.fillMaxWidth()
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Add Contact")
-            }
-
-            when {
-                error != null -> {
-                    Text(
-                        text = error!!,
-                        color = Color.Red,
-                        modifier = Modifier.padding(top = 12.dp)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(top = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = {
+                            name = it
+                            error = null
+                            success = false
+                        },
+                        label = { Text("Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    OutlinedTextField(
+                        value = endpointId,
+                        onValueChange = {
+                            endpointId = it
+                            error = null
+                            success = false
+                        },
+                        label = { Text("Endpoint ID") },
+                        singleLine = false,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            scanning = true
+                            error = null
+                            success = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Scan from QR code")
+                    }
+
+                    if (error != null) {
+                        Text(
+                            text = error!!,
+                            color = Color.Red,
+                            modifier = Modifier.padding(top = 12.dp)
+                        )
+                    }
+
+                    if (success) {
+                        Text(
+                            text = "Contact successfully added!",
+                            modifier = Modifier.padding(top = 12.dp)
+                        )
+                    }
                 }
 
-                success -> {
-                    Text(
-                        text = "Contact Successfully Added!",
-                        modifier = Modifier.padding(top = 12.dp)
-                    )
+                Button(
+                    onClick = {
+                        val contact = UiContact(name, endpointId)
+                        val client = AppCore.dbManager.spawnClient()
+
+                        try {
+                            client.addUiContact(contact)
+                            success = true
+                            error = null
+                        } catch (e: Exception) {
+                            success = false
+                            error = e.message ?: "Failed to add contact"
+                        }
+                    },
+                    enabled = canAdd,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
+                ) {
+                    Text("Add Contact")
                 }
             }
         }
