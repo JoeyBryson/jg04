@@ -136,6 +136,7 @@ impl DbManager {
         .map_err(FfiError::from)
     }
 
+    //usefull for schema changes before we implement a proper migration plan
     #[uniffi::constructor]
     pub fn reset(db_path_string: String) -> Result<Self, FfiError> {
         (move || -> anyhow::Result<Self> {
@@ -152,10 +153,19 @@ impl DbManager {
         .map_err(FfiError::from)
     }
 
+    //Arc is required by uniffi for memory safety across ffi
+    //Note: uniffi constructors wrap their objects in Arc implicitly
+    
     pub fn spawn_client(&self) -> Arc<DbClient> {
-        Arc::new(DbClient {
-            reader_tx: self.reader_tx.clone(),
-            writer_tx: self.writer_tx.clone(),
-        })
+        Arc::new(DbClient::new(self.reader_tx.clone(), self.writer_tx.clone()))
+    }
+}
+
+
+impl DbManager {
+    //incase we want an unwrapped DbClient for in-crate purposes
+    //may not be necessary since we can just clone DbClient to our hearts content
+    pub fn spawn_client_raw(&self) -> DbClient {
+        DbClient::new(self.reader_tx.clone(), self.writer_tx.clone())
     }
 }
