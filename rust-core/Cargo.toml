@@ -19,6 +19,16 @@ thiserror = "2.0.20"
 postcard = "1.1.3"
 rand = "0.10.2"
 n0-error = "1.0.1"
+iroh-relay = { version = "1.0.3", default-features = false, features = ["server"], optional = true }
+
+[dev-dependencies]
+rust_api = { path = ".", features = ["test-utils"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[features]
+# Enables the Rust-only test harness (see src/harness.rs), which binds against
+# a local iroh relay/DNS pair instead of real internet infrastructure.
+test-utils = ["iroh/test-utils", "dep:iroh-relay", "iroh-relay/test-utils"]
 
 # This as well.
 [lib]

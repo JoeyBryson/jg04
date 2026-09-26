@@ -2,7 +2,7 @@ use iroh::protocol::Router;
 use iroh_gossip::net::Gossip;
 use tokio::runtime::Handle;
 
-use super::{NwProfile, control_protocol::ChatInviteActor, groupchat::ChatSessionManager};
+use super::{NwProfile, control_protocol::chat_invite::ChatInviteManager, groupchat::ChatSessionManager};
 use crate::database::client::DbClient;
 
 mod ffi;
@@ -16,7 +16,7 @@ pub struct NwCore {
     router: Router,
     profile: NwProfile,
     chat_session_manager: ChatSessionManager,
-    chat_invite_actor: ChatInviteActor,
+    chat_invite_actor: ChatInviteManager,
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -14,6 +14,8 @@ mod events;
 mod groupchat;
 mod signed_message;
 
+pub use core::NwCore;
+
 pub(super) const CONTROL_ALPN: &[u8] = b"iroh-example/echo/0";
 
 #[derive(Error, Debug, PartialEq)]

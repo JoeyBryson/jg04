@@ -49,7 +49,7 @@ impl NwCore {
         Ok(nw_core)
     }
 
-    fn send_message(&self, content: String, chat_id: String) -> Result<(), FfiError> {
+    pub fn send_message(&self, content: String, chat_id: String) -> Result<(), FfiError> {
         let mut topic_id_bytes = [0u8; 32];
 
         hex::decode_to_slice(&chat_id, &mut topic_id_bytes).map_err(anyhow::Error::from)?;
@@ -61,7 +61,7 @@ impl NwCore {
         Ok(())
     }
 
-    fn create_chat(
+    pub fn create_chat(
         &self,
         contacts: Vec<UiContact>,
         name: Option<String>,
@@ -95,5 +95,45 @@ impl NwCore {
         });
 
         Ok(topic_id.to_string())
+    }
+}
+
+/// Test-only constructor used by [`crate::harness`] to bind against a local
+/// relay/DNS pair instead of the production `N0` defaults.
+#[cfg(feature = "test-utils")]
+impl NwCore {
+    pub fn spawn_for_test(
+        db_client: Arc<DbClient>,
+        preset: impl iroh::endpoint::presets::Preset,
+    ) -> Result<Arc<Self>, FfiError> {
+        let db_client = Arc::unwrap_or_clone(db_client);
+
+        let profile = db_client
+            .get_nw_profile()
+            .map_err(anyhow::Error::from)
+            .with_context(|| "invalid private key")?;
+
+        let runtime = Runtime::new().map_err(anyhow::Error::from)?;
+
+        let runtime_handle = runtime.handle().clone();
+
+        let nw_core =
+            runtime_handle.block_on(Self::spawn_base_with_preset(db_client, profile, preset))?;
+
+        runtime_handle.block_on(nw_core.chat_invite_actor.refresh())?;
+
+        let chats = nw_core.db_client.get_nw_chats_sync()?;
+
+        for chat in chats {
+            nw_core.chat_session_manager.add_chat(chat)?;
+        }
+
+        let nw_core = Arc::new(nw_core);
+
+        std::thread::spawn(move || {
+            runtime.block_on(std::future::pending::<()>());
+        });
+
+        Ok(nw_core)
     }
 }
