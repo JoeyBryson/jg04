@@ -4,7 +4,7 @@ macro_rules! db_read_method_body {
         impl DbClient {
             pub $($asyncness)* fn $client_fn(&self, $($field: $ty),*) -> ::std::result::Result<$ret, $err_ty> {
                 let (tx, rx) = tokio::sync::oneshot::channel();
-                let result = self.$send_fn(crate::database::requests::ReadRequest::$variant { $($field,)* reply: tx }, rx) $($await_kw)* ?;
+                let result = self.$send_fn(crate::database::client::ReadRequest::$variant { $($field,)* reply: tx }, rx) $($await_kw)* ?;
                 Ok(result)
             }
         }
@@ -33,7 +33,7 @@ macro_rules! db_write_method_body {
             pub $($asyncness)* fn $client_fn(&self, $($field: $ty),*) -> ::std::result::Result<$ret, $err_ty> {
                 let __events: &[crate::notifications::UiEvent] = &[$($event),*];
                 let (tx, rx) = tokio::sync::oneshot::channel();
-                let result = self.$send_fn(crate::database::requests::WriteRequest::$variant { $($field,)* reply: tx }, rx) $($await_kw)* ?;
+                let result = self.$send_fn(crate::database::client::WriteRequest::$variant { $($field,)* reply: tx }, rx) $($await_kw)* ?;
                 for event in __events.iter().cloned() {
                     crate::notifications::emit_ui_event(event);
                 }

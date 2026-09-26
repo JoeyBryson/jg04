@@ -27,7 +27,6 @@ impl NwCore {
     /// Like [`Self::spawn_base`], but binds the endpoint against a caller-supplied
     /// preset (a local relay/DNS pair) instead of the production `N0` defaults.
     /// Used by [`crate::harness`] to run entirely offline.
-    #[cfg(feature = "test-utils")]
     pub(crate) async fn spawn_base_with_preset(
         db_client: DbClient,
         profile: NwProfile,

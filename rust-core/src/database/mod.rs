@@ -5,7 +5,7 @@
 //!
 //! Database calls can be made from anywhere through the [`DbClient`] API.
 //!
-//! ```
+//! ```text
 //! db_client.add_nw_chat(chat);
 //! let chats: Vec<NwChat> = db_client.get_nw_chats();
 //! ```
@@ -13,7 +13,7 @@
 //! [`DbClient`] instances are spawned from the [`DbManager`], which
 //! manages database workers and connections.
 //!
-//! ```
+//! ```text
 //! let db_manager = DbManager::spawn(db_path_string);
 //! let db_client = db_manager.spawn_client();
 //! ```
@@ -26,6 +26,5 @@
 pub mod client;
 pub(crate) mod macros;
 pub mod manager;
-pub(crate) mod requests;
 pub mod sample_data_insertions;
 pub(crate) mod workers;

@@ -1,12 +1,4 @@
-//! Rust-only test harness for exercising networking behaviour end-to-end
-//! without any Kotlin/UI wiring. A [`TestNetwork`] runs a local iroh relay
-//! and DNS/pkarr discovery server (no real internet access required), and
-//! each [`TestNode`] spawned from it pairs an in-memory database with a
-//! running [`NwCore`], mirroring what `AppCore` wires up on the Kotlin side.
-
-use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use anyhow::Result;
 use iroh::RelayMap;
@@ -16,16 +8,13 @@ use iroh::endpoint::Builder;
 use iroh::endpoint::presets::Preset;
 use iroh::test_utils::DnsPkarrServer;
 use iroh::tls::CaTlsConfig;
-use rusqlite::Connection;
+use tempfile::TempDir;
 use tokio::runtime::Runtime;
 
-use crate::database::client::DbClient;
-use crate::database::manager::{DbManager, DbMode, start_conn};
-use crate::network::{NwContact, NwCore, NwProfile};
+use rust_api::database::client::DbClient;
+use rust_api::database::manager::DbManager;
+use rust_api::network::{NwContact, NwCore, NwProfile};
 
-/// A local relay + DNS/pkarr discovery pair shared by every [`TestNode`]
-/// spawned from it, so nodes can find and reach each other without any real
-/// internet access.
 pub struct TestNetwork {
     relay_map: RelayMap,
     dns_pkarr: DnsPkarrServer,
@@ -52,9 +41,9 @@ impl TestNetwork {
         })
     }
 
-    /// Spawns a node with a fresh in-memory database and a freshly generated identity.
+    /// Spawns a node with a fresh temporary database and a freshly generated identity.
     pub fn spawn_node(&self, name: impl Into<String>) -> Result<TestNode> {
-        let (db_manager, memory_guard) = spawn_in_memory_db_manager()?;
+        let (db_manager, temp_dir) = spawn_test_db_manager()?;
         let db_client = db_manager.spawn_client();
 
         let secret_key = SecretKey::generate();
@@ -77,7 +66,7 @@ impl TestNetwork {
             db_manager,
             db_client,
             nw_core,
-            _memory_guard: memory_guard,
+            _temp_dir: temp_dir,
         })
     }
 }
@@ -100,28 +89,19 @@ pub struct TestNode {
     pub db_manager: DbManager,
     pub db_client: Arc<DbClient>,
     pub nw_core: Arc<NwCore>,
-    // Keeps the shared-cache in-memory database alive; SQLite discards it
-    // once every connection to it closes.
-    _memory_guard: Connection,
+    // Keeps the temporary database alive for the lifetime of the node.
+    _temp_dir: TempDir,
 }
 
-/// Builds a `DbManager` backed by a private, in-memory SQLite database.
+/// Builds a [`DbManager`] backed by a private temporary SQLite database.
 ///
-/// Each call creates an independent database identified by a process-unique
-/// name, so multiple `TestNode`s can coexist without interfering with one
-/// another. The returned `Connection` must be kept alive for as long as the
-/// `DbManager` is used.
-fn spawn_in_memory_db_manager() -> Result<(DbManager, Connection)> {
-    static NEXT_ID: AtomicU64 = AtomicU64::new(0);
-    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-    let db_path = PathBuf::from(format!("file:memdb_{id}?mode=memory&cache=shared"));
-
-    let memory_guard = start_conn(&db_path, DbMode::ReadWrite)?;
-    memory_guard.execute_batch(include_str!("database/sql/schema.sql"))?;
+/// Each call creates an independent temporary directory, so multiple
+/// [`TestNode`]s can coexist without interfering with one another.
+fn spawn_test_db_manager() -> Result<(DbManager, TempDir)> {
+    let temp_dir = tempfile::tempdir()?;
+    let db_path = temp_dir.path().join("app.db");
 
     let db_manager = DbManager::new(db_path)?;
 
-    Ok((db_manager, memory_guard))
+    Ok((db_manager, temp_dir))
 }
-
-

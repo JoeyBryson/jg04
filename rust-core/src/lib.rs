@@ -1,7 +1,5 @@
 pub mod database;
 pub mod ffi_error;
-#[cfg(feature = "test-utils")]
-pub mod harness;
 pub mod logging;
 pub mod network;
 pub mod notifications;

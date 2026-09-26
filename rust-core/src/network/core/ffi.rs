@@ -100,7 +100,6 @@ impl NwCore {
 
 /// Test-only constructor used by [`crate::harness`] to bind against a local
 /// relay/DNS pair instead of the production `N0` defaults.
-#[cfg(feature = "test-utils")]
 impl NwCore {
     pub fn spawn_for_test(
         db_client: Arc<DbClient>,

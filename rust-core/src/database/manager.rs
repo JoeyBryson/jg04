@@ -8,8 +8,7 @@ use rusqlite::{Connection, OpenFlags};
 use tokio::sync::mpsc;
 
 use super::{
-    client::DbClient,
-    requests::{ReadRequest, WriteRequest},
+    client::{DbClient, ReadRequest, WriteRequest},
     workers::{DbReader, DbWriter},
 };
 use crate::ffi_error::FfiError;
@@ -19,15 +18,23 @@ pub enum DbMode {
     ReadOnly,
     ReadWrite,
 }
+/// Public facing API for managing 
+#[derive(uniffi::Object)]
+pub struct DbManager {
+    pub(crate) db_path: PathBuf,
+    pub(crate) reader_tx: mpsc::Sender<ReadRequest>,
+    pub(crate) writer_tx: mpsc::Sender<WriteRequest>,
+    pub(crate) reader_handle: Option<JoinHandle<()>>,
+    pub(crate) writer_handle: Option<JoinHandle<()>>,
+}
 
 pub fn start_conn(db_path: &Path, mode: DbMode) -> Result<Connection> {
+
     let flags = match mode {
-        DbMode::ReadOnly => OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
+        DbMode::ReadOnly => OpenFlags::SQLITE_OPEN_READ_ONLY,
         DbMode::ReadWrite => {
             OpenFlags::SQLITE_OPEN_READ_WRITE
                 | OpenFlags::SQLITE_OPEN_CREATE
-                | OpenFlags::SQLITE_OPEN_NO_MUTEX
-                | OpenFlags::SQLITE_OPEN_URI
         }
     };
 
@@ -41,15 +48,6 @@ pub fn start_conn(db_path: &Path, mode: DbMode) -> Result<Connection> {
     }
 
     Ok(conn)
-}
-
-#[derive(uniffi::Object)]
-pub struct DbManager {
-    pub(crate) db_path: PathBuf,
-    pub(crate) reader_tx: mpsc::Sender<ReadRequest>,
-    pub(crate) writer_tx: mpsc::Sender<WriteRequest>,
-    pub(crate) reader_handle: Option<JoinHandle<()>>,
-    pub(crate) writer_handle: Option<JoinHandle<()>>,
 }
 
 impl DbManager {

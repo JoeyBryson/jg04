@@ -14,7 +14,7 @@ mod writes;
 mod test;
 
 use super::manager::{DbMode, start_conn};
-use super::requests::{ReadRequest, WriteRequest};
+use super::client::{ReadRequest, WriteRequest};
 
 pub struct DbReader {
     rx: mpsc::Receiver<ReadRequest>,
