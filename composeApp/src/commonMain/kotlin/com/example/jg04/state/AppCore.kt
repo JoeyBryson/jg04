@@ -72,7 +72,7 @@ object AppCore {
         )
 
         runCatching {
-            dbManager = DbManager.spawn(_dbPath)
+            dbManager = DbManager.reset(_dbPath)
 
             start_listener()
         }.onFailure { exception ->

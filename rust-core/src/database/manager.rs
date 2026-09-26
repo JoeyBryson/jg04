@@ -22,11 +22,12 @@ pub enum DbMode {
 
 pub fn start_conn(db_path: &Path, mode: DbMode) -> Result<Connection> {
     let flags = match mode {
-        DbMode::ReadOnly => OpenFlags::SQLITE_OPEN_READ_ONLY,
+        DbMode::ReadOnly => OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
         DbMode::ReadWrite => {
             OpenFlags::SQLITE_OPEN_READ_WRITE
                 | OpenFlags::SQLITE_OPEN_CREATE
                 | OpenFlags::SQLITE_OPEN_NO_MUTEX
+                | OpenFlags::SQLITE_OPEN_URI
         }
     };
 
@@ -44,11 +45,11 @@ pub fn start_conn(db_path: &Path, mode: DbMode) -> Result<Connection> {
 
 #[derive(uniffi::Object)]
 pub struct DbManager {
-    db_path: PathBuf,
-    reader_tx: mpsc::Sender<ReadRequest>,
-    writer_tx: mpsc::Sender<WriteRequest>,
-    reader_handle: Option<JoinHandle<()>>,
-    writer_handle: Option<JoinHandle<()>>,
+    pub(crate) db_path: PathBuf,
+    pub(crate) reader_tx: mpsc::Sender<ReadRequest>,
+    pub(crate) writer_tx: mpsc::Sender<WriteRequest>,
+    pub(crate) reader_handle: Option<JoinHandle<()>>,
+    pub(crate) writer_handle: Option<JoinHandle<()>>,
 }
 
 impl DbManager {
@@ -63,7 +64,7 @@ impl DbManager {
         Ok(())
     }
 
-    fn spawn_workers(
+    pub(crate) fn spawn_workers(
         db_path: &PathBuf,
     ) -> (
         mpsc::Sender<ReadRequest>,
@@ -107,7 +108,7 @@ impl DbManager {
         (reader_tx, writer_tx, reader_handle, writer_handle)
     }
 
-    fn new(db_path: PathBuf) -> Result<Self> {
+    pub fn new(db_path: PathBuf) -> Result<Self> {
         Self::initialize_db(&db_path)?;
 
         let (reader_tx, writer_tx, reader_handle, writer_handle) = Self::spawn_workers(&db_path);
