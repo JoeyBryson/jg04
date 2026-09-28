@@ -1,4 +1,12 @@
-//!
+//! Database workers which run in their own threads and own their own database connections.
+//! The purpose of this design is to keep database connections alive somewhere that can be accessed from anywhere in the app.
+//! Channels provide a natural way to queue database work on a single connection.
+//! Using the tokio variant  [`tokio::sync::mpsc`] of the mpsc primitive allows for natural integration for async database calls, allowing the app to do other work
+//! while the data is being fetched or written.
+//! Sync database calls are also possible via the .blocking_send and .blocking_recv methods.
+//! The [`DbReader`] and [`DbWriter`] workers each live on their own threads. This is to keep writes from blocking reads, 
+//! As WAL mode on SQLight allows for many readers - one read/writer concurrently. Writes can take orders of magnitude longer
+//! and UI responsiveness is a priority. This may be over engineering - but it's done now.
 
 use std::path::PathBuf;
 
@@ -13,7 +21,6 @@ mod writes;
 #[cfg(test)]
 mod test;
 
-use super::manager::{DbMode, start_conn};
 use super::client::{ReadRequest, WriteRequest};
 
 pub struct DbReader {
@@ -27,13 +34,7 @@ pub struct DbWriter {
 }
 
 impl DbReader {
-    pub fn start(worker_rx: mpsc::Receiver<ReadRequest>, db_path: PathBuf) -> Result<Self> {
-        log::info!("[DB-READER] start db_path={:?}", db_path);
-
-        let conn = start_conn(&db_path, DbMode::ReadOnly)?;
-
-        log::info!("[DB-READER] started");
-
+    pub fn new(worker_rx: mpsc::Receiver<ReadRequest>, conn: Connection) -> Result<Self> {
         Ok(Self {
             rx: worker_rx,
             conn,
@@ -44,6 +45,8 @@ impl DbReader {
         log::info!("[DB-READER] loop start");
 
         while let Some(request) = self.rx.blocking_recv() {
+            //dispatch is generated in super::client.rs using macros from super::macros.rs
+            //it is effectively just a match statement that matches the request enum to internal methods
             self.dispatch(request);
         }
 
@@ -52,13 +55,7 @@ impl DbReader {
 }
 
 impl DbWriter {
-    pub fn start(worker_rx: mpsc::Receiver<WriteRequest>, db_path: PathBuf) -> Result<Self> {
-        log::info!("[DB-WRITER] start db_path={:?}", db_path);
-
-        let conn = start_conn(&db_path, DbMode::ReadWrite)?;
-
-        log::info!("[DB-WRITER] ready");
-
+    pub fn new(worker_rx: mpsc::Receiver<WriteRequest>, conn: Connection) -> Result<Self> {
         Ok(Self {
             rx: worker_rx,
             conn,
@@ -69,6 +66,7 @@ impl DbWriter {
         log::info!("[DB-WRITER] loop start");
 
         while let Some(request) = self.rx.blocking_recv() {
+            //^^
             self.dispatch(request);
         }
 

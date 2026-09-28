@@ -1,12 +1,13 @@
 use tokio::sync::oneshot;
 use tokio::sync::mpsc;
+use tokio::runtime::Handle;
+
 use crate::database::macros::db_requests;
 use crate::network::{NwChat, NwChatMember, NwContact, NwMessage, NwProfile};
 use crate::notifications::UiEvent::{ChatDataChanged, ChatHeadersChanged, ContactsChanged};
 use crate::ui::{UiChatData, UiChatHeader, UiContact, UiMessage, UiProfile};
 use iroh::EndpointId;
 use iroh_gossip::TopicId;
-
 /// Public API for accessing the database.
 ///
 /// Every application state read or write is exposed as a method of
@@ -27,10 +28,10 @@ pub struct DbClient {
 }
 
 impl DbClient {
-
     pub(super) fn new(
         reader_tx: mpsc::Sender<ReadRequest>,
-        writer_tx: mpsc::Sender<WriteRequest>) -> Self {
+        writer_tx: mpsc::Sender<WriteRequest>,
+    ) -> Self {
         DbClient {
             reader_tx,
             writer_tx,
@@ -40,15 +41,27 @@ impl DbClient {
 
 
 //request sending and response receiving helper functions.
-//Sync and Async variants are available to allow us the flexibility to use DbClient in 
+//Sync and Async variants are available to allow us the flexibility to use DbClient in
 // different contexts while only creating the methods that are actually needed
 
 impl DbClient {
-        fn send_read_request_sync<T>(
+    fn ensure_not_in_async_runtime(operation: &str) -> anyhow::Result<()> {
+        if Handle::try_current().is_ok() {
+            anyhow::bail!(
+                "{} called from async runtime; use the async DbClient method variant instead",
+                operation
+            );
+        }
+
+        Ok(())
+    }
+
+    fn send_read_request_sync<T>(
         &self,
         request: ReadRequest,
         rx: oneshot::Receiver<anyhow::Result<T>>,
     ) -> anyhow::Result<T> {
+        Self::ensure_not_in_async_runtime("sync read")?;
         self.reader_tx.blocking_send(request)?;
         rx.blocking_recv()?
     }
@@ -67,6 +80,7 @@ impl DbClient {
         request: WriteRequest,
         rx: oneshot::Receiver<anyhow::Result<T>>,
     ) -> anyhow::Result<T> {
+        Self::ensure_not_in_async_runtime("sync write")?;
         self.writer_tx.blocking_send(request)?;
         rx.blocking_recv()?
     }
@@ -100,9 +114,9 @@ impl DbClient {
 //     emits [...]   - (writes only) UiEvents fired via emit_ui_event on success
 
 //Note: the ffi_async variant is also available, Uniffi uses foreign language native aync runtimes
-// so these would not mesh at all with our internal tokio runtime. The option is included simply for 
-// the sake of symmetry and curiosity and is completely untested. But it's usefulness can't be completely 
-// ruled out yet  
+// so these would not mesh at all with our internal tokio runtime. The option is included simply for
+// the sake of symmetry and curiosity and is completely untested. But it's usefulness can't be completely
+// ruled out yet
 
 db_requests! {
     reads {
@@ -114,14 +128,13 @@ db_requests! {
         GetUiChatData(topic_id: String) -> UiChatData => get_ui_chat_data { ffi_sync get_ui_chat_data };
         GetUiContacts() -> Vec<UiContact> => get_ui_contacts { ffi_sync get_ui_contacts };
         GetUiProfile() -> Option<UiProfile> => get_ui_profile { ffi_sync get_ui_profile };
-
         GetNwProfile() -> NwProfile => get_nw_profile { sync get_nw_profile };
         GetNwChats() -> Vec<NwChat> => get_nw_chats { async get_nw_chats, sync get_nw_chats_sync };
         GetNwChatMembers(topic_id: TopicId) -> Vec<NwChatMember> => get_nw_chat_members { async get_nw_chat_members };
         GetNwChat(topic_id: TopicId) -> NwChat => get_nw_chat { async get_nw_chat };
         GetNwChatMessages(topic_id: TopicId) -> Vec<NwMessage> => get_nw_chat_messages { async get_nw_chat_messages };
         GetNwMessages() -> Vec<NwMessage> => get_nw_messages { async get_nw_messages };
-        GetNwContact(endpoint_id: EndpointId) -> NwContact => get_nw_contact {async get_nw_contact};
+        GetNwContact(endpoint_id: EndpointId) -> NwContact => get_nw_contact { async get_nw_contact };
     }
     writes {
         SetNwProfile(profile: NwProfile) -> () => set_nw_profile { sync set_profile } emits [];
@@ -137,7 +150,7 @@ db_requests! {
             emits [ContactsChanged];
         AddChatUi(contacts: Vec<UiContact>, name: Option<String>) -> String => add_chat_ui { ffi_sync add_chat_ui }
             emits [ChatHeadersChanged];
-        ResetDatabase() -> () => reset_database {ffi_sync reset_database}
+        ResetDatabase() -> () => reset_database { ffi_sync reset_database }
             emits [ChatHeadersChanged];
     }
 }

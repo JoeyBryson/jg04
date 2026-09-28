@@ -23,8 +23,41 @@
 //! from other dependencies needed to represent Ui or Networking state strictly through the
 //! methods of DbClient.
 
+
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+use std::sync::Arc;
+use std::thread::JoinHandle;
+
+use anyhow::Result;
+use rusqlite::{Connection, OpenFlags};
+use tokio::sync::mpsc;
+
+use crate::ffi_error::FfiError;
+
 pub mod client;
-pub(crate) mod macros;
+#[cfg(test)]
+mod client_test;
+mod macros;
 pub mod manager;
 pub mod sample_data_insertions;
-pub(crate) mod workers;
+mod workers;
+
+
+//Run this to reset the db after schema changes. 
+//Once we have real users database migrations will have to be implemented
+#[uniffi::export]
+pub fn delete_db(db_path_string: String) -> Result<(), FfiError> {
+    (move || -> anyhow::Result<()> {
+        let db_path = PathBuf::from_str(&db_path_string)?;
+
+        if db_path.exists() {
+            std::fs::remove_file(&db_path)?;
+        }
+
+        log::info!("[DB] database file deleted");
+
+        Ok(())
+    })()
+    .map_err(FfiError::from)
+}

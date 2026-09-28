@@ -17,18 +17,14 @@ fn connection() -> Connection {
 
 fn new_writer() -> DbWriter {
     let (_, receiver) = tokio_mpsc::channel(1);
-    DbWriter {
-        rx: receiver,
-        conn: connection(),
-    }
+    DbWriter::new(receiver, connection())
+        .expect("DbWriter::new should construct test writer")
 }
 
 fn reader_from(connection: Connection) -> DbReader {
     let (_, receiver) = tokio_mpsc::channel(1);
-    DbReader {
-        rx: receiver,
-        conn: connection,
-    }
+    DbReader::new(receiver, connection)
+        .expect("DbReader::new should construct test reader")
 }
 
 fn contact(seed: u8, name: &str) -> NwContact {

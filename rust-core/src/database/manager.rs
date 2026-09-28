@@ -18,46 +18,70 @@ pub enum DbMode {
     ReadOnly,
     ReadWrite,
 }
-/// Public facing API for managing 
+/// Manages the database and spawns [`DbClient`] instances.
+///
+/// [`DbManager`] spawns two database workers, [`DbReader`] and [`DbWriter`].
+/// Each worker runs in its own [`std::thread`] and receives database requests
+/// through a [`tokio::sync::mpsc::Receiver`].
+///
+/// Each [`DbClient`] is given a clone of the corresponding
+/// [`tokio::sync::mpsc::Sender`]
+///
+/// A single [`DbManager`] should exist for each database. In the released
+/// application, this means there is one [`DbManager`]. The test framework 
+/// allows multiple nodes to be simulated, each node having its own database and [`DbManager`].
+/// 
+/// # Example
+///
+/// ```
+/// # let db_path = std::env::temp_dir()
+/// #    .join("rust_api_example.db")
+/// #    .to_string_lossy()
+/// #    .into_owned();
+/// use rust_api::database::manager::DbManager;
+///
+/// let manager = DbManager::spawn(db_path.clone()).unwrap();
+/// let _client = manager.spawn_client();
+/// # std::fs::remove_file(db_path).ok();
+/// ```
+/// 
 #[derive(uniffi::Object)]
 pub struct DbManager {
-    pub(crate) db_path: PathBuf,
-    pub(crate) reader_tx: mpsc::Sender<ReadRequest>,
-    pub(crate) writer_tx: mpsc::Sender<WriteRequest>,
-    pub(crate) reader_handle: Option<JoinHandle<()>>,
-    pub(crate) writer_handle: Option<JoinHandle<()>>,
-}
-
-pub fn start_conn(db_path: &Path, mode: DbMode) -> Result<Connection> {
-
-    let flags = match mode {
-        DbMode::ReadOnly => OpenFlags::SQLITE_OPEN_READ_ONLY,
-        DbMode::ReadWrite => {
-            OpenFlags::SQLITE_OPEN_READ_WRITE
-                | OpenFlags::SQLITE_OPEN_CREATE
-        }
-    };
-
-    let conn = Connection::open_with_flags(db_path, flags).map_err(|e| {
-        log::error!("[DB] open failed: {}", e);
-        e
-    })?;
-
-    if matches!(mode, DbMode::ReadWrite) {
-        let _ = conn.execute_batch("PRAGMA journal_mode = WAL;");
-    }
-
-    Ok(conn)
+    reader_tx: mpsc::Sender<ReadRequest>,
+    writer_tx: mpsc::Sender<WriteRequest>,
+    _reader_handle: Option<JoinHandle<()>>,
+    _writer_handle: Option<JoinHandle<()>>,
 }
 
 impl DbManager {
-    fn initialize_db(db_path: &Path) -> Result<()> {
-        log::info!("[DB-MANAGER] initializing database");
+    pub fn start_conn(db_path: &Path, mode: DbMode) -> Result<Connection> {
 
-        let conn = start_conn(db_path, DbMode::ReadWrite)?;
+        let flags = match mode {
+            DbMode::ReadOnly => OpenFlags::SQLITE_OPEN_READ_ONLY,
+            DbMode::ReadWrite => {
+                OpenFlags::SQLITE_OPEN_READ_WRITE
+                    | OpenFlags::SQLITE_OPEN_CREATE
+            }
+        };
+
+        let conn = Connection::open_with_flags(db_path, flags).map_err(|e| {
+            log::error!("[DB-MANAGER] open failed: {}", e);
+            e
+        })?;
+
+        if matches!(mode, DbMode::ReadWrite) {
+            let _ = conn.execute_batch("PRAGMA journal_mode = WAL;");
+        }
+
+        Ok(conn)
+    }
+
+    fn execute_schema(db_path: &Path) -> Result<()> {
+
+        let conn = Self::start_conn(db_path, DbMode::ReadWrite)?;
         conn.execute_batch(include_str!("sql/schema.sql"))?;
 
-        log::info!("[DB-MANAGER] database initialized");
+        log::info!("[DB-MANAGER] schema executed");
 
         Ok(())
     }
@@ -73,10 +97,11 @@ impl DbManager {
         let (reader_tx, reader_rx) = mpsc::channel::<ReadRequest>(32);
         let (writer_tx, writer_rx) = mpsc::channel::<WriteRequest>(32);
 
-        let writer_db_path = db_path.clone();
+        let db_path_clone = db_path.clone();
         let writer_handle = std::thread::spawn(move || {
             let result = (|| -> Result<()> {
-                let writer = DbWriter::start(writer_rx, writer_db_path)?;
+                let conn = Self::start_conn(&db_path_clone, DbMode::ReadWrite)?;
+                let writer = DbWriter::new(writer_rx, conn)?;
                 writer.request_loop();
                 Ok(())
             })();
@@ -88,10 +113,11 @@ impl DbManager {
             }
         });
 
-        let reader_db_path = db_path.clone();
+        let db_path_clone = db_path.clone();
         let reader_handle = std::thread::spawn(move || {
             let result = (|| -> Result<()> {
-                let reader = DbReader::start(reader_rx, reader_db_path)?;
+                let conn = Self::start_conn(&db_path_clone, DbMode::ReadOnly)?;
+                let reader = DbReader::new(reader_rx, conn)?;
                 reader.request_loop();
                 Ok(())
             })();
@@ -105,20 +131,6 @@ impl DbManager {
 
         (reader_tx, writer_tx, reader_handle, writer_handle)
     }
-
-    pub fn new(db_path: PathBuf) -> Result<Self> {
-        Self::initialize_db(&db_path)?;
-
-        let (reader_tx, writer_tx, reader_handle, writer_handle) = Self::spawn_workers(&db_path);
-
-        Ok(Self {
-            db_path,
-            reader_tx,
-            writer_tx,
-            reader_handle: Some(reader_handle),
-            writer_handle: Some(writer_handle),
-        })
-    }
 }
 
 #[uniffi::export]
@@ -128,26 +140,16 @@ impl DbManager {
         (move || -> anyhow::Result<Self> {
             let db_path = PathBuf::from_str(&db_path_string)?;
 
-            log::info!("[DB-MANAGER] spawning workers");
+            Self::execute_schema(&db_path)?;
 
-            Self::new(db_path)
-        })()
-        .map_err(FfiError::from)
-    }
+            let (reader_tx, writer_tx, reader_handle, writer_handle) = Self::spawn_workers(&db_path);
 
-    //usefull for schema changes before we implement a proper migration plan
-    #[uniffi::constructor]
-    pub fn reset(db_path_string: String) -> Result<Self, FfiError> {
-        (move || -> anyhow::Result<Self> {
-            let db_path = PathBuf::from_str(&db_path_string)?;
-
-            if db_path.exists() {
-                std::fs::remove_file(&db_path)?;
-            }
-
-            log::info!("[DB-MANAGER] spawning fresh database");
-
-            Self::new(db_path)
+            Ok(Self {
+                reader_tx,
+                writer_tx,
+                _reader_handle: Some(reader_handle),
+                _writer_handle: Some(writer_handle),
+            })
         })()
         .map_err(FfiError::from)
     }

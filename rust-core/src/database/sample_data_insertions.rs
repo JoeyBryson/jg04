@@ -1,3 +1,5 @@
+//!This file is for early stage testing and should be deleted soon once our testing setup has been improved
+
 use anyhow::Result;
 use iroh::{EndpointId, SecretKey};
 use iroh_gossip::TopicId;

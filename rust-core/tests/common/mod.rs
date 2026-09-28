@@ -93,15 +93,13 @@ pub struct TestNode {
     _temp_dir: TempDir,
 }
 
-/// Builds a [`DbManager`] backed by a private temporary SQLite database.
-///
-/// Each call creates an independent temporary directory, so multiple
-/// [`TestNode`]s can coexist without interfering with one another.
 fn spawn_test_db_manager() -> Result<(DbManager, TempDir)> {
     let temp_dir = tempfile::tempdir()?;
     let db_path = temp_dir.path().join("app.db");
 
-    let db_manager = DbManager::new(db_path)?;
+    let db_manager = DbManager::spawn(db_path
+        .to_string_lossy()
+        .into_owned())?;
 
     Ok((db_manager, temp_dir))
 }
