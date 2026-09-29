@@ -10,11 +10,11 @@
 - [x] `src/database/macros.rs`
 - [x] `src/database/sample_data_insertions.rs`
 
-  - [ ] `src/database/workers/mod.rs`
-  - [ ] `src/database/workers/writes.rs`
-  - [ ] `src/database/workers/nw_reads.rs`
-  - [ ] `src/database/workers/ui_reads.rs`
-  - [ ] `src/database/workers/test.rs`
+  - [x] `src/database/workers/mod.rs`
+  - [x] `src/database/workers/writes.rs`
+  - [x] `src/database/workers/nw_reads.rs`
+  - [x] `src/database/workers/ui_reads.rs`
+  - [x] `src/database/workers/test.rs`
 
 - [ ] `src/network/mod.rs`
 - [ ] `src/network/events.rs`

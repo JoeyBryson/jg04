@@ -101,7 +101,7 @@ impl DbManager {
         let writer_handle = std::thread::spawn(move || {
             let result = (|| -> Result<()> {
                 let conn = Self::start_conn(&db_path_clone, DbMode::ReadWrite)?;
-                let writer = DbWriter::new(writer_rx, conn)?;
+                let writer = DbWriter::new(writer_rx, conn);
                 writer.request_loop();
                 Ok(())
             })();
@@ -117,7 +117,7 @@ impl DbManager {
         let reader_handle = std::thread::spawn(move || {
             let result = (|| -> Result<()> {
                 let conn = Self::start_conn(&db_path_clone, DbMode::ReadOnly)?;
-                let reader = DbReader::new(reader_rx, conn)?;
+                let reader = DbReader::new(reader_rx, conn);
                 reader.request_loop();
                 Ok(())
             })();

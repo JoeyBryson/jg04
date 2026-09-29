@@ -1,28 +1,38 @@
+//! Database read functions for Ui Module types
+//! For database design read ../sql/schema.sql
+//! Quick function summary (inputs -> output):
+//! - `get_ui_last_chat_message(topic_id: &str) -> Result<Option<UiMessage>>`
+//! - `get_ui_chat_members(topic_id: &str) -> Result<Vec<UiContact>>`
+//! - `get_ui_chat_header(topic_id: &str) -> Result<UiChatHeader>`
+//! - `get_ui_chat_headers() -> Result<Vec<UiChatHeader>>`
+//! - `get_ui_chat_messages(topic_id: &str) -> Result<Vec<UiMessage>>`
+//! - `get_ui_chat_data(topic_id: &str) -> Result<UiChatData>`
+//! - `get_ui_contacts() -> Result<Vec<UiContact>>`
+//! - `get_ui_profile() -> Result<Option<UiProfile>>`
+
 use super::DbReader;
 use anyhow::Result;
-use iroh::SecretKey;
+use anyhow::{Context};
 
 use crate::ui::{UiChatData, UiChatHeader, UiContact, UiMessage, UiProfile, UiSender};
-use rusqlite::{OptionalExtension, Row}; // Added OptionalExtension
+use rusqlite::{OptionalExtension, Row};
 
 impl DbReader {
-    fn decode_hex_id(id: &str) -> Result<Vec<u8>> {
-        Ok(hex::decode(id)?)
-    }
+    fn map_message_row(
+        row: &Row,
+        my_endpoint_id: &[u8],
+    ) -> rusqlite::Result<UiMessage> {
+        let endpoint_id: Vec<u8> = row.get(0)?;
+        let contact_name: Option<String> = row.get(1)?;
+        let content: String = row.get(2)?;
+        let sent_at: i64 = row.get(3)?;
 
-    fn map_message_row(row: &Row) -> rusqlite::Result<UiMessage> {
-        let is_me: i64 = row.get(0)?;
-        let endpoint_id: Option<Vec<u8>> = row.get(1)?;
-        let contact_name: Option<String> = row.get(2)?;
-        let content: String = row.get(3)?;
-        let sent_at: i64 = row.get(4)?;
-
-        let sender = if is_me != 0 {
+        let sender = if endpoint_id == my_endpoint_id {
             UiSender::Me
         } else {
             UiSender::Other(UiContact {
                 name: contact_name.unwrap_or_else(|| "Unknown".to_string()),
-                endpoint_id: hex::encode(endpoint_id.unwrap_or_default()),
+                endpoint_id: hex::encode(endpoint_id),
             })
         };
 
@@ -33,12 +43,22 @@ impl DbReader {
         })
     }
 
+    fn get_my_endpoint_id(&self) -> Result<Vec<u8>> {
+        self.conn
+            .query_row(
+                "SELECT endpoint_id FROM user_profile WHERE id = 1",
+                [],
+                |row| row.get(0),
+            )
+            .context("Failed to get my endpoint ID: user profile has not been initialized")
+    }
+
     pub fn get_ui_last_chat_message(&self, topic_id: &str) -> Result<Option<UiMessage>> {
-        // Updated return type
-        let topic_id = Self::decode_hex_id(topic_id)?;
+        let topic_id = hex::decode(topic_id)?;
+        let my_endpoint_id = self.get_my_endpoint_id()?;
 
         let mut stmt = self.conn.prepare(
-            "SELECT m.is_me, m.endpoint_id, c.contact_name, m.content, m.sent_at
+            "SELECT m.endpoint_id, c.contact_name, m.content, m.sent_at
              FROM messages m
              LEFT JOIN contacts c ON m.endpoint_id = c.endpoint_id
              WHERE m.topic_id = ?1
@@ -46,16 +66,17 @@ impl DbReader {
              LIMIT 1",
         )?;
 
-        // .optional() converts a QueryReturnedNoRows error into Ok(None)
         let msg = stmt
-            .query_row([topic_id], Self::map_message_row)
+            .query_row([topic_id], |row| {
+                Self::map_message_row(row, &my_endpoint_id)
+            })
             .optional()?;
 
         Ok(msg)
     }
 
     pub fn get_ui_chat_members(&self, topic_id: &str) -> Result<Vec<UiContact>> {
-        let topic_id = Self::decode_hex_id(topic_id)?;
+        let topic_id = hex::decode(topic_id)?;
 
         let mut stmt = self.conn.prepare(
             "SELECT c.contact_name, c.endpoint_id
@@ -68,21 +89,24 @@ impl DbReader {
         let members = stmt
             .query_map([topic_id], |row| {
                 let endpoint_id: Vec<u8> = row.get(1)?;
+
                 Ok(UiContact {
                     name: row.get(0)?,
                     endpoint_id: hex::encode(endpoint_id),
                 })
             })?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
+            .collect::<rusqlite::Result<Vec<_>>>()?;
 
         Ok(members)
     }
 
     pub fn get_ui_chat_header(&self, topic_id: &str) -> Result<UiChatHeader> {
-        let topic_id_bytes = Self::decode_hex_id(topic_id)?;
+        let topic_id_bytes = hex::decode(topic_id)?;
 
         let name: Option<String> = self.conn.query_row(
-            "SELECT chat_name FROM chats WHERE topic_id = ?1",
+            "SELECT chat_name
+             FROM chats
+             WHERE topic_id = ?1",
             [&topic_id_bytes],
             |row| row.get(0),
         )?;
@@ -91,7 +115,7 @@ impl DbReader {
             name,
             members: self.get_ui_chat_members(topic_id)?,
             topic_id: topic_id.to_string(),
-            last_message: self.get_ui_last_chat_message(topic_id)?, // Now expects Option<UiMessage>
+            last_message: self.get_ui_last_chat_message(topic_id)?,
         })
     }
 
@@ -111,19 +135,22 @@ impl DbReader {
     }
 
     pub fn get_ui_chat_messages(&self, topic_id: &str) -> Result<Vec<UiMessage>> {
-        let topic_id = Self::decode_hex_id(topic_id)?;
+        let topic_id = hex::decode(topic_id)?;
+        let my_endpoint_id = self.get_my_endpoint_id()?;
 
         let mut stmt = self.conn.prepare(
-            "SELECT m.is_me, m.endpoint_id, c.contact_name, m.content, m.sent_at
+            "SELECT m.endpoint_id, c.contact_name, m.content, m.sent_at
              FROM messages m
              LEFT JOIN contacts c ON m.endpoint_id = c.endpoint_id
              WHERE m.topic_id = ?1
              ORDER BY m.sent_at ASC, m.id ASC",
         )?;
 
-        let rows = stmt.query_map([topic_id], Self::map_message_row)?;
+        let rows = stmt.query_map([topic_id], |row| {
+            Self::map_message_row(row, &my_endpoint_id)
+        })?;
 
-        Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
     pub fn get_ui_chat_data(&self, topic_id: &str) -> Result<UiChatData> {
@@ -143,6 +170,7 @@ impl DbReader {
         let contacts = stmt
             .query_map([], |row| {
                 let endpoint_id: Vec<u8> = row.get(1)?;
+
                 Ok(UiContact {
                     name: row.get(0)?,
                     endpoint_id: hex::encode(endpoint_id),
@@ -155,27 +183,22 @@ impl DbReader {
 
     pub fn get_ui_profile(&self) -> Result<Option<UiProfile>> {
         let mut stmt = self.conn.prepare(
-            "SELECT secret_key, contact_name
-            FROM user_profile",
+            "SELECT contact_name, endpoint_id
+             FROM user_profile
+             WHERE id = 1",
         )?;
 
-        let mut rows = stmt.query([])?;
+        let profile = stmt
+            .query_row([], |row| {
+                let name: String = row.get(0)?;
+                let endpoint_id: Vec<u8> = row.get(1)?;
 
-        let profile = match rows.next()? {
-            Some(row) => {
-                let secret_key_bytes: [u8; 32] = row.get(0)?;
-                let name: String = row.get(1)?;
-
-                let secret_key = SecretKey::from_bytes(&secret_key_bytes);
-                let public_key = secret_key.public();
-
-                Some(UiProfile {
+                Ok(UiProfile {
                     name,
-                    endpoint_id: hex::encode(public_key.as_bytes()),
+                    endpoint_id: hex::encode(endpoint_id),
                 })
-            }
-            None => None,
-        };
+            })
+            .optional()?;
 
         Ok(profile)
     }

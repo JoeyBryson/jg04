@@ -1,32 +1,42 @@
-use crate::network::{
-    NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile, SetupError,
-};
+//! Database read functions for network types (crate defined Nw types and Iroh types)
+//! For database design read ../sql/schema.sql
+//! Quick function summary (inputs -> output):
+//! - `get_nw_profile() -> Result<NwProfile>`
+//! - `get_nw_chats() -> Result<Vec<NwChat>>`
+//! - `get_nw_contact(endpoint_id: &EndpointId) -> Result<NwContact>`
+//! - `get_nw_chat_members(topic_id: &TopicId) -> Result<Vec<NwChatMember>>`
+//! - `get_nw_chat(topic_id: &TopicId) -> Result<NwChat>`
+//! - `get_nw_chat_messages(topic_id: &TopicId) -> Result<Vec<NwMessage>>`
+//! - `get_nw_messages() -> Result<Vec<NwMessage>>`
 
+use crate::network::{
+    NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile,
+};
 use super::DbReader;
 use anyhow::{Context, Result, anyhow};
 use iroh::{EndpointId, PublicKey, SecretKey};
 use iroh_gossip::TopicId;
 use std::collections::BTreeMap;
 
-// Added OptionalExtension
 
 impl DbReader {
     pub fn get_nw_profile(&self) -> Result<NwProfile> {
         let mut stmt = self.conn.prepare(
             "
-            SELECT secret_key, contact_name
+            SELECT endpoint_id, secret_key, contact_name
             FROM user_profile
             ",
         )?;
 
         let mut rows = stmt.query([])?;
-        let row = rows.next()?.ok_or(SetupError::ProfileNotSet)?;
+        let row = rows.next()?.ok_or(anyhow!("Profile not set"))?;
 
-        let secret_key = SecretKey::from_bytes(&row.get::<_, [u8; 32]>(0)?);
+        let endpoint_id = PublicKey::from_bytes(&row.get::<_, [u8; 32]>(0)?)?;
+        let secret_key = SecretKey::from_bytes(&row.get::<_, [u8; 32]>(1)?);
 
         let contact = NwContact {
-            name: row.get(1)?,
-            endpoint_id: EndpointId::from(secret_key.public()),
+            name: row.get(2)?,
+            endpoint_id: EndpointId::from(endpoint_id),
         };
 
         Ok(NwProfile {
@@ -45,9 +55,9 @@ impl DbReader {
                 con.endpoint_id,
                 cm.status
             FROM chats c
-            LEFT JOIN chat_members cm
+            JOIN chat_members cm
                 ON c.topic_id = cm.topic_id
-            LEFT JOIN contacts con
+            JOIN contacts con
                 ON cm.endpoint_id = con.endpoint_id
             ORDER BY c.topic_id, cm.endpoint_id
             ",
@@ -57,9 +67,9 @@ impl DbReader {
             Ok((
                 row.get::<_, [u8; 32]>(0)?,
                 row.get::<_, Option<String>>(1)?,
-                row.get::<_, Option<String>>(2)?,
-                row.get::<_, Option<[u8; 32]>>(3)?,
-                row.get::<_, Option<i32>>(4)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, [u8; 32]>(3)?,
+                row.get::<_, i32>(4)?,
             ))
         })?;
 
@@ -74,31 +84,25 @@ impl DbReader {
                 topic_id: TopicId::from_bytes(topic_id_bytes),
             });
 
-            if let (Some(name), Some(endpoint_id), Some(status)) =
-                (contact_name, endpoint_id, status)
-            {
-                chat.members.push(NwChatMember {
-                    contact: NwContact {
-                        name: name.clone(),
-                        endpoint_id: PublicKey::from_bytes(&endpoint_id)
-                            .map_err(anyhow::Error::from)
-                            .with_context(|| {
-                                format!("invalid public key for contact '{}'", name)
-                            })?,
-                    },
-                    status: NwChatMemberStatus::try_from(status).map_err(anyhow::Error::msg)?,
-                });
-            }
+            chat.members.push(NwChatMember {
+                contact: NwContact {
+                    name: contact_name,
+                    endpoint_id: PublicKey::from_bytes(&endpoint_id)
+                        .map_err(anyhow::Error::from)
+                        .with_context(|| "invalid public key for chat member")?,
+                },
+                status: NwChatMemberStatus::try_from(status)
+                    .map_err(anyhow::Error::msg)?,
+            });
         }
 
-        for chat in chats.values() {
-            if chat.members.is_empty() {
-                return Err(anyhow!("Chat {:?} has no members", chat.topic_id));
-            }
+        if chats.values().any(|chat| chat.members.is_empty()) {
+            return Err(anyhow!("Chat has no members"));
         }
 
         Ok(chats.into_values().collect())
     }
+    
 
     pub fn get_nw_contact(&self, endpoint_id: &EndpointId) -> Result<NwContact> {
         let endpoint_id_bytes: Vec<u8> = endpoint_id.as_bytes().to_vec();
@@ -124,7 +128,7 @@ impl DbReader {
             "
             SELECT c.contact_name, c.endpoint_id, cm.status
             FROM chat_members cm
-            LEFT JOIN contacts c
+            JOIN contacts c
                 ON c.endpoint_id = cm.endpoint_id
             WHERE cm.topic_id = ?1
             ORDER BY cm.endpoint_id
@@ -143,7 +147,8 @@ impl DbReader {
                     name: row.get(0)?,
                     endpoint_id: PublicKey::from_bytes(&endpoint_id)?,
                 },
-                status: NwChatMemberStatus::try_from(status).map_err(anyhow::Error::msg)?,
+                status: NwChatMemberStatus::try_from(status)
+                    .map_err(anyhow::Error::msg)?,
             });
         }
 
@@ -164,9 +169,9 @@ impl DbReader {
                 con.endpoint_id,
                 cm.status
             FROM chats c
-            LEFT JOIN chat_members cm
+            JOIN chat_members cm
                 ON c.topic_id = cm.topic_id
-            LEFT JOIN contacts con
+            JOIN contacts con
                 ON cm.endpoint_id = con.endpoint_id
             WHERE c.topic_id = ?1
             ORDER BY cm.endpoint_id
@@ -186,21 +191,18 @@ impl DbReader {
                 members: Vec::new(),
             });
 
-            let optional_name: Option<String> = row.get(2)?;
-            let optional_endpoint_id_bytes: Option<[u8; 32]> = row.get(3)?;
-            let optional_status: Option<i32> = row.get(4)?;
+            let name: String = row.get(2)?;
+            let endpoint_id_bytes: [u8; 32] = row.get(3)?;
+            let status: i32 = row.get(4)?;
 
-            if let (Some(name), Some(endpoint_id_bytes), Some(status)) =
-                (optional_name, optional_endpoint_id_bytes, optional_status)
-            {
-                chat_ref.members.push(NwChatMember {
-                    contact: NwContact {
-                        name,
-                        endpoint_id: PublicKey::from_bytes(&endpoint_id_bytes)?,
-                    },
-                    status: NwChatMemberStatus::try_from(status).map_err(anyhow::Error::msg)?,
-                });
-            }
+            chat_ref.members.push(NwChatMember {
+                contact: NwContact {
+                    name,
+                    endpoint_id: PublicKey::from_bytes(&endpoint_id_bytes)?,
+                },
+                status: NwChatMemberStatus::try_from(status)
+                    .map_err(anyhow::Error::msg)?,
+            });
         }
 
         let chat = chat.ok_or_else(|| anyhow!("chat not found"))?;
@@ -215,7 +217,7 @@ impl DbReader {
     pub fn get_nw_chat_messages(&self, topic_id: &TopicId) -> Result<Vec<NwMessage>> {
         let mut stmt = self.conn.prepare(
             "
-            SELECT topic_id, is_me, endpoint_id, content, sent_at
+            SELECT topic_id, endpoint_id, content, sent_at
             FROM messages
             WHERE topic_id = ?1
             ORDER BY id ASC
@@ -226,17 +228,14 @@ impl DbReader {
         let mut messages = Vec::new();
 
         while let Some(row) = rows.next()? {
-            let endpoint_id = row
-                .get::<_, Option<[u8; 32]>>(2)?
-                .map(|bytes| PublicKey::from_bytes(&bytes))
-                .transpose()?;
+            let endpoint_id =
+                PublicKey::from_bytes(&row.get::<_, [u8; 32]>(1)?)?;
 
             messages.push(NwMessage {
                 topic_id: TopicId::from_bytes(row.get(0)?),
-                from_me: row.get::<_, i32>(1)? != 0,
                 endpoint_id,
-                content: row.get(3)?,
-                sent_at: row.get(4)?,
+                content: row.get(2)?,
+                sent_at: row.get(3)?,
             });
         }
 
@@ -246,7 +245,7 @@ impl DbReader {
     pub fn get_nw_messages(&self) -> Result<Vec<NwMessage>> {
         let mut stmt = self.conn.prepare(
             "
-            SELECT topic_id, is_me, endpoint_id, content, sent_at
+            SELECT topic_id, endpoint_id, content, sent_at
             FROM messages
             ORDER BY id ASC
             ",
@@ -256,17 +255,14 @@ impl DbReader {
         let mut messages = Vec::new();
 
         while let Some(row) = rows.next()? {
-            let endpoint_id = row
-                .get::<_, Option<[u8; 32]>>(2)?
-                .map(|bytes| PublicKey::from_bytes(&bytes))
-                .transpose()?;
+            let endpoint_id =
+                PublicKey::from_bytes(&row.get::<_, [u8; 32]>(1)?)?;
 
             messages.push(NwMessage {
                 topic_id: TopicId::from_bytes(row.get(0)?),
-                from_me: row.get::<_, i32>(1)? != 0,
                 endpoint_id,
-                content: row.get(3)?,
-                sent_at: row.get(4)?,
+                content: row.get(2)?,
+                sent_at: row.get(3)?,
             });
         }
 

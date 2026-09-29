@@ -1,18 +1,35 @@
-//!This file is for early stage testing and should be deleted soon once our testing setup has been improved
+//! This file is for early stage testing and should be deleted soon once our
+//! testing setup has been improved.
 
 use anyhow::Result;
 use iroh::{EndpointId, SecretKey};
 use iroh_gossip::TopicId;
 
 use super::client::DbClient;
-use crate::network::{NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage};
+use crate::network::{
+    NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile,
+};
 
 fn sample_endpoint_id(seed: u8) -> EndpointId {
     SecretKey::from_bytes(&[seed; 32]).public()
 }
 
+fn sample_profile() -> NwProfile {
+    let secret_key = SecretKey::from_bytes(&[42; 32]);
+
+    NwProfile {
+        contact: NwContact {
+            name: "Me".to_string(),
+            endpoint_id: secret_key.public(),
+        },
+        secret_key,
+    }
+}
+
 impl DbClient {
     pub async fn add_sample_chat(&self) -> Result<()> {
+        let profile = sample_profile();
+
         let alice = NwContact {
             name: "Angela".to_string(),
             endpoint_id: sample_endpoint_id(0),
@@ -23,29 +40,40 @@ impl DbClient {
             endpoint_id: sample_endpoint_id(1),
         };
 
+        self.set_profile(profile.clone())?;
         self.add_nw_contact(alice.clone()).await?;
         self.add_nw_contact(bob.clone()).await?;
 
         let topic_id = TopicId::from_bytes([2u8; 32]);
 
-        let chat = NwChat {
-            name: Some("Sample Chat".to_string()),
-            members: vec![alice, bob]
-                .into_iter()
-                .map(|contact| NwChatMember {
-                    contact,
-                    status: NwChatMemberStatus::Joined,
-                })
-                .collect(),
-            topic_id,
-        };
+        let members = vec![
+            NwChatMember {
+                contact: profile.contact,
+                status: NwChatMemberStatus::Joined,
+            },
+            NwChatMember {
+                contact: alice,
+                status: NwChatMemberStatus::Joined,
+            },
+            NwChatMember {
+                contact: bob,
+                status: NwChatMemberStatus::Joined,
+            },
+        ];
 
-        self.add_nw_chat(chat).await?;
+        self.add_nw_chat(NwChat {
+            name: Some("Sample Chat".to_string()),
+            members,
+            topic_id,
+        })
+        .await?;
 
         Ok(())
     }
 
     pub async fn add_sample_message(&self, time: i32) -> Result<()> {
+        let profile = sample_profile();
+
         let alice = NwContact {
             name: "Angela".to_string(),
             endpoint_id: sample_endpoint_id(0),
@@ -60,19 +88,16 @@ impl DbClient {
 
         let sent_at = 1779490800000i64 + 60000 * ((time as i64) + 300);
 
-        let from_me = time % 3 == 0;
-
-        let endpoint_id = if from_me {
-            None
+        let endpoint_id = if time % 3 == 0 {
+            profile.contact.endpoint_id
         } else if time % 2 == 0 {
-            Some(alice.endpoint_id)
+            alice.endpoint_id
         } else {
-            Some(bob.endpoint_id)
+            bob.endpoint_id
         };
 
         let message = NwMessage {
             topic_id,
-            from_me,
             endpoint_id,
             content: format!("Sample message {}", 300 + time + 1),
             sent_at,
@@ -84,23 +109,54 @@ impl DbClient {
     }
 
     pub async fn add_sample_data(&self) -> Result<()> {
-        let contacts: Vec<NwContact> = vec![
-            "Angela", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah", "Isaac",
-            "Julia",
-        ]
-        .into_iter()
-        .enumerate()
-        .map(|(i, name)| {
-            let endpoint_id = sample_endpoint_id(i as u8);
+        let profile = sample_profile();
 
+        self.set_profile(profile.clone())?;
+
+        let contacts = vec![
+            profile.contact.clone(),
             NwContact {
-                name: name.to_string(),
-                endpoint_id,
-            }
-        })
-        .collect();
+                name: "Angela".to_string(),
+                endpoint_id: sample_endpoint_id(0),
+            },
+            NwContact {
+                name: "Bob".to_string(),
+                endpoint_id: sample_endpoint_id(1),
+            },
+            NwContact {
+                name: "Charlie".to_string(),
+                endpoint_id: sample_endpoint_id(2),
+            },
+            NwContact {
+                name: "Diana".to_string(),
+                endpoint_id: sample_endpoint_id(3),
+            },
+            NwContact {
+                name: "Ethan".to_string(),
+                endpoint_id: sample_endpoint_id(4),
+            },
+            NwContact {
+                name: "Fiona".to_string(),
+                endpoint_id: sample_endpoint_id(5),
+            },
+            NwContact {
+                name: "George".to_string(),
+                endpoint_id: sample_endpoint_id(6),
+            },
+            NwContact {
+                name: "Hannah".to_string(),
+                endpoint_id: sample_endpoint_id(7),
+            },
+            NwContact {
+                name: "Isaac".to_string(),
+                endpoint_id: sample_endpoint_id(8),
+            },
+            NwContact {
+                name: "Julia".to_string(),
+                endpoint_id: sample_endpoint_id(9),
+            },
+        ];
 
-        // Add contacts
         for contact in &contacts {
             self.add_nw_contact(contact.clone()).await?;
         }
@@ -109,20 +165,21 @@ impl DbClient {
             let topic_id = TopicId::from_bytes([100 + chat_index as u8; 32]);
 
             let is_group = chat_index % 2 == 0;
-            let count = if is_group { 4 } else { 2 };
+            let other_member_count = if is_group { 4 } else { 2 };
 
-            let contacts: Vec<_> = (0..count)
-                .map(|i| contacts[(chat_index + i) % contacts.len()].clone())
-                .collect();
+            let mut members = vec![NwChatMember {
+                contact: profile.contact.clone(),
+                status: NwChatMemberStatus::Joined,
+            }];
 
-            let members: Vec<_> = contacts
-                .iter()
-                .cloned()
-                .map(|contact| NwChatMember {
-                    contact,
-                    status: NwChatMemberStatus::Joined,
-                })
-                .collect();
+            members.extend(
+                (0..other_member_count)
+                    .map(|i| contacts[(chat_index + i + 1) % contacts.len()].clone())
+                    .map(|contact| NwChatMember {
+                        contact,
+                        status: NwChatMemberStatus::Joined,
+                    }),
+            );
 
             let chat = NwChat {
                 name: if is_group {
@@ -141,18 +198,16 @@ impl DbClient {
                     + (chat_index as i64 * 1_000_000)
                     + (message_index as i64 * 60_000);
 
-                let from_me = message_index % 3 == 0;
-
-                let endpoint_id = if from_me {
-                    None
+                let endpoint_id = if message_index % 3 == 0 {
+                    profile.contact.endpoint_id
                 } else {
-                    let sender = &members[message_index as usize % members.len()];
-                    Some(sender.contact.endpoint_id)
+                    members[message_index as usize % members.len()]
+                        .contact
+                        .endpoint_id
                 };
 
                 let message = NwMessage {
                     topic_id,
-                    from_me,
                     endpoint_id,
                     content: format!("Sample message {}", message_index + 1),
                     sent_at,

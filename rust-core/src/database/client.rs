@@ -150,6 +150,10 @@ db_requests! {
             emits [ContactsChanged];
         AddChatUi(contacts: Vec<UiContact>, name: Option<String>) -> String => add_chat_ui { ffi_sync add_chat_ui }
             emits [ChatHeadersChanged];
+        UpdateContactName(endpoint_id: EndpointId, name: String) -> () => update_contact_name { async update_contact_name, sync update_contact_name_sync }
+            emits [ContactsChanged, ChatHeadersChanged];
+        UpdateChatMembers(topic_id: TopicId, members: Vec<NwChatMember>) -> () => update_chat_members { async update_chat_members, sync update_chat_members_sync }
+            emits [ChatDataChanged { topic_id: hex::encode(topic_id) }, ChatHeadersChanged];
         ResetDatabase() -> () => reset_database { ffi_sync reset_database }
             emits [ChatHeadersChanged];
     }

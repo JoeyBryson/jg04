@@ -33,8 +33,7 @@ use groupchat::ChatSessionManager;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NwMessage {
     pub topic_id: TopicId,
-    pub from_me: bool,
-    pub endpoint_id: Option<EndpointId>,
+    pub endpoint_id: EndpointId,
     pub content: String,
     pub sent_at: i64,
 }
@@ -63,7 +62,7 @@ pub struct NwChatMember {
     pub contact: NwContact,
     pub status: NwChatMemberStatus,
 }
-
+///NwChat now contains the self contact too, UiChat still keeps the members to be only others not us
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NwChat {
     pub name: Option<String>,
@@ -78,12 +77,13 @@ pub struct NwContact {
 }
 
 #[derive(Debug, Clone)]
-
 pub struct NwProfile {
     pub secret_key: SecretKey,
     pub contact: NwContact,
 }
 
+
+//To-do: rewrite for new database structure
 impl From<UiContact> for NwContact {
     fn from(contact: UiContact) -> Self {
         Self {
@@ -93,6 +93,3 @@ impl From<UiContact> for NwContact {
     }
 }
 
-//#[cfg(test)]
-//#[path = "nw/tests.rs"]
-//mod tests;

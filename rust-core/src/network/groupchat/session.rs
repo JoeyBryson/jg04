@@ -83,8 +83,7 @@ impl ChatSession {
         self.db_client
             .add_nw_message(NwMessage {
                 topic_id: self.topic_id,
-                from_me: true,
-                endpoint_id: None,
+                endpoint_id: self.secret_key.public(),
                 content: message_data.content,
                 sent_at: message_data.sent_at as i64,
             })
@@ -108,8 +107,7 @@ pub async fn receive_loop(
                     db_client
                         .add_nw_message(NwMessage {
                             topic_id,
-                            from_me: false,
-                            endpoint_id: Some(received_message.sender),
+                            endpoint_id: received_message.sender,
                             content: received_message.content,
                             sent_at: received_message.sent_at as i64,
                         })
