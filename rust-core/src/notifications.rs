@@ -1,3 +1,13 @@
+//! This module provides UI reactivity to database insertions.
+//!
+//! UniFFI callback interfaces allow foreign-language code to implement a Rust
+//! trait that Rust can call through the FFI boundary. Rust only knows that the
+//! listener implements `on_event`; it does not need to know the concrete
+//! implementation or what happens after the callback crosses the FFI boundary.
+//!
+//! `Box<dyn UiEventListener>` allows Rust to store the callback as a trait
+//! object and invoke it through dynamic dispatch.
+//!  
 use crate::ffi_error::FfiError;
 use std::sync::OnceLock;
 
@@ -13,8 +23,11 @@ pub trait UiEventListener: Send + Sync {
     fn on_event(&self, event: UiEvent);
 }
 
+
+///holds the foreign implementation and makes it accessible from anywhere in the crate
 static UI_EVENT_LISTENER: OnceLock<Box<dyn UiEventListener>> = OnceLock::new();
 
+///sets the static variable UI_EVENT_LISTENER
 #[uniffi::export]
 pub fn register_ui_event_listener(listener: Box<dyn UiEventListener>) -> Result<(), FfiError> {
     UI_EVENT_LISTENER

@@ -1,6 +1,9 @@
-use std::sync::{Arc, OnceLock};
-
-static LOGGER_CALLBACK: OnceLock<Arc<dyn RustLogger>> = OnceLock::new();
+//! Previously, the log crate would route all logs to the stout
+//! Mobile apps implement their own logging systems in which these logs may not appear
+//! in order to maintain coherence so that app framework logging and internal rust logging can be viewed together 
+//! we implement a listener pattern similar to ./notifications.rs. Read documentation there for more explanation of
+//! how dynamic trait objects are used to call unknown foreign language code from a rust library.
+//! The difference is our `LogListener` trait object is owned by a `Logger` object which owned by the the log crate itself
 
 #[derive(uniffi::Enum)]
 pub enum LogLevel {
@@ -12,7 +15,8 @@ pub enum LogLevel {
 }
 
 #[uniffi::export(callback_interface)]
-pub trait RustLogger: Send + Sync {
+
+pub trait LogListener: Send + Sync {
     fn log(
         &self,
         level: LogLevel,
@@ -23,11 +27,11 @@ pub trait RustLogger: Send + Sync {
     );
 }
 
-struct LoggerBridge {
-    callback: Arc<dyn RustLogger>,
+struct Logger {
+    listener: Box<dyn LogListener>,
 }
 
-impl log::Log for LoggerBridge {
+impl log::Log for Logger {
     fn enabled(&self, _metadata: &log::Metadata) -> bool {
         true
     }
@@ -41,7 +45,7 @@ impl log::Log for LoggerBridge {
             log::Level::Trace => LogLevel::Trace,
         };
 
-        self.callback.log(
+        self.listener.log(
             level,
             record.target().to_string(),
             record.file().map(|s| s.to_string()),
@@ -54,14 +58,11 @@ impl log::Log for LoggerBridge {
 }
 
 #[uniffi::export]
-pub fn init_native_logger(callback: Box<dyn RustLogger>) {
-    let arc: Arc<dyn RustLogger> = Arc::from(callback);
+pub fn register_native_log_listener(listener: Box<dyn LogListener>) {
 
-    LOGGER_CALLBACK.set(arc.clone()).ok();
+    let logger = Logger { listener};
 
-    let bridge = LoggerBridge { callback: arc };
-
-    if let Err(e) = log::set_boxed_logger(Box::new(bridge)) {
+    if let Err(e) = log::set_boxed_logger(Box::new(logger)) {
         eprintln!(
             "Warning: Failed to set native logger (likely already set): {}",
             e

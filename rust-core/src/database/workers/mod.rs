@@ -15,17 +15,10 @@
 //!
 //! This may be over-engineering, but it's done now.
 
-use std::path::PathBuf;
 
-use anyhow::Result;
-use iroh::{EndpointId, SecretKey};
-use iroh_gossip::proto::TopicId;
 use rusqlite::Connection;
 use tokio::sync::mpsc;
 
-use crate::network::{
-    NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile,
-};
 
 mod nw_reads;
 mod ui_reads;
@@ -94,7 +87,15 @@ impl DbWriter {
 ///Testing utilities
 #[cfg(test)]
 pub(super) mod test_utils {
+    use iroh::{EndpointId, SecretKey};
+    use iroh_gossip::proto::TopicId;
+    use rusqlite::Connection;
+    use tokio::sync::mpsc;
     use super::*;
+
+    use crate::network::{
+        NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile,
+    };
 
     pub(super) fn connection() -> Connection {
         let connection = Connection::open_in_memory().unwrap();

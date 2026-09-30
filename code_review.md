@@ -1,8 +1,8 @@
-- [] `src/lib.rs`
-- [ ] `src/ffi_error.rs`
-- [ ] `src/logging.rs`
-- [ ] `src/notifications.rs`
-- [ ] `src/testing_utilities.rs`
+- [x] `src/lib.rs`
+- [x] `src/ffi_error.rs`
+- [x] `src/logging.rs`
+- [x] `src/notifications.rs`
+- [x] `src/testing_utilities.rs`
 
 - [x] `src/database/mod.rs`
 - [x] `src/database/client.rs`
@@ -23,9 +23,9 @@
 - [ ] `src/network/iroh_source_sample.rs`
 - [ ] `src/network/tests.rs`
 
-  - [ ] `src/network/core/mod.rs`
-  - [ ] `src/network/core/ffi.rs`
-  - [ ] `src/network/core/internals.rs`
+  - [] `src/network/core/mod.rs`
+  - [] `src/network/core/ffi.rs`
+  - [] `src/network/core/internals.rs`
 
   - [ ] `src/network/groupchat/mod.rs`
   - [ ] `src/network/groupchat/session.rs`
