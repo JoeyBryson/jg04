@@ -1,3 +1,4 @@
+//! This module defines the [`DbClient`] object, it's public API and it's internal methods 
 use tokio::sync::oneshot;
 use tokio::sync::mpsc;
 use tokio::runtime::Handle;

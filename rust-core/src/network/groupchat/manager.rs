@@ -28,8 +28,9 @@ enum ChatSessionCommand {
 }
 
 impl ChatSessionManager {
-    pub fn spawn(db_client: DbClient, gossip: Gossip, secret_key: SecretKey) -> Self {
+    pub async fn spawn(db_client: DbClient, gossip: Gossip, secret_key: SecretKey) -> Result<Self> {
         let (sender, mut receiver) = mpsc::channel(32);
+        let db_client_clone = db_client.clone();
 
         tokio::spawn(async move {
             let mut sessions = HashMap::<TopicId, ChatSession>::new();
@@ -44,16 +45,21 @@ impl ChatSessionManager {
                             continue;
                         }
 
-                        let result = ChatSession::spawn(
-                            chat,
-                            db_client.clone(),
-                            &gossip,
-                            secret_key.clone(),
-                        )
-                        .await
-                        .map(|session| {
-                            sessions.insert(topic_id, session);
-                        });
+                        let result = (async || {
+                            ChatSession::spawn(
+                                chat.clone(),
+                                db_client.clone(),
+                                &gossip,
+                                secret_key.clone(),
+                            )
+                            .await
+                            .map(|session| {
+                                sessions.insert(topic_id, session);
+                            })?;
+
+                            db_client.add_nw_chat_sync(chat)
+                        })()
+                        .await;
 
                         let _ = reply.send(result);
                     }
@@ -76,7 +82,15 @@ impl ChatSessionManager {
             }
         });
 
-        Self { sender }
+        let chat_session_manager = Self{ sender };
+
+        let chats = db_client_clone.get_nw_chats_sync()?;
+
+        for chat in chats {
+            chat_session_manager.add_chat(chat)?;
+        }
+
+        Ok(chat_session_manager)
     }
 
     pub fn add_chat(&self, chat: NwChat) -> Result<()> {

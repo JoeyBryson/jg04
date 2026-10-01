@@ -5,6 +5,8 @@
 //! how dynamic trait objects are used to call unknown foreign language code from a rust library.
 //! The difference is our `LogListener` trait object is owned by a `Logger` object which owned by the the log crate itself
 
+use crate::ffi_error::FfiError;
+
 #[derive(uniffi::Enum)]
 pub enum LogLevel {
     Error,
@@ -58,17 +60,11 @@ impl log::Log for Logger {
 }
 
 #[uniffi::export]
-pub fn register_native_log_listener(listener: Box<dyn LogListener>) {
+pub fn register_native_log_listener(listener: Box<dyn LogListener>) -> Result<(), FfiError> {
 
     let logger = Logger { listener};
 
-    if let Err(e) = log::set_boxed_logger(Box::new(logger)) {
-        eprintln!(
-            "Warning: Failed to set native logger (likely already set): {}",
-            e
-        );
-        return;
-    }
-
+    log::set_boxed_logger(Box::new(logger)).map_err(anyhow::Error::from)?;
     log::set_max_level(log::LevelFilter::Trace);
+    Ok(())
 }

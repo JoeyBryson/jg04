@@ -1,3 +1,4 @@
+//! This module defines the [`DbManager`] object, it's public API and it's internal methods 
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;

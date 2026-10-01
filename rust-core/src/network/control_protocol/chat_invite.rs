@@ -30,7 +30,7 @@ struct PendingInvite {
 }
 
 impl ChatInviteManager {
-    pub fn spawn(router: Router, db_client: DbClient) -> Self {
+    pub async fn spawn(router: Router, db_client: DbClient) -> anyhow::Result<Self>  {
         let (sender, mut receiver) = mpsc::channel(8);
 
         tokio::spawn(async move {
@@ -67,7 +67,9 @@ impl ChatInviteManager {
             }
         });
 
-        Self { sender }
+        let chat_invite_manager  = Self { sender };
+        chat_invite_manager.refresh().await?;
+        Ok(chat_invite_manager)
     }
 
     pub async fn refresh(&self) -> Result<()> {
