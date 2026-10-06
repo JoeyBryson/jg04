@@ -1,20 +1,23 @@
 use std::{collections::HashMap, time::Duration};
 
-use anyhow::Result;
-use iroh::endpoint::Connection;
-use iroh::protocol::{AcceptError, ProtocolHandler, Router};
+use anyhow::{Context, Result};
+use iroh::protocol::Router;
 use iroh_gossip::proto::TopicId;
-use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot};
 
-use super::{ChatSessionManager, NwChat, NwChatMemberStatus, NwContact, CONTROL_ALPN};
-use crate::database::client::DbClient;
-use crate::network::NwProfile;
-use super::{ControlRequest, ControlResponse};
+use super::{
+    ControlRequest, ControlResponse, NwChat, NwChatMemberStatus, NwContact, CONTROL_ALPN,
+};
+use crate::network::stores::InviteStore;
 
 #[derive(Clone, Debug)]
 pub struct ChatInviteManager {
     sender: mpsc::Sender<ChatInviteCommand>,
+}
+
+struct ChatInviteActor {
+    router: Router,
+    pending: HashMap<(TopicId, iroh::EndpointId), PendingInvite>,
 }
 
 enum ChatInviteCommand {
@@ -30,13 +33,12 @@ struct PendingInvite {
 }
 
 impl ChatInviteManager {
-    pub async fn spawn(router: Router, db_client: DbClient) -> anyhow::Result<Self>  {
+    pub(in crate::network) async fn spawn(router: Router, store: InviteStore) -> Result<Self> {
         let (sender, mut receiver) = mpsc::channel(8);
 
         tokio::spawn(async move {
             let mut actor = ChatInviteActor {
                 router,
-                db_client,
                 pending: HashMap::new(),
             };
 
@@ -54,12 +56,13 @@ impl ChatInviteManager {
 
                         match command {
                             ChatInviteCommand::Refresh { reply } => {
-                                let _ = reply.send(actor.run_cycle().await);
+                                let _ = reply.send(actor.run_cycle(&store).await);
                             }
                         }
                     }
+
                     _ = interval.tick() => {
-                        if let Err(error) = actor.run_cycle().await {
+                        if let Err(error) = actor.run_cycle(&store).await {
                             log::warn!("chat invite cycle failed: {error}");
                         }
                     }
@@ -67,9 +70,11 @@ impl ChatInviteManager {
             }
         });
 
-        let chat_invite_manager  = Self { sender };
-        chat_invite_manager.refresh().await?;
-        Ok(chat_invite_manager)
+        let manager = Self { sender };
+
+        manager.refresh().await?;
+
+        Ok(manager)
     }
 
     pub async fn refresh(&self) -> Result<()> {
@@ -79,40 +84,33 @@ impl ChatInviteManager {
             .send(ChatInviteCommand::Refresh { reply })
             .await?;
 
-        receiver.await?
+        receiver
+            .await
+            .context("chat invite actor stopped")?
     }
 }
 
-struct ChatInviteActor {
-    router: Router,
-    db_client: DbClient,
-    pending: HashMap<(TopicId, iroh::EndpointId), PendingInvite>,
-}
-
 impl ChatInviteActor {
-    async fn run_cycle(&mut self) -> Result<()> {
-        self.reconcile().await?;
+    async fn run_cycle(&mut self, store: &InviteStore) -> Result<()> {
+        self.reconcile(store).await?;
 
         let pending = self.pending.values().cloned().collect::<Vec<_>>();
 
         for invite in pending {
             match send_chat_invite(&self.router, &invite).await {
                 Ok(()) => {
-                    self.db_client
-                        .mark_nw_chat_member_joined(
-                            invite.chat.topic_id,
-                            invite.contact.endpoint_id,
-                        )
+                    store
+                        .mark_joined(invite.chat.topic_id, invite.contact.endpoint_id)
                         .await?;
 
                     self.pending
                         .remove(&(invite.chat.topic_id, invite.contact.endpoint_id));
                 }
+
                 Err(error) => {
                     log::debug!(
-                        "chat invite to {} failed: {}",
-                        invite.contact.endpoint_id,
-                        error
+                        "chat invite to {} failed: {error}",
+                        invite.contact.endpoint_id
                     );
                 }
             }
@@ -121,8 +119,8 @@ impl ChatInviteActor {
         Ok(())
     }
 
-    async fn reconcile(&mut self) -> Result<()> {
-        let chats = self.db_client.get_nw_chats().await?;
+    async fn reconcile(&mut self, store: &InviteStore) -> Result<()> {
+        let chats = store.chats().await?;
         let mut pending = HashMap::new();
 
         for chat in chats {
@@ -142,10 +140,10 @@ impl ChatInviteActor {
         }
 
         self.pending = pending;
+
         Ok(())
     }
 }
-
 
 async fn send_chat_invite(
     router: &Router,
@@ -156,6 +154,7 @@ async fn send_chat_invite(
             .endpoint()
             .connect(invite.contact.endpoint_id, CONTROL_ALPN)
             .await?;
+
         let message = ControlRequest::ChatInvite {
             chat: invite.chat.clone(),
         };

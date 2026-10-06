@@ -65,7 +65,7 @@ impl TestNetwork {
             relay_map: self.relay_map.clone(),
         };
 
-        let nw_core = NwCore::spawn_with_preset(db_client.clone(), preset)?;
+        let nw_core = NwCore::spawn(db_client.clone(), preset)?;
 
         Ok(TestNode {
             db_manager,

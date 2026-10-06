@@ -10,11 +10,14 @@ mod profile;
 // // mod run;
 mod control_protocol;
 mod core;
+mod ffi;
+mod service;
 mod events;
 mod groupchat;
 mod signed_message;
-
+mod stores;
 pub use core::NwCore;
+pub use ffi::NwInterface;
 
 pub(super) const CONTROL_ALPN: &[u8] = b"iroh-example/echo/0";
 
@@ -25,8 +28,6 @@ pub enum SetupError {
     #[error("profile has already been set")]
     ProfileAlreadySet,
 }
-use control_protocol::ControlRequest;
-use control_protocol::ControlResponse;
 use control_protocol::ControlProtocol;
 use groupchat::ChatSessionManager;
 

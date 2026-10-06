@@ -1,9 +1,10 @@
 use super::super::{
-    NwChat, NwMessage,
+    NwChat,
     signed_message::{sign_and_encode, verify_and_decode},
 };
-use crate::network::NwChatMember;
-use crate::{database::client::DbClient, network::signed_message::MessageData};
+use crate::network::stores::SessionStore;
+use crate::network::{NwChatMember, NwProfile, profile};
+use crate::network::signed_message::MessageData;
 use futures_lite::StreamExt;
 use iroh::SecretKey;
 use iroh_gossip::api::Event as GossipEvent;
@@ -16,10 +17,10 @@ use std::time::SystemTime;
 use tokio::task::JoinHandle;
 use crate::network::NwChatMemberStatus;
 pub struct ChatSession {
-    pub secret_key: SecretKey,
+    pub profile: NwProfile,
     pub topic_id: TopicId,
-    pub db_client: DbClient,
     pub members: Vec<NwChatMember>,
+    pub store: SessionStore,
     pub sender: GossipSender,
     pub receive_handle: JoinHandle<()>,
 }
@@ -33,25 +34,30 @@ impl Drop for ChatSession {
 impl ChatSession {
     pub async fn spawn(
         chat: NwChat,
-        db_client: DbClient,
+        store: SessionStore,
         gossip: &Gossip,
-        secret_key: SecretKey,
+        profile: NwProfile,
     ) -> anyhow::Result<Self> {
         let topic_id = chat.topic_id;
-        let members = chat.members;
-        let bootstrap_ids = members
+
+        let bootstrap_ids = chat
+            .members
             .iter()
-            .filter(|member| member.status == NwChatMemberStatus::Joined)
+            .filter(|member| {
+                member.status == NwChatMemberStatus::Joined
+                    && member.contact != profile.contact
+            })
             .map(|member| member.contact.endpoint_id)
             .collect();
 
         let connection = gossip.subscribe(topic_id, bootstrap_ids).await?;
         let (sender, receiver) = connection.split();
 
-        let db_client_clone = db_client.clone();
+        let members = chat.members.clone();
+        let receive_store = store.clone();
 
         let handle = tokio::spawn(async move {
-            match receive_loop(receiver, db_client_clone, topic_id).await {
+            match receive_loop(receiver, receive_store, topic_id).await {
                 Ok(()) => {
                     log::info!("gossip receiver closed for chat: {}", topic_id);
                 }
@@ -62,31 +68,24 @@ impl ChatSession {
         });
 
         Ok(ChatSession {
+            profile,
             topic_id,
-            db_client,
             members,
+            store,
             sender,
             receive_handle: handle,
-            secret_key,
         })
     }
 
-    pub async fn send(&self, content: String) -> anyhow::Result<()> {
-        let sent_at = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+    pub async fn send(&self, message_data: MessageData) -> anyhow::Result<()> {
+        let content = message_data.content.clone();
+        let sent_at = message_data.sent_at as i64;
 
-        let message_data = MessageData { content, sent_at };
-        let bytes = sign_and_encode(&self.secret_key, message_data.clone())?;
+        let bytes = sign_and_encode(&self.profile.secret_key, message_data)?;
         self.sender.broadcast(bytes.into()).await?;
-        self.db_client
-            .add_nw_message(NwMessage {
-                topic_id: self.topic_id,
-                endpoint_id: self.secret_key.public(),
-                content: message_data.content,
-                sent_at: message_data.sent_at as i64,
-            })
+
+        self.store
+            .record_message(self.profile.contact.endpoint_id, content, sent_at)
             .await?;
 
         Ok(())
@@ -95,7 +94,7 @@ impl ChatSession {
 
 pub async fn receive_loop(
     mut receiver: GossipReceiver,
-    db_client: DbClient,
+    store: SessionStore,
     topic_id: TopicId,
 ) -> anyhow::Result<()> {
     while let Some(gossip_event) = receiver.try_next().await? {
@@ -104,13 +103,12 @@ pub async fn receive_loop(
             GossipEvent::NeighborDown(_endpoint_id) => {}
             GossipEvent::Received(gossip_message) => match verify_and_decode(gossip_message) {
                 Ok(received_message) => {
-                    db_client
-                        .add_nw_message(NwMessage {
-                            topic_id,
-                            endpoint_id: received_message.sender,
-                            content: received_message.content,
-                            sent_at: received_message.sent_at as i64,
-                        })
+                    store
+                        .record_message(
+                            received_message.sender,
+                            received_message.content,
+                            received_message.sent_at as i64,
+                        )
                         .await?;
                 }
                 Err(e) => {

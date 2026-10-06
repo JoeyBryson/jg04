@@ -1,11 +1,8 @@
-use std::{collections::HashMap, time::Duration};
-
 use anyhow::Result;
 use iroh::endpoint::Connection;
-use iroh::protocol::{AcceptError, ProtocolHandler, Router};
+use iroh::protocol::{AcceptError, ProtocolHandler};
 use iroh_gossip::proto::TopicId;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc, oneshot};
 
 use super::{ChatSessionManager, NwChat, NwChatMemberStatus, NwContact, CONTROL_ALPN};
 use crate::database::client::DbClient;
@@ -61,13 +58,8 @@ impl ProtocolHandler for ControlProtocol {
 
                 let topic_id = chat.topic_id;
 
-                self.db_client
-                    .add_nw_chat(chat.clone())
-                    .await
-                    .map_err(|e| AcceptError::from_err(std::io::Error::other(e.to_string())))?;
-
                 self.chat_session_manager
-                    .add_chat_async(chat)
+                    .add_chat(chat)
                     .await
                     .map_err(|e| AcceptError::from_err(std::io::Error::other(e.to_string())))?;
 
