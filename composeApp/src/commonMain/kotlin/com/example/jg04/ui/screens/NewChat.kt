@@ -22,7 +22,6 @@ import com.example.jg04.state.AppCore
 import com.example.jg04.ui.icons.arrowBackIcon
 import uniffi.rust_api.UiContact
 import androidx.compose.material3.OutlinedTextField
-import uniffi.rust_api.UiChatHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

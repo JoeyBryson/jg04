@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use anyhow::Context;
 use iroh::endpoint::presets;
 use iroh_gossip::proto::TopicId;
 
@@ -14,12 +15,12 @@ use super::core::NwCore;
 /// UniFFI-facing adapter that converts UI values and IDs to internal network
 /// types before delegating operations to [`NwCore`].
 #[derive(uniffi::Object)]
-pub struct NwInterface {
+pub struct NwCoreInterface {
     core: NwCore,
 }
 
 #[uniffi::export]
-impl NwInterface {
+impl NwCoreInterface {
     #[uniffi::constructor]
     pub fn spawn(db_client: Arc<DbClient>) -> Result<Self, FfiError> {
         let db_client = Arc::unwrap_or_clone(db_client);

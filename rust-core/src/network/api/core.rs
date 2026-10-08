@@ -19,9 +19,8 @@ pub struct NwCore {
 
 impl NwCore {
     pub fn spawn(db_client: DbClient, preset: impl presets::Preset) -> Result<Self> {
-        let profile = db_client.get_nw_profile()?;
         let runtime = Runtime::new()?;
-        let service = runtime.block_on(NwService::spawn(db_client, profile, preset))?;
+        let service = runtime.block_on(NwService::spawn(db_client,preset))?;
 
         Ok(Self { runtime, service })
     }

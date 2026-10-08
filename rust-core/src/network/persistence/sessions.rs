@@ -12,8 +12,8 @@ pub(in crate::network) struct SessionManagerStore {
 }
 
 impl SessionManagerStore {
-    pub(in crate::network) fn new(db: DbClient) -> Result<Self> {
-        let profile = db.get_nw_profile()?;
+    pub(in crate::network) async fn new(db: DbClient) -> Result<Self> {
+        let profile = db.get_nw_profile_async().await?;
         Ok(Self { db, profile })
     }
 

@@ -7,7 +7,7 @@ mod messaging;
 mod model;
 mod persistence;
 
-pub use api::{NwCore, NwInterface};
+pub use api::{NwCore, NwCoreInterface};
 pub use messaging::NwEvent;
 pub use model::{NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile};
 

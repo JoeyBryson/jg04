@@ -129,7 +129,7 @@ db_requests! {
         GetUiChatData(topic_id: String) -> UiChatData => get_ui_chat_data { ffi_sync get_ui_chat_data };
         GetUiContacts() -> Vec<UiContact> => get_ui_contacts { ffi_sync get_ui_contacts };
         GetUiProfile() -> Option<UiProfile> => get_ui_profile { ffi_sync get_ui_profile };
-        GetNwProfile() -> NwProfile => get_nw_profile { sync get_nw_profile };
+        GetNwProfile() -> NwProfile => get_nw_profile { async get_nw_profile_async, sync get_nw_profile_sync };
         GetNwChats() -> Vec<NwChat> => get_nw_chats { async get_nw_chats, sync get_nw_chats_sync };
         GetNwChatMembers(topic_id: TopicId) -> Vec<NwChatMember> => get_nw_chat_members { async get_nw_chat_members };
         GetNwChat(topic_id: TopicId) -> NwChat => get_nw_chat { async get_nw_chat };

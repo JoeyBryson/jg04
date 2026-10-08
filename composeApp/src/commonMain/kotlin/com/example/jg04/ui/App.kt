@@ -74,7 +74,7 @@ fun MainComposable() {
                 )
             }
         }
-//        NwCoreStatusOverlay()
+        NwCoreStatusOverlay()
     }
 }
 

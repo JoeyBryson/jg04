@@ -56,7 +56,7 @@ pub fn add_sample_data(db_path_string: String) -> Result<(), FfiError> {
 
 #[uniffi::export]
 fn print_endpoint_id(db_client: Arc<DbClient>) -> std::result::Result<(), FfiError> {
-    let profile = db_client.get_nw_profile()?;
+    let profile = db_client.get_nw_profile_sync()?;
 
     let endpoint_id_hex = hex::encode(profile.secret_key.public().as_bytes());
     log::info!("Endpoint_id: {}", endpoint_id_hex);

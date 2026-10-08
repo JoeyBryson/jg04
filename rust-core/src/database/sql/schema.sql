@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS chat_members (
     REFERENCES contacts (endpoint_id)
 );
 
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     topic_id BLOB NOT NULL,
     endpoint_id BLOB NOT NULL,

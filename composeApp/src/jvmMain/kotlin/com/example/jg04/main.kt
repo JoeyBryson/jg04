@@ -9,16 +9,13 @@ import com.example.jg04.ui.MainComposable
 import uniffi.rust_api.addChat
 import uniffi.rust_api.addContactId
 import uniffi.rust_api.addSampleData
-import uniffi.rust_api.initNativeLogger
+import uniffi.rust_api.registerNativeLogListener
 
 
 fun main() = application {
     //initNativeLogger(NativeLogForwarder())
 
     val dbPath = System.getProperty("user.home") + "/app.db"
-
-    AppCore.initialize(dbPath)
-
 
     AppCore.initialize(dbPath)
 

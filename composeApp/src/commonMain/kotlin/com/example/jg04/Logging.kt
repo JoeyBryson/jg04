@@ -1,9 +1,9 @@
 package com.example.jg04
 
 import uniffi.rust_api.LogLevel
-import uniffi.rust_api.RustLogger
+import uniffi.rust_api.LogListener
 
-class NativeLogForwarder : RustLogger {
+class NativeLogListener : LogListener {
 
     override fun log(
         level: LogLevel,

@@ -1,19 +1,19 @@
 package com.example.jg04.state
 
 import com.example.jg04.KotlinLogger
-import com.example.jg04.NativeLogForwarder
+import com.example.jg04.NativeLogListener
 import com.example.jg04.testing.AppBackgroundTicker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharedFlow
-import uniffi.rust_api.NwCore
 import uniffi.rust_api.DbManager
-import uniffi.rust_api.addSampleData
+import uniffi.rust_api.NwCoreInterface
 import uniffi.rust_api.addSampleMessage
-import uniffi.rust_api.initNativeLogger
 import uniffi.rust_api.registerUiEventListener
+import uniffi.rust_api.registerNativeLogListener
 import uniffi.rust_api.setSecretKey
 import uniffi.rust_api.printEndpointId
+import uniffi.rust_api.deleteDb
 
 object AppCore {
 
@@ -30,7 +30,7 @@ object AppCore {
 
     private val dbEventListener = UiEventListenerImpl()
 
-    lateinit var nwCore: NwCore
+    lateinit var nwCore: NwCoreInterface
         private set
 
     fun getChatHeadersInvalidation(): SharedFlow<Unit> =
@@ -46,23 +46,15 @@ object AppCore {
         ::nwCore.isInitialized
 
     fun reset_db() {
-        dbManager = DbManager.reset(_dbPath)
+        dbManager = DbManager.spawn(_dbPath)
     }
 
     fun initialize(dbPath: String) {
-
+        deleteDb(dbPath)
 //        resetDbForWal(dbPath)
 //        addSampleData(dbPath)
 
-        initNativeLogger(NativeLogForwarder())
-
-        if (initialized) {
-            KotlinLogger.warn(
-                "AppCore",
-                "AppCore is already initialized. Skipping."
-            )
-            return
-        }
+        registerNativeLogListener(NativeLogListener())
 
         _dbPath = dbPath
 
@@ -72,7 +64,7 @@ object AppCore {
         )
 
         runCatching {
-            dbManager = DbManager.reset(_dbPath)
+            dbManager = DbManager.spawn(_dbPath)
 
             start_listener()
         }.onFailure { exception ->
@@ -159,7 +151,7 @@ object AppCore {
         }
 
         runCatching {
-            NwCore.spawn(
+            NwCoreInterface.spawn(
                 dbManager.spawnClient()
             )
         }.onSuccess { core ->

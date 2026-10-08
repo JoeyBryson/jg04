@@ -12,7 +12,7 @@ use crate::network::chat::ChatSessionsHandle;
 use crate::network::control::{ChatInvitesHandle, ControlProtocol};
 use crate::network::messaging::signed::MessageData;
 use crate::network::persistence::{ControlProtocolStore, InviteStore, SessionManagerStore};
-use crate::network::{NwChatMember, NwProfile, CONTROL_ALPN};
+use crate::network::{NwChatMember, CONTROL_ALPN};
 
 /// Coordinates networking use cases across persisted state, live chat
 /// sessions, and invitation delivery.
@@ -24,9 +24,10 @@ pub(in crate::network) struct NwService {
 impl NwService {
     pub(in crate::network) async fn spawn(
         db_client: DbClient,
-        profile: NwProfile,
         preset: impl presets::Preset,
     ) -> Result<Self> {
+        let profile = db_client.get_nw_profile_async().await?;
+
         let endpoint = Endpoint::builder(preset)
             .secret_key(profile.secret_key.clone())
             .alpns(vec![CONTROL_ALPN.to_vec(), iroh_gossip::ALPN.to_vec()])
@@ -36,7 +37,7 @@ impl NwService {
         let gossip = Gossip::builder().spawn(endpoint.clone());
         let chat_sessions = ChatSessionsHandle::spawn(
             gossip.clone(),
-            SessionManagerStore::new(db_client.clone())?,
+            SessionManagerStore::new(db_client.clone()).await?,
         )
         .await?;
 
