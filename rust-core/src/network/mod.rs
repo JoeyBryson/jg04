@@ -1,23 +1,15 @@
-use crate::ui::UiContact;
-use iroh::EndpointId;
-use iroh::SecretKey;
-use iroh_gossip::proto::TopicId;
-use serde::{Deserialize, Serialize};
-
 use thiserror::Error;
-// mod iroh_source_sample;
-mod profile;
-// // mod run;
-mod control_protocol;
-mod core;
-mod ffi;
-mod service;
-mod events;
-mod groupchat;
-mod signed_message;
-mod stores;
-pub use core::NwCore;
-pub use ffi::NwInterface;
+mod api;
+mod application;
+mod chat;
+mod control;
+mod messaging;
+mod model;
+mod persistence;
+
+pub use api::{NwCore, NwInterface};
+pub use messaging::NwEvent;
+pub use model::{NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile};
 
 pub(super) const CONTROL_ALPN: &[u8] = b"iroh-example/echo/0";
 
@@ -27,70 +19,5 @@ pub enum SetupError {
     ProfileNotSet,
     #[error("profile has already been set")]
     ProfileAlreadySet,
-}
-use control_protocol::ControlProtocol;
-use groupchat::ChatSessionManager;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NwMessage {
-    pub topic_id: TopicId,
-    pub endpoint_id: EndpointId,
-    pub content: String,
-    pub sent_at: i64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[repr(i32)]
-pub enum NwChatMemberStatus {
-    Pending = 0,
-    Joined = 1,
-}
-
-impl TryFrom<i32> for NwChatMemberStatus {
-    type Error = &'static str;
-
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Self::Pending),
-            1 => Ok(Self::Joined),
-            _ => Err("invalid network chat member status"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NwChatMember {
-    pub contact: NwContact,
-    pub status: NwChatMemberStatus,
-}
-///NwChat now contains the self contact too, UiChat still keeps the members to be only others not us
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NwChat {
-    pub name: Option<String>,
-    pub members: Vec<NwChatMember>,
-    pub topic_id: TopicId,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NwContact {
-    pub name: String,
-    pub endpoint_id: EndpointId,
-}
-
-#[derive(Debug, Clone)]
-pub struct NwProfile {
-    pub secret_key: SecretKey,
-    pub contact: NwContact,
-}
-
-
-//To-do: rewrite for new database structure
-impl From<UiContact> for NwContact {
-    fn from(contact: UiContact) -> Self {
-        Self {
-            name: contact.name,
-            endpoint_id: contact.endpoint_id.parse().unwrap(),
-        }
-    }
 }
 

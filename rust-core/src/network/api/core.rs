@@ -7,7 +7,7 @@ use crate::database::client::DbClient;
 use crate::ffi_error::FfiError;
 use crate::network::NwChatMember;
 
-use super::service::NwService;
+use crate::network::application::NwService;
 
 /// Synchronous facade and runtime owner for the networking layer. Async
 /// application work is run on its retained runtime through [`NwService`].

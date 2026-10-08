@@ -1,31 +1,17 @@
 use anyhow::Result;
 use iroh::endpoint::Connection;
 use iroh::protocol::{AcceptError, ProtocolHandler};
-use iroh_gossip::proto::TopicId;
-use serde::{Deserialize, Serialize};
 
-use super::{ChatSessionManager, NwChat, NwChatMemberStatus, NwContact, CONTROL_ALPN};
-use crate::database::client::DbClient;
-use crate::network::NwProfile;
-pub mod chat_invite;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ControlRequest {
-    ChatInvite { chat: NwChat },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ControlResponse {
-    ChatInviteAccepted { topic_id: TopicId },
-}
-
-
+use super::{ControlRequest, ControlResponse};
+use crate::network::persistence::ControlProtocolStore;
+use crate::network::chat::ChatSessionsHandle;
+use crate::network::{NwChatMemberStatus, NwProfile};
 
 #[derive(Clone, Debug)]
-pub(super) struct ControlProtocol {
-    pub(super) profile: NwProfile,
-    pub(super) db_client: DbClient,
-    pub(super) chat_session_manager: ChatSessionManager,
+pub(in crate::network) struct ControlProtocol {
+    pub(in crate::network) profile: NwProfile,
+    pub(in crate::network) store: ControlProtocolStore,
+    pub(in crate::network) chat_sessions: ChatSessionsHandle,
 }
 
 impl ProtocolHandler for ControlProtocol {
@@ -33,8 +19,8 @@ impl ProtocolHandler for ControlProtocol {
         let sender_id = connection.remote_id();
 
         let sender = self
-            .db_client
-            .get_nw_contact(sender_id)
+            .store
+            .contact(sender_id)
             .await
             .map_err(|e| AcceptError::from_err(std::io::Error::other(e.to_string())))?;
 
@@ -58,8 +44,8 @@ impl ProtocolHandler for ControlProtocol {
 
                 let topic_id = chat.topic_id;
 
-                self.chat_session_manager
-                    .add_chat(chat)
+                self.chat_sessions
+                    .request_add_chat(chat)
                     .await
                     .map_err(|e| AcceptError::from_err(std::io::Error::other(e.to_string())))?;
 

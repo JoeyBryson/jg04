@@ -8,21 +8,21 @@ use iroh_gossip::net::Gossip;
 use iroh_gossip::proto::TopicId;
 
 use crate::database::client::DbClient;
-use crate::network::control_protocol::chat_invite::ChatInviteManager;
-use crate::network::signed_message::MessageData;
-use crate::network::stores::{InviteStore, SessionManagerStore};
-use crate::network::{NwChatMember, NwProfile};
-use crate::network::{groupchat::ChatSessionManager, CONTROL_ALPN, ControlProtocol};
+use crate::network::chat::ChatSessionsHandle;
+use crate::network::control::{ChatInvitesHandle, ControlProtocol};
+use crate::network::messaging::signed::MessageData;
+use crate::network::persistence::{ControlProtocolStore, InviteStore, SessionManagerStore};
+use crate::network::{NwChatMember, NwProfile, CONTROL_ALPN};
 
 /// Coordinates networking use cases across persisted state, live chat
 /// sessions, and invitation delivery.
-pub(super) struct NwService {
-    chat_session_manager: ChatSessionManager,
-    chat_invite_manager: ChatInviteManager,
+pub(in crate::network) struct NwService {
+    chat_sessions: ChatSessionsHandle,
+    chat_invites: ChatInvitesHandle,
 }
 
 impl NwService {
-    pub(super) async fn spawn(
+    pub(in crate::network) async fn spawn(
         db_client: DbClient,
         profile: NwProfile,
         preset: impl presets::Preset,
@@ -34,17 +34,16 @@ impl NwService {
             .await?;
 
         let gossip = Gossip::builder().spawn(endpoint.clone());
-        let chat_session_manager = ChatSessionManager::spawn(
+        let chat_sessions = ChatSessionsHandle::spawn(
             gossip.clone(),
-            profile.clone(),
-            SessionManagerStore::new(db_client.clone()),
+            SessionManagerStore::new(db_client.clone())?,
         )
         .await?;
 
         let control_protocol = ControlProtocol {
             profile: profile.clone(),
-            db_client: db_client.clone(),
-            chat_session_manager: chat_session_manager.clone(),
+            store: ControlProtocolStore::new(db_client.clone()),
+            chat_sessions: chat_sessions.clone(),
         };
 
         let router = Router::builder(endpoint)
@@ -52,27 +51,35 @@ impl NwService {
             .accept(iroh_gossip::ALPN, gossip)
             .spawn();
 
-        let chat_invite_manager = ChatInviteManager::spawn(router, InviteStore::new(db_client.clone())).await?;
+        let chat_invites =
+            ChatInvitesHandle::spawn(router, InviteStore::new(db_client.clone())).await?;
 
         Ok(Self {
-            chat_session_manager,
-            chat_invite_manager,
+            chat_sessions,
+            chat_invites,
         })
     }
 
-    pub(super) async fn create_chat(
+    pub(in crate::network) async fn create_chat(
         &self,
         members: Vec<NwChatMember>,
         name: Option<String>,
     ) -> Result<String> {
-        let topic_id = self.chat_session_manager.create_chat(members, name).await?;
+        let topic_id = self
+            .chat_sessions
+            .request_create_chat(members, name)
+            .await?;
 
-        self.chat_invite_manager.refresh().await?;
+        self.chat_invites.request_invite_delivery().await?;
 
         Ok(topic_id.to_string())
     }
 
-    pub(super) async fn send_message(&self, topic_id: TopicId, content: String) -> Result<()> {
+    pub(in crate::network) async fn send_message(
+        &self,
+        topic_id: TopicId,
+        content: String,
+    ) -> Result<()> {
         let sent_at = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
@@ -80,8 +87,8 @@ impl NwService {
 
         let message_data = MessageData { content, sent_at };
 
-        self.chat_session_manager
-            .send_message(topic_id, message_data)
+        self.chat_sessions
+            .request_send_message(topic_id, message_data)
             .await?;
 
         Ok(())

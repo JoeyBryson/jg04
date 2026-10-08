@@ -53,3 +53,12 @@ impl NwInterface {
         self.core.send_message(content, topic_id)
     }
 }
+
+impl From<UiContact> for NwContact {
+    fn from(contact: UiContact) -> Self {
+        Self {
+            name: contact.name,
+            endpoint_id: contact.endpoint_id.parse().unwrap(),
+        }
+    }
+}

@@ -1,7 +1,7 @@
 use iroh::EndpointId;
 use serde::{Deserialize, Serialize};
 
-use super::signed_message::SignedMessage;
+use super::signed::SignedMessage;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
