@@ -86,6 +86,13 @@ impl ChatSessionsHandle {
         topic_id: TopicId,
         message_data: MessageData
     ) -> Result<()> {
+        log::debug!(
+            "[CHAT-SESSIONS] request_send_message: topic={}, sent_at={}, content_len={}",
+            topic_id,
+            message_data.sent_at,
+            message_data.content.len()
+        );
+
         let (reply, receiver) = oneshot::channel();
 
         self.sender
@@ -96,7 +103,17 @@ impl ChatSessionsHandle {
             })
             .await?;
 
-        receiver.await?
+        let result = receiver.await?;
+
+        if let Err(error) = &result {
+            log::warn!(
+                "[CHAT-SESSIONS] request_send_message failed for topic={}: {}",
+                topic_id,
+                error
+            );
+        }
+
+        result
     }
 
     async fn save_chat_and_start_session(
@@ -106,7 +123,11 @@ impl ChatSessionsHandle {
         gossip: &Gossip,
     ) -> Result<()> {
         if sessions.contains_key(&chat.topic_id) {
-            return Err(anyhow!("chat already in sessions"));
+            log::debug!(
+                "[CHAT-SESSIONS] save_chat_and_start_session: topic already active, skipping duplicate add: {}",
+                chat.topic_id
+            );
+            return Ok(());
         }
 
         store.save_chat(chat.clone()).await?;
@@ -129,6 +150,12 @@ impl ChatSessionsHandle {
         let session = ChatSession::spawn(store.spawn_session_store(chat), gossip).await?;
 
         sessions.insert(topic_id, session);
+
+        log::info!(
+            "[CHAT-SESSIONS] added chat session for topic={}, total_sessions={}",
+            topic_id,
+            sessions.len()
+        );
 
         Ok(())
     }
@@ -175,12 +202,36 @@ impl ChatSessionsHandle {
                     message_data,
                     reply,
                 } => {
+                    log::debug!(
+                        "[CHAT-SESSIONS] command SendMessage: topic={}, sent_at={}, content_len={}, active_sessions={}",
+                        topic_id,
+                        message_data.sent_at,
+                        message_data.content.len(),
+                        sessions.len()
+                    );
+
                     let result = match sessions.get(&topic_id) {
                         Some(session) => session.send(message_data).await,
-                        None => Err(anyhow!(
-                            "no active chat session for topic ID: {topic_id}"
-                        )),
+                        None => {
+                            let known_topics = sessions
+                                .keys()
+                                .map(ToString::to_string)
+                                .collect::<Vec<_>>()
+                                .join(",");
+
+                            Err(anyhow!(
+                                "no active chat session for topic ID: {topic_id}. known_topics=[{known_topics}]"
+                            ))
+                        }
                     };
+
+                    if let Err(error) = &result {
+                        log::warn!(
+                            "[CHAT-SESSIONS] SendMessage failed for topic={}: {}",
+                            topic_id,
+                            error
+                        );
+                    }
 
                     let _ = reply.send(result);
                 }
@@ -206,6 +257,12 @@ impl ChatSessionsHandle {
             members,
             topic_id,
         };
+
+        log::info!(
+            "[CHAT-SESSIONS] creating chat session for new topic={}, members={}",
+            topic_id,
+            chat.members.len()
+        );
 
         Self::save_chat_and_start_session(sessions, chat, store, gossip).await?;
         Ok(topic_id)

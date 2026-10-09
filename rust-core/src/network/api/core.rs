@@ -41,3 +41,11 @@ impl NwCore {
             .map_err(FfiError::from)
     }
 }
+
+impl Drop for NwCore {
+    fn drop(&mut self) {
+        if let Err(error) = self.runtime.block_on(self.service.shutdown()) {
+            log::warn!("[NW-CORE] graceful shutdown failed: {error}");
+        }
+    }
+}

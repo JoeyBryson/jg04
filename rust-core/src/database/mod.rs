@@ -24,14 +24,9 @@
 //! methods of DbClient.
 
 
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use std::sync::Arc;
-use std::thread::JoinHandle;
+use std::path::PathBuf;
 
 use anyhow::Result;
-use rusqlite::{Connection, OpenFlags};
-use tokio::sync::mpsc;
 
 use crate::ffi_error::FfiError;
 
@@ -49,7 +44,7 @@ mod workers;
 #[uniffi::export]
 pub fn delete_db(db_path_string: String) -> Result<(), FfiError> {
     (move || -> anyhow::Result<()> {
-        let db_path = PathBuf::from_str(&db_path_string)?;
+        let db_path = PathBuf::from(db_path_string);
 
         if db_path.exists() {
             std::fs::remove_file(&db_path)?;

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::Result;
 use iroh::endpoint::presets::Preset;
 use iroh::endpoint::Builder;
@@ -18,11 +16,9 @@ use rust_api::network::{NwContact, NwCore, NwProfile};
 pub struct TestNetwork {
     relay_map: RelayMap,
     dns_pkarr: DnsPkarrServer,
-
-    // Keeps the relay server running for the lifetime of the network.
     _relay_server: iroh_relay::server::Server,
 
-    runtime: Runtime,
+    _runtime: Runtime,
 }
 
 impl TestNetwork {
@@ -39,7 +35,7 @@ impl TestNetwork {
             relay_map,
             dns_pkarr,
             _relay_server: relay_server,
-            runtime,
+            _runtime: runtime,
         })
     }
 
@@ -68,7 +64,7 @@ impl TestNetwork {
         let nw_core = NwCore::spawn(db_client.clone(), preset)?;
 
         Ok(TestNode {
-            db_manager,
+            _db_manager: db_manager,
             db_client,
             nw_core,
             _temp_dir: temp_dir,
@@ -84,6 +80,7 @@ struct LocalNetworkPreset<'a> {
 impl Preset for LocalNetworkPreset<'_> {
     fn apply(self, builder: Builder) -> Builder {
         builder
+            .preset(iroh::endpoint::presets::Minimal)
             .preset(self.dns_pkarr.preset())
             .relay_mode(RelayMode::Custom(self.relay_map))
             .ca_tls_config(CaTlsConfig::insecure_skip_verify())
@@ -91,7 +88,7 @@ impl Preset for LocalNetworkPreset<'_> {
 }
 
 pub struct TestNode {
-    pub db_manager: DbManager,
+    pub _db_manager: DbManager,
     pub db_client: DbClient,
     pub nw_core: NwCore,
 

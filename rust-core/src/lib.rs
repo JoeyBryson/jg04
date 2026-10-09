@@ -1,3 +1,5 @@
+//! Rust core library for the ______ app
+
 pub mod database;
 pub mod ffi_error;
 pub mod logging;

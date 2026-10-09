@@ -1,0 +1,845 @@
+warning: unused import: `Path`
+  --> src/database/mod.rs:27:17
+   |
+27 | use std::path::{Path, PathBuf};
+   |                 ^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::sync::Arc`
+  --> src/database/mod.rs:29:5
+   |
+29 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused import: `std::thread::JoinHandle`
+  --> src/database/mod.rs:30:5
+   |
+30 | use std::thread::JoinHandle;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Connection` and `OpenFlags`
+  --> src/database/mod.rs:33:16
+   |
+33 | use rusqlite::{Connection, OpenFlags};
+   |                ^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `tokio::sync::mpsc`
+  --> src/database/mod.rs:34:5
+   |
+34 | use tokio::sync::mpsc;
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `anyhow::Context`
+ --> src/network/api/ffi.rs:3:5
+  |
+3 | use anyhow::Context;
+  |     ^^^^^^^^^^^^^^^
+
+warning: `rust_api` (lib) generated 6 warnings (run `cargo fix --lib -p rust_api` to apply 6 suggestions)
+warning: unused import: `std::sync::Arc`
+ --> tests/common/mod.rs:1:5
+  |
+1 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `runtime` is never read
+  --> tests/common/mod.rs:23:5
+   |
+18 | pub struct TestNetwork {
+   |            ----------- field in this struct
+...
+23 |     runtime: Runtime,
+   |     ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `db_manager` is never read
+  --> tests/common/mod.rs:93:9
+   |
+92 | pub struct TestNode {
+   |            -------- field in this struct
+93 |     pub db_manager: DbManager,
+   |         ^^^^^^^^^^
+
+warning: `rust_api` (test "core_instance") generated 3 warnings (run `cargo fix --test "core_instance" -p rust_api` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.20s
+     Running tests/core_instance.rs (target/debug/deps/core_instance-e3bd25547479cc9e)
+
+running 1 test
+2026-10-09T11:55:46.596544Z  INFO core_instance: [TEST] spawning network
+2026-10-09T11:55:46.598038Z DEBUG iroh_relay::server: Starting Relay server
+2026-10-09T11:55:46.598529Z  INFO http-service{addr=127.0.0.1:36543}: iroh_relay::server: serving
+2026-10-09T11:55:46.598628Z  INFO iroh_relay::server::http_server: [HTTPS/WSS] relay: serving on 127.0.0.1:34999
+2026-10-09T11:55:46.598685Z DEBUG iroh_relay::server: Starting QUIC server 127.0.0.1:0
+2026-10-09T11:55:46.599008Z  INFO iroh_relay::quic::server: QUIC server listening on bind_addr=127.0.0.1:34656
+2026-10-09T11:55:46.599102Z DEBUG quic-endpoint: iroh_relay::quic::server: waiting for connections...
+2026-10-09T11:55:46.599366Z  INFO core_instance: [TEST] spawning Alice
+2026-10-09T11:55:46.605882Z  INFO rust_api::database::manager: [DB-MANAGER] schema executed
+2026-10-09T11:55:46.606901Z  INFO rust_api::database::workers: [DB-READER] loop start
+2026-10-09T11:55:46.607177Z  INFO rust_api::database::workers: [DB-WRITER] loop start
+2026-10-09T11:55:46.610397Z  WARN endpoint{id=c2a9ee75cb}: iroh_relay::tls: Insecure TLS config: server certificates will be trusted without verification
+2026-10-09T11:55:46.610572Z DEBUG endpoint{id=c2a9ee75cb}: iroh::socket::transports::ip: binding addr=0.0.0.0:0
+2026-10-09T11:55:46.610586Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service: portmapper: portmap starting
+2026-10-09T11:55:46.610668Z DEBUG endpoint{id=c2a9ee75cb}: iroh::socket::transports::ip: successfully bound addr=0.0.0.0:0 local_addr=0.0.0.0:47837
+2026-10-09T11:55:46.610687Z DEBUG endpoint{id=c2a9ee75cb}: iroh::socket::transports::ip: binding addr=[::]:0
+2026-10-09T11:55:46.610744Z DEBUG endpoint{id=c2a9ee75cb}: iroh::socket::transports::ip: successfully bound addr=[::]:0 local_addr=[::]:33659
+2026-10-09T11:55:46.612427Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service: portmapper: getting a port mapping for 192.168.0.100:47837 -> None
+2026-10-09T11:55:46.612601Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: igd_next::aio::tokio: sending broadcast request to: 239.255.255.250:1900 on interface: Ok(0.0.0.0:34151)
+2026-10-09T11:55:46.612726Z DEBUG endpoint{id=c2a9ee75cb}: iroh::socket: scheduling periodic_stun to run immediately and in 20s
+2026-10-09T11:55:46.612847Z DEBUG endpoint{id=c2a9ee75cb}: iroh::_events::direct_addrs: addrs={DirectAddr { addr: 192.168.0.100:47837, typ: Local }}
+2026-10-09T11:55:46.612954Z DEBUG endpoint{id=c2a9ee75cb}: iroh::endpoint: iroh endpoint bound id=c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e iroh_version=1.0.3
+2026-10-09T11:55:46.613001Z DEBUG endpoint{id=c2a9ee75cb}: iroh::address_lookup::pkarr: creating pkarr publisher that publishes to http://127.0.0.1:33711/pkarr
+2026-10-09T11:55:46.613186Z DEBUG endpoint{id=c2a9ee75cb}:pkarr_publish: iroh::address_lookup::pkarr: Publishing endpoint info to pkarr data=EndpointData { addrs: [], user_data: None } pkarr_relay=http://127.0.0.1:33711/pkarr
+2026-10-09T11:55:46.613426Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle in_event event=UpdatePeerData(PeerData(10b))
+2026-10-09T11:55:46.613502Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle in_event event=UpdatePeerData(PeerData(10b))
+2026-10-09T11:55:46.613676Z DEBUG endpoint{id=c2a9ee75cb}:pkarr_publish: reqwest::connect: starting new connection 'Some("127.0.0.1")'
+2026-10-09T11:55:46.613736Z DEBUG endpoint{id=c2a9ee75cb}:pkarr_publish: hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:33711
+2026-10-09T11:55:46.613889Z DEBUG endpoint{id=c2a9ee75cb}:pkarr_publish: hyper_util::client::legacy::connect::http: connected to 127.0.0.1:33711
+2026-10-09T11:55:46.613937Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::socket: starting direct addr update (Periodic)
+2026-10-09T11:55:46.614047Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::net_report: net_report starting do_full=true
+2026-10-09T11:55:46.614161Z DEBUG rust_api::network::control::invite_delivery: [INVITES] delivering pending invites: count=0
+2026-10-09T11:55:46.614215Z  INFO core_instance: [TEST] spawning Bob
+2026-10-09T11:55:46.614387Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}: rustls::client::hs: No cached session for IpAddress(V4(Ipv4Addr([127, 0, 0, 1])))
+2026-10-09T11:55:46.614426Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}: rustls::client::hs: Not resuming any session
+2026-10-09T11:55:46.615680Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service: portmapper: getting a port mapping for 192.168.0.100:47837 -> None
+2026-10-09T11:55:46.615822Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: igd_next::aio::tokio: sending broadcast request to: 239.255.255.250:1900 on interface: Ok(0.0.0.0:55245)
+2026-10-09T11:55:46.621210Z  INFO rust_api::database::manager: [DB-MANAGER] schema executed
+2026-10-09T11:55:46.621827Z DEBUG endpoint{id=c2a9ee75cb}:pkarr_publish: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:33711)
+2026-10-09T11:55:46.621952Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: iroh_relay::quic::server: incoming
+2026-10-09T11:55:46.622287Z  INFO rust_api::database::workers: [DB-READER] loop start
+2026-10-09T11:55:46.622415Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: rustls::server::hs: decided upon suite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.622535Z  INFO rust_api::database::workers: [DB-WRITER] loop start
+2026-10-09T11:55:46.622870Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: rustls::server::hs: Chosen ALPN protocol ProtocolName(2f69726f682d7161642f30)
+2026-10-09T11:55:46.623305Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: noq_proto::transport_parameters: address discovery enabled for peer role=Role { send: false, receive: true }
+2026-10-09T11:55:46.623932Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=0}: rustls::client::hs: Using ciphersuite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.623979Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=0}: rustls::client::tls13: Not resuming
+2026-10-09T11:55:46.624501Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=0}: rustls::client::tls13: TLS1.3 encrypted extensions: ServerExtensions { selected_protocol: SingleProtocolName(ProtocolName(2f69726f682d7161642f30)), transport_parameters: 0210e5278243f8289277695691bcebedf5da0014a9418c62cbeb25660dd69a9d03399b498805a9d00604801312d0c116de844a56bac0052491043d930e01050f082ebcab7752f5230f0704801312d0c00000009f81a17601000504801312d0c0000000ff04de1b0243e820048000ffff030245c00408ffffffffffffffff0104800075306ab200, unknown_extensions: {}, .. }
+2026-10-09T11:55:46.624581Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=0}: rustls::client::hs: ALPN protocol is Some(b"/iroh-qad/0")
+2026-10-09T11:55:46.624940Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=0}: noq_proto::transport_parameters: address discovery enabled for peer role=Role { send: true, receive: false }
+2026-10-09T11:55:46.625569Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4: iroh::net_report: probe report r=QadProbeReport { relay: RelayUrl("https://127.0.0.1:34999/"), latency: 8.506367ms, addr: 127.0.0.1:47837 }
+2026-10-09T11:55:46.626100Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: iroh_relay::quic::server: established
+2026-10-09T11:55:46.626402Z  WARN endpoint{id=e7e9baf9af}: iroh_relay::tls: Insecure TLS config: server certificates will be trusted without verification
+2026-10-09T11:55:46.626490Z DEBUG endpoint{id=e7e9baf9af}: iroh::socket::transports::ip: binding addr=0.0.0.0:0
+2026-10-09T11:55:46.626509Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service: portmapper: portmap starting
+2026-10-09T11:55:46.626561Z DEBUG endpoint{id=e7e9baf9af}: iroh::socket::transports::ip: successfully bound addr=0.0.0.0:0 local_addr=0.0.0.0:50880
+2026-10-09T11:55:46.626583Z DEBUG endpoint{id=e7e9baf9af}: iroh::socket::transports::ip: binding addr=[::]:0
+2026-10-09T11:55:46.626631Z DEBUG endpoint{id=e7e9baf9af}: iroh::socket::transports::ip: successfully bound addr=[::]:0 local_addr=[::]:35706
+2026-10-09T11:55:46.628458Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service: portmapper: getting a port mapping for 192.168.0.100:50880 -> None
+2026-10-09T11:55:46.628626Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: igd_next::aio::tokio: sending broadcast request to: 239.255.255.250:1900 on interface: Ok(0.0.0.0:40951)
+2026-10-09T11:55:46.628966Z DEBUG endpoint{id=e7e9baf9af}: iroh::socket: scheduling periodic_stun to run immediately and in 25s
+2026-10-09T11:55:46.629097Z DEBUG endpoint{id=e7e9baf9af}: iroh::_events::direct_addrs: addrs={DirectAddr { addr: 192.168.0.100:50880, typ: Local }}
+2026-10-09T11:55:46.629216Z DEBUG endpoint{id=e7e9baf9af}: iroh::endpoint: iroh endpoint bound id=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f iroh_version=1.0.3
+2026-10-09T11:55:46.629274Z DEBUG endpoint{id=e7e9baf9af}: iroh::address_lookup::pkarr: creating pkarr publisher that publishes to http://127.0.0.1:33711/pkarr
+2026-10-09T11:55:46.629281Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::socket: starting direct addr update (Periodic)
+2026-10-09T11:55:46.629391Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::net_report: net_report starting do_full=true
+2026-10-09T11:55:46.629570Z DEBUG endpoint{id=e7e9baf9af}:pkarr_publish: iroh::address_lookup::pkarr: Publishing endpoint info to pkarr data=EndpointData { addrs: [], user_data: None } pkarr_relay=http://127.0.0.1:33711/pkarr
+2026-10-09T11:55:46.629719Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}: rustls::client::hs: No cached session for IpAddress(V4(Ipv4Addr([127, 0, 0, 1])))
+2026-10-09T11:55:46.629754Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle in_event event=UpdatePeerData(PeerData(10b))
+2026-10-09T11:55:46.629784Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}: rustls::client::hs: Not resuming any session
+2026-10-09T11:55:46.629850Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle in_event event=UpdatePeerData(PeerData(10b))
+2026-10-09T11:55:46.630252Z DEBUG endpoint{id=e7e9baf9af}:pkarr_publish: reqwest::connect: starting new connection 'Some("127.0.0.1")'
+2026-10-09T11:55:46.630401Z DEBUG endpoint{id=e7e9baf9af}:pkarr_publish: hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:33711
+2026-10-09T11:55:46.630627Z DEBUG endpoint{id=e7e9baf9af}:pkarr_publish: hyper_util::client::legacy::connect::http: connected to 127.0.0.1:33711
+2026-10-09T11:55:46.631086Z DEBUG rust_api::network::control::invite_delivery: [INVITES] delivering pending invites: count=0
+2026-10-09T11:55:46.631112Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: iroh_relay::quic::server: incoming
+2026-10-09T11:55:46.631343Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service: portmapper: getting a port mapping for 192.168.0.100:50880 -> None
+2026-10-09T11:55:46.631596Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: rustls::server::hs: decided upon suite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.631613Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: igd_next::aio::tokio: sending broadcast request to: 239.255.255.250:1900 on interface: Ok(0.0.0.0:34929)
+2026-10-09T11:55:46.631998Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: rustls::server::hs: Chosen ALPN protocol ProtocolName(2f69726f682d7161642f30)
+2026-10-09T11:55:46.632041Z  INFO core_instance: [TEST] Alice endpoint: c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e
+2026-10-09T11:55:46.632091Z  INFO core_instance: [TEST] Bob endpoint: e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f
+2026-10-09T11:55:46.632114Z  INFO core_instance: [TEST] adding contacts
+2026-10-09T11:55:46.632713Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: noq_proto::transport_parameters: address discovery enabled for peer role=Role { send: false, receive: true }
+2026-10-09T11:55:46.633610Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=0}: rustls::client::hs: Using ciphersuite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.633655Z  INFO core_instance: [TEST] contacts added
+2026-10-09T11:55:46.633672Z  INFO core_instance: [TEST] Alice creating chat
+2026-10-09T11:55:46.633675Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=0}: rustls::client::tls13: Not resuming
+2026-10-09T11:55:46.633693Z  INFO rust_api::network::application::service: [NW-SERVICE] create_chat requested: members=1, named=true
+2026-10-09T11:55:46.633790Z  INFO rust_api::network::chat::sessions: [CHAT-SESSIONS] creating chat session for new topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, members=2
+2026-10-09T11:55:46.634211Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=0}: rustls::client::tls13: TLS1.3 encrypted extensions: ServerExtensions { selected_protocol: SingleProtocolName(ProtocolName(2f69726f682d7161642f30)), transport_parameters: 0e01050f08ef62f664cd45c698c820cf37be41015706b7df6a737aa8030245c002108aefd2b3daec064b468489879df3b0ecc0000000ff04de1b0243e8c00000009f81a176010020048000ffff0408ffffffffffffffff0504801312d00104800075306ab2000604801312d00014cd8daf445160fd37194e1e93a2a2695f8e03d2d10704801312d0, unknown_extensions: {}, .. }
+2026-10-09T11:55:46.634270Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=0}: rustls::client::hs: ALPN protocol is Some(b"/iroh-qad/0")
+2026-10-09T11:55:46.634504Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=0}: noq_proto::transport_parameters: address discovery enabled for peer role=Role { send: true, receive: false }
+2026-10-09T11:55:46.634767Z  INFO rust_api::network::chat::session: [CHAT-SESSION] subscribing to topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534 with 0 bootstrap peers
+2026-10-09T11:55:46.634952Z  INFO rust_api::network::chat::sessions: [CHAT-SESSIONS] added chat session for topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, total_sessions=1
+2026-10-09T11:55:46.635060Z  INFO rust_api::network::application::service: [NW-SERVICE] create_chat started session for topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534
+2026-10-09T11:55:46.635109Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle in_event event=Command(TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), Join([]))
+2026-10-09T11:55:46.635142Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4: iroh::net_report: probe report r=QadProbeReport { relay: RelayUrl("https://127.0.0.1:34999/"), latency: 2.789927ms, addr: 127.0.0.1:50880 }
+2026-10-09T11:55:46.635572Z DEBUG rust_api::network::control::invite_delivery: [INVITES] delivering pending invites: count=1
+2026-10-09T11:55:46.635585Z DEBUG rust_api::network::control::invite_delivery: [INVITES] sending chat invite: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, target=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f
+2026-10-09T11:55:46.635685Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}: iroh::_events::conn::connecting: remote_id=e7e9baf9af alpn=iroh-example/echo/0
+2026-10-09T11:55:46.635732Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}: iroh::endpoint: connecting relay_url=None ip_addresses=[]
+2026-10-09T11:55:46.636100Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: iroh_relay::quic::server: established
+2026-10-09T11:55:46.637560Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::xfer::dns_handle: querying: _iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. TXT
+2026-10-09T11:55:46.637638Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_resolver::name_server_pool: sending request: [Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }]
+2026-10-09T11:55:46.637702Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_resolver::name_server_pool: creating new shared lookup query=_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. IN TXT
+2026-10-09T11:55:46.637787Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_resolver::name_server_pool: setting retry_interval retry_interval=13µs ip=127.0.0.1
+2026-10-09T11:55:46.637838Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_resolver::name_server: connecting config=NameServerConfig { ip: 127.0.0.1, trust_negative_responses: false, connections: [ConnectionConfig { port: 48539, protocol: Udp, bind_addr: None }] }
+2026-10-09T11:55:46.637927Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::xfer: enqueueing message:QUERY:[Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }]
+2026-10-09T11:55:46.638167Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::udp::udp_client_stream: final message final_message=; header 20558:QUERY:RD:NoError:QUERY
+; edns version: 0 dnssec_ok: false z_flags: 0 max_payload: 1232 opts: 0
+; query
+;; _iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. IN TXT
+
+2026-10-09T11:55:46.638260Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::udp::udp_stream: created socket successfully
+2026-10-09T11:55:46.638389Z DEBUG iroh::test_utils::dns_server: received query queries=[Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }] from=127.0.0.1:59026
+2026-10-09T11:55:46.638501Z DEBUG iroh::test_utils::dns_server: send reply reply=Message { metadata: Metadata { id: 20558, message_type: Response, op_code: Query, authoritative: false, truncation: false, recursion_desired: true, recursion_available: false, authentic_data: false, checking_disabled: false, response_code: NoError }, queries: [Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }], answers: [], authorities: [], additionals: [], signature: None, edns: Some(Edns { rcode_high: 0, version: 0, flags: EdnsFlags { dnssec_ok: false, z: 0 }, max_payload: 1232, options: OPT { options: [] } }) } from=127.0.0.1:59026
+2026-10-09T11:55:46.638674Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::udp::udp_client_stream: received message id: 20558
+2026-10-09T11:55:46.638732Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::error: response: ; header 20558:RESPONSE:RD:NoError:QUERY
+; edns version: 0 dnssec_ok: false z_flags: 0 max_payload: 1232 opts: 0
+; query
+;; _iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. IN TXT
+; answers 0
+; authorities 0
+; additionals 0
+
+2026-10-09T11:55:46.639567Z DEBUG endpoint{id=e7e9baf9af}:pkarr_publish: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:33711)
+2026-10-09T11:55:46.811597Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::xfer::dns_handle: querying: _iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. TXT
+2026-10-09T11:55:46.811692Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_resolver::name_server_pool: sending request: [Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }]
+2026-10-09T11:55:46.811728Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_resolver::name_server_pool: creating new shared lookup query=_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. IN TXT
+2026-10-09T11:55:46.811815Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_resolver::name_server_pool: setting retry_interval retry_interval=179.002ms ip=127.0.0.1
+2026-10-09T11:55:46.811877Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::xfer: enqueueing message:QUERY:[Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }]
+2026-10-09T11:55:46.812179Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::udp::udp_client_stream: final message final_message=; header 9500:QUERY:RD:NoError:QUERY
+; edns version: 0 dnssec_ok: false z_flags: 0 max_payload: 1232 opts: 0
+; query
+;; _iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. IN TXT
+
+2026-10-09T11:55:46.812281Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::udp::udp_stream: created socket successfully
+2026-10-09T11:55:46.812437Z DEBUG iroh::test_utils::dns_server: received query queries=[Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }] from=127.0.0.1:15998
+2026-10-09T11:55:46.812732Z DEBUG iroh::test_utils::dns_server: send reply reply=Message { metadata: Metadata { id: 9500, message_type: Response, op_code: Query, authoritative: false, truncation: false, recursion_desired: true, recursion_available: false, authentic_data: false, checking_disabled: false, response_code: NoError }, queries: [Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }], answers: [], authorities: [], additionals: [], signature: None, edns: Some(Edns { rcode_high: 0, version: 0, flags: EdnsFlags { dnssec_ok: false, z: 0 }, max_payload: 1232, options: OPT { options: [] } }) } from=127.0.0.1:15998
+2026-10-09T11:55:46.812914Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::udp::udp_client_stream: received message id: 9500
+2026-10-09T11:55:46.812989Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::error: response: ; header 9500:RESPONSE:RD:NoError:QUERY
+; edns version: 0 dnssec_ok: false z_flags: 0 max_payload: 1232 opts: 0
+; query
+;; _iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. IN TXT
+; answers 0
+; authorities 0
+; additionals 0
+
+2026-10-09T11:55:46.815628Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:captive-portal: reqwest::connect: starting new connection 'Some("127.0.0.1")'
+2026-10-09T11:55:46.815631Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: reqwest::connect: starting new connection 'Some("127.0.0.1")'
+2026-10-09T11:55:46.815697Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:captive-portal: hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:80
+2026-10-09T11:55:46.815725Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:34999
+2026-10-09T11:55:46.815830Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: hyper_util::client::legacy::connect::http: connected to 127.0.0.1:34999
+2026-10-09T11:55:46.815882Z DEBUG relay-http-serve: iroh_relay::server::http_server: connection opened from 127.0.0.1:38688
+2026-10-09T11:55:46.815894Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: rustls::client::hs: Resuming session
+2026-10-09T11:55:46.815929Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:captive-portal: iroh::net_report::reportgen: check_captive_portal failed: error sending request for url (http://127.0.0.1/generate_204)
+2026-10-09T11:55:46.816000Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38688}: iroh_relay::server::http_server: HTTPS: serve connection
+2026-10-09T11:55:46.816025Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38688}: iroh_relay::server::http_server: TLS[manual]: accept
+2026-10-09T11:55:46.816398Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38688}: rustls::server::hs: decided upon suite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.816963Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: rustls::client::hs: Using ciphersuite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.816997Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: rustls::client::tls13: Resuming using PSK
+2026-10-09T11:55:46.817251Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: rustls::client::tls13: TLS1.3 encrypted extensions: ServerExtensions { unknown_extensions: {}, .. }
+2026-10-09T11:55:46.817281Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: rustls::client::hs: ALPN protocol is None
+2026-10-09T11:55:46.817945Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: hyper_util::client::legacy::pool: pooling idle connection for ("https", 127.0.0.1:34999)
+2026-10-09T11:55:46.818091Z DEBUG endpoint{id=c2a9ee75cb}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: iroh::net_report::reportgen: probe finished report=Ok(Https(HttpsProbeReport { relay: RelayUrl("https://127.0.0.1:34999/"), latency: 2.582181ms }))
+2026-10-09T11:55:46.818203Z DEBUG rustls::common_state: Sending warning alert CloseNotify
+2026-10-09T11:55:46.818279Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::net_report: net_report generated report=Report { udp_v4: true, udp_v6: false, mapping_varies_by_dest_ipv4: None, mapping_varies_by_dest_ipv6: None, preferred_relay: Some(RelayUrl("https://127.0.0.1:34999/")), relay_latency: RelayLatencies { ipv4: {RelayUrl("https://127.0.0.1:34999/"): 8.506367ms}, ipv6: {}, https: {RelayUrl("https://127.0.0.1:34999/"): 2.582181ms} }, global_v4: Some(127.0.0.1:47837), global_v6: None, captive_portal: None } duration=204.235163ms
+2026-10-09T11:55:46.818321Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38688}: rustls::common_state: Sending warning alert CloseNotify
+2026-10-09T11:55:46.818343Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::socket: direct addr update done (Periodic)
+2026-10-09T11:55:46.818485Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::_events::direct_addrs: addrs={DirectAddr { addr: 127.0.0.1:47837, typ: Qad }, DirectAddr { addr: 192.168.0.100:47837, typ: Local }}
+2026-10-09T11:55:46.818514Z  INFO endpoint{id=c2a9ee75cb}:relay-actor: iroh::socket::transports::relay::actor: home is now relay https://127.0.0.1:34999/, was None
+2026-10-09T11:55:46.818558Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor: iroh::socket::transports::relay::actor: Adding relay connection url=RelayUrl("https://127.0.0.1:34999/")
+2026-10-09T11:55:46.818577Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::socket: scheduling periodic_stun to run in 21s
+2026-10-09T11:55:46.818635Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle in_event event=UpdatePeerData(PeerData(43b))
+2026-10-09T11:55:46.818663Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor: iroh::socket::transports::relay::actor: 0 active relay conns
+2026-10-09T11:55:46.818698Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor: iroh::socket::transports::relay::actor: 1 active relay conns: relay-https://127.0.0.1:34999/
+2026-10-09T11:55:46.818756Z DEBUG endpoint{id=c2a9ee75cb}:pkarr_publish: iroh::address_lookup::pkarr: Publish endpoint info to pkarr (info changed)
+2026-10-09T11:55:46.818783Z DEBUG endpoint{id=c2a9ee75cb}:pkarr_publish: iroh::address_lookup::pkarr: Publishing endpoint info to pkarr data=EndpointData { addrs: [Relay(https://127.0.0.1:34999/)], user_data: None } pkarr_relay=http://127.0.0.1:33711/pkarr
+2026-10-09T11:55:46.818856Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: iroh_relay::client: Dialing relay by websocket dial_url=wss://127.0.0.1:34999/relay
+2026-10-09T11:55:46.819061Z DEBUG relay-http-serve: iroh_relay::server::http_server: connection opened from 127.0.0.1:38696
+2026-10-09T11:55:46.819070Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: iroh_relay::client::tls: TCP stream connected server_addr=Ok(127.0.0.1:34999) local_addr=127.0.0.1:38696
+2026-10-09T11:55:46.819123Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::hs: No cached session for IpAddress(V4(Ipv4Addr([127, 0, 0, 1])))
+2026-10-09T11:55:46.819143Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::hs: Not resuming any session
+2026-10-09T11:55:46.819155Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38696}: iroh_relay::server::http_server: HTTPS: serve connection
+2026-10-09T11:55:46.819178Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38696}: iroh_relay::server::http_server: TLS[manual]: accept
+2026-10-09T11:55:46.819250Z DEBUG endpoint{id=c2a9ee75cb}:pkarr_publish: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:33711)
+2026-10-09T11:55:46.819423Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: iroh::_events::relay::home_changed: url=https://127.0.0.1:34999/ home_relay=true
+2026-10-09T11:55:46.819459Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38696}: rustls::server::hs: decided upon suite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.820301Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::hs: Using ciphersuite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.820359Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::tls13: Not resuming
+2026-10-09T11:55:46.820794Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::tls13: TLS1.3 encrypted extensions: ServerExtensions { unknown_extensions: {}, .. }
+2026-10-09T11:55:46.820833Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::hs: ALPN protocol is None
+2026-10-09T11:55:46.821425Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: iroh_relay::client: Using TLS key export for relay client authentication
+2026-10-09T11:55:46.827516Z DEBUG endpoint{id=c2a9ee75cb}:pkarr_publish: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:33711)
+2026-10-09T11:55:46.827987Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38696}:handler: iroh_relay::server::http_server: relay_connection upgraded
+2026-10-09T11:55:46.831426Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:captive-portal: reqwest::connect: starting new connection 'Some("127.0.0.1")'
+2026-10-09T11:55:46.831437Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: reqwest::connect: starting new connection 'Some("127.0.0.1")'
+2026-10-09T11:55:46.831495Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:captive-portal: hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:80
+2026-10-09T11:55:46.831518Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:34999
+2026-10-09T11:55:46.831669Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: hyper_util::client::legacy::connect::http: connected to 127.0.0.1:34999
+2026-10-09T11:55:46.831673Z DEBUG relay-http-serve: iroh_relay::server::http_server: connection opened from 127.0.0.1:38706
+2026-10-09T11:55:46.831733Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: rustls::client::hs: Resuming session
+2026-10-09T11:55:46.831748Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:captive-portal: iroh::net_report::reportgen: check_captive_portal failed: error sending request for url (http://127.0.0.1/generate_204)
+2026-10-09T11:55:46.831787Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38706}: iroh_relay::server::http_server: HTTPS: serve connection
+2026-10-09T11:55:46.831823Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38706}: iroh_relay::server::http_server: TLS[manual]: accept
+2026-10-09T11:55:46.832247Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38706}: rustls::server::hs: decided upon suite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.832831Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: rustls::client::hs: Using ciphersuite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.832866Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: rustls::client::tls13: Resuming using PSK
+2026-10-09T11:55:46.833113Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: rustls::client::tls13: TLS1.3 encrypted extensions: ServerExtensions { unknown_extensions: {}, .. }
+2026-10-09T11:55:46.833137Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: rustls::client::hs: ALPN protocol is None
+2026-10-09T11:55:46.833831Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: hyper_util::client::legacy::pool: pooling idle connection for ("https", 127.0.0.1:34999)
+2026-10-09T11:55:46.833972Z DEBUG endpoint{id=e7e9baf9af}:actor:reportgen-actor:run-probe{proto=Https delay=200ms relay=https://127.0.0.1:34999/}: iroh::net_report::reportgen: probe finished report=Ok(Https(HttpsProbeReport { relay: RelayUrl("https://127.0.0.1:34999/"), latency: 2.666506ms }))
+2026-10-09T11:55:46.834084Z DEBUG rustls::common_state: Sending warning alert CloseNotify
+2026-10-09T11:55:46.834148Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::net_report: net_report generated report=Report { udp_v4: true, udp_v6: false, mapping_varies_by_dest_ipv4: None, mapping_varies_by_dest_ipv6: None, preferred_relay: Some(RelayUrl("https://127.0.0.1:34999/")), relay_latency: RelayLatencies { ipv4: {RelayUrl("https://127.0.0.1:34999/"): 2.789927ms}, ipv6: {}, https: {RelayUrl("https://127.0.0.1:34999/"): 2.666506ms} }, global_v4: Some(127.0.0.1:50880), global_v6: None, captive_portal: None } duration=204.756819ms
+2026-10-09T11:55:46.834209Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::socket: direct addr update done (Periodic)
+2026-10-09T11:55:46.834258Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38706}: rustls::common_state: Sending warning alert CloseNotify
+2026-10-09T11:55:46.834362Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::_events::direct_addrs: addrs={DirectAddr { addr: 127.0.0.1:50880, typ: Qad }, DirectAddr { addr: 192.168.0.100:50880, typ: Local }}
+2026-10-09T11:55:46.834385Z  INFO endpoint{id=e7e9baf9af}:relay-actor: iroh::socket::transports::relay::actor: home is now relay https://127.0.0.1:34999/, was None
+2026-10-09T11:55:46.834419Z DEBUG endpoint{id=e7e9baf9af}:relay-actor: iroh::socket::transports::relay::actor: Adding relay connection url=RelayUrl("https://127.0.0.1:34999/")
+2026-10-09T11:55:46.834456Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::socket: scheduling periodic_stun to run in 25s
+2026-10-09T11:55:46.834504Z DEBUG endpoint{id=e7e9baf9af}:relay-actor: iroh::socket::transports::relay::actor: 0 active relay conns
+2026-10-09T11:55:46.834533Z DEBUG endpoint{id=e7e9baf9af}:relay-actor: iroh::socket::transports::relay::actor: 1 active relay conns: relay-https://127.0.0.1:34999/
+2026-10-09T11:55:46.834657Z DEBUG endpoint{id=e7e9baf9af}:pkarr_publish: iroh::address_lookup::pkarr: Publish endpoint info to pkarr (info changed)
+2026-10-09T11:55:46.834677Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: iroh_relay::client: Dialing relay by websocket dial_url=wss://127.0.0.1:34999/relay
+2026-10-09T11:55:46.834687Z DEBUG endpoint{id=e7e9baf9af}:pkarr_publish: iroh::address_lookup::pkarr: Publishing endpoint info to pkarr data=EndpointData { addrs: [Relay(https://127.0.0.1:34999/)], user_data: None } pkarr_relay=http://127.0.0.1:33711/pkarr
+2026-10-09T11:55:46.834738Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle in_event event=UpdatePeerData(PeerData(43b))
+2026-10-09T11:55:46.834887Z DEBUG relay-http-serve: iroh_relay::server::http_server: connection opened from 127.0.0.1:38710
+2026-10-09T11:55:46.834903Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: iroh_relay::client::tls: TCP stream connected server_addr=Ok(127.0.0.1:34999) local_addr=127.0.0.1:38710
+2026-10-09T11:55:46.834967Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38710}: iroh_relay::server::http_server: HTTPS: serve connection
+2026-10-09T11:55:46.834966Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::hs: No cached session for IpAddress(V4(Ipv4Addr([127, 0, 0, 1])))
+2026-10-09T11:55:46.834988Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38710}: iroh_relay::server::http_server: TLS[manual]: accept
+2026-10-09T11:55:46.834996Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::hs: Not resuming any session
+2026-10-09T11:55:46.835223Z DEBUG endpoint{id=e7e9baf9af}:pkarr_publish: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:33711)
+2026-10-09T11:55:46.835248Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: iroh::_events::relay::home_changed: url=https://127.0.0.1:34999/ home_relay=true
+2026-10-09T11:55:46.835261Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38696}:handler: iroh_relay::server::http_server: upgraded connection completed
+2026-10-09T11:55:46.835298Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38710}: rustls::server::hs: decided upon suite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.835354Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:connected: iroh::_events::relay::connected: url=https://127.0.0.1:34999/ home_relay=true
+2026-10-09T11:55:46.836010Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::hs: Using ciphersuite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.836045Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::tls13: Not resuming
+2026-10-09T11:55:46.836285Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::tls13: TLS1.3 encrypted extensions: ServerExtensions { unknown_extensions: {}, .. }
+2026-10-09T11:55:46.836309Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: rustls::client::hs: ALPN protocol is None
+2026-10-09T11:55:46.836582Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:connected: iroh_relay::ping_tracker: Sending ping to relay server. data=[157, 227, 185, 3, 206, 175, 135, 186]
+2026-10-09T11:55:46.836810Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:dialing: iroh_relay::client: Using TLS key export for relay client authentication
+2026-10-09T11:55:46.836896Z DEBUG endpoint{id=c2a9ee75cb}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:connected: iroh_relay::ping_tracker: Pong received from relay server data=[157, 227, 185, 3, 206, 175, 135, 186] rtt=315.603µs
+2026-10-09T11:55:46.837284Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38710}:handler: iroh_relay::server::http_server: relay_connection upgraded
+2026-10-09T11:55:46.842886Z DEBUG endpoint{id=e7e9baf9af}:pkarr_publish: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:33711)
+2026-10-09T11:55:46.844765Z DEBUG relay-http-serve:conn{peer=127.0.0.1:38710}:handler: iroh_relay::server::http_server: upgraded connection completed
+2026-10-09T11:55:46.844878Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:connected: iroh::_events::relay::connected: url=https://127.0.0.1:34999/ home_relay=true
+2026-10-09T11:55:46.846086Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:connected: iroh_relay::ping_tracker: Sending ping to relay server. data=[68, 200, 60, 75, 128, 3, 90, 100]
+2026-10-09T11:55:46.846472Z DEBUG endpoint{id=e7e9baf9af}:relay-actor:active-relay{url=https://127.0.0.1:34999/}:connected: iroh_relay::ping_tracker: Pong received from relay server data=[68, 200, 60, 75, 128, 3, 90, 100] rtt=388.003µs
+2026-10-09T11:55:46.919778Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::xfer::dns_handle: querying: _iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. TXT
+2026-10-09T11:55:46.919871Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_resolver::name_server_pool: sending request: [Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }]
+2026-10-09T11:55:46.919910Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_resolver::name_server_pool: creating new shared lookup query=_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. IN TXT
+2026-10-09T11:55:46.919983Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_resolver::name_server_pool: setting retry_interval retry_interval=358.005ms ip=127.0.0.1
+2026-10-09T11:55:46.920029Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::xfer: enqueueing message:QUERY:[Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }]
+2026-10-09T11:55:46.920314Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::udp::udp_client_stream: final message final_message=; header 58960:QUERY:RD:NoError:QUERY
+; edns version: 0 dnssec_ok: false z_flags: 0 max_payload: 1232 opts: 0
+; query
+;; _iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. IN TXT
+
+2026-10-09T11:55:46.920418Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::udp::udp_stream: created socket successfully
+2026-10-09T11:55:46.920544Z DEBUG iroh::test_utils::dns_server: received query queries=[Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }] from=127.0.0.1:51690
+2026-10-09T11:55:46.920921Z DEBUG iroh::test_utils::dns_server: send reply reply=Message { metadata: Metadata { id: 58960, message_type: Response, op_code: Query, authoritative: false, truncation: false, recursion_desired: true, recursion_available: false, authentic_data: false, checking_disabled: false, response_code: NoError }, queries: [Query { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test."), query_type: TXT, query_class: IN }], answers: [Record { name: Name("_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test"), dns_class: IN, ttl: 30, data: TXT(TXT { txt_data: [[114, 101, 108, 97, 121, 61, 104, 116, 116, 112, 115, 58, 47, 47, 49, 50, 55, 46, 48, 46, 48, 46, 49, 58, 51, 52, 57, 57, 57, 47]] }) }], authorities: [], additionals: [], signature: None, edns: Some(Edns { rcode_high: 0, version: 0, flags: EdnsFlags { dnssec_ok: false, z: 0 }, max_payload: 1232, options: OPT { options: [] } }) } from=127.0.0.1:51690
+2026-10-09T11:55:46.921163Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::udp::udp_client_stream: received message id: 58960
+2026-10-09T11:55:46.921240Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::error: response: ; header 58960:RESPONSE:RD:NoError:QUERY
+; edns version: 0 dnssec_ok: false z_flags: 0 max_payload: 1232 opts: 0
+; query
+;; _iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. IN TXT
+; answers 1
+_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. 30 IN TXT relay=https://127.0.0.1:34999/
+; authorities 0
+; additionals 0
+
+2026-10-09T11:55:46.921376Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: hickory_net::error: response: ; header 58960:RESPONSE:RD:NoError:QUERY
+; edns version: 0 dnssec_ok: false z_flags: 0 max_payload: 1232 opts: 0
+; query
+;; _iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. IN TXT
+; answers 1
+_iroh.h9w5i6pxg1gekqw7juodzntkjkewta51hakn9xkbb463azxk9j9o.dns.iroh.test. 30 IN TXT relay=https://127.0.0.1:34999/
+; authorities 0
+; additionals 0
+
+2026-10-09T11:55:46.921647Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=ResolveRemote(..)}:DnsAddressLookup{lookup_id=e7e9baf9af origin_domain=dns.iroh.test}: iroh::address_lookup::dns: DNS lookup success info=EndpointInfo { endpoint_id: PublicKey(e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f), data: EndpointData { addrs: [Relay(https://127.0.0.1:34999/)], user_data: None } }
+2026-10-09T11:55:46.921978Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}: rustls::client::hs: No cached session for DnsName("svkrludf6i68aekt9jg3n2ha9a8khorisoa2vfa11quponfav9vg.iroh.invalid")
+2026-10-09T11:55:46.922007Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}: rustls::client::hs: Not resuming any session
+2026-10-09T11:55:46.923740Z DEBUG iroh::_events::conn::incoming: remote_addr=Relay { url: RelayUrl("https://127.0.0.1:34999/"), endpoint_id: PublicKey(c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e) }
+2026-10-09T11:55:46.924137Z DEBUG router.accept{me=e7e9baf9af}: rustls::server::hs: decided upon suite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.924585Z DEBUG router.accept{me=e7e9baf9af}: rustls::server::hs: Chosen ALPN protocol ProtocolName(69726f682d6578616d706c652f6563686f2f30)
+2026-10-09T11:55:46.925384Z DEBUG router.accept{me=e7e9baf9af}: noq_proto::connection: multipath negotiated initial_max_path_id=7
+2026-10-09T11:55:46.925414Z DEBUG router.accept{me=e7e9baf9af}: noq_proto::connection: n0's nat traversal negotiated max_remote_addresses=32 max_local_addresses=32
+2026-10-09T11:55:46.926789Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection: ECN not acknowledged by peer
+2026-10-09T11:55:46.926901Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: rustls::client::hs: Using ciphersuite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.926943Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: rustls::client::tls13: Not resuming
+2026-10-09T11:55:46.927363Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: rustls::client::tls13: TLS1.3 encrypted extensions: ServerExtensions { server_name_ack: (), selected_protocol: SingleProtocolName(ProtocolName(69726f682d6578616d706c652f6563686f2f30)), client_certificate_type: RawPublicKey, server_certificate_type: RawPublicKey, transport_parameters: 0104800075300e010500147219fef3cfb5acba8820e549ebbe4e4351090ff80604801312d0030245c00704801312d00f088426f602fe29a1dc0504801312d00210773d2c3ad19fa537714fc9538d2867523e01070902406420048000ffff0408ffffffffffffffffc0000000ff04de1b0243e8d249018b85d5988500c0003d7f91120401012008024064, unknown_extensions: {}, .. }
+2026-10-09T11:55:46.927425Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: rustls::client::hs: ALPN protocol is Some(b"iroh-example/echo/0")
+2026-10-09T11:55:46.927457Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: rustls::client::tls13: Got CertificateRequest CertificateRequestPayloadTls13 { context: , extensions: CertificateRequestExtensions { signature_algorithms: [ED25519], .. } }
+2026-10-09T11:55:46.927484Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: rustls::client::common: Attempting client auth
+2026-10-09T11:55:46.937407Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection: multipath negotiated initial_max_path_id=7
+2026-10-09T11:55:46.937483Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection: n0's nat traversal negotiated max_remote_addresses=32 max_local_addresses=32
+2026-10-09T11:55:46.938159Z DEBUG iroh::_events::conn::connected: conn_id=131490625150272 side=Client remote_id=e7e9baf9af alpn=iroh-example/echo/0
+2026-10-09T11:55:46.938480Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=AddConnection(131490625150272)}: iroh::_events::path::open: remote=e7e9baf9af conn_id=131490625150272 path_id=0 network_path=Relay(https://127.0.0.1:34999/, e7e9baf9af)
+2026-10-09T11:55:46.938556Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=AddConnection(131490625150272)}: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490625150272 path_id=0 network_path=Relay(https://127.0.0.1:34999/, e7e9baf9af) status=Backup prev_status=Available
+2026-10-09T11:55:46.938703Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=AddConnection(131490625150272)}:do_holepunching: iroh::_events::qnt::init: remote=e7e9baf9af local_candidates={127.0.0.1:47837, 192.168.0.100:47837} remote_candidates={}
+2026-10-09T11:55:46.938809Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=AddConnection(131490625150272)}:select_path: iroh::_events::path::selected: remote=e7e9baf9af network_path=Relay(https://127.0.0.1:34999/, e7e9baf9af) prev_network_path=None
+2026-10-09T11:55:46.938882Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=AddConnection(131490625150272)}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490625150272 path_id=0 network_path=Relay(https://127.0.0.1:34999/, e7e9baf9af) status=Available prev_status=Backup
+2026-10-09T11:55:46.939028Z DEBUG iroh::endpoint: Connection established. me=c2a9ee75cb remote=e7e9baf9af alpn=iroh-example/echo/0
+2026-10-09T11:55:46.939278Z DEBUG router.accept{me=e7e9baf9af alpn="iroh-example/echo/0"}:drive{id=1}: noq_proto::connection: ECN not acknowledged by peer
+2026-10-09T11:55:46.946977Z DEBUG router.accept{me=e7e9baf9af alpn="iroh-example/echo/0"}:drive{id=1}: noq_proto::connection::paths: remote changed path status status=Available seq=2
+2026-10-09T11:55:46.947736Z DEBUG router.accept{me=e7e9baf9af alpn="iroh-example/echo/0"}: iroh::_events::conn::connected: conn_id=131489551360368 side=Server remote_id=c2a9ee75cb alpn=iroh-example/echo/0
+2026-10-09T11:55:46.948451Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_message{msg=AddConnection(131489551360368)}: iroh::_events::path::open: remote=c2a9ee75cb conn_id=131489551360368 path_id=0 network_path=Relay(https://127.0.0.1:34999/, c2a9ee75cb)
+2026-10-09T11:55:46.948561Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_message{msg=AddConnection(131489551360368)}: iroh::_events::path::set_status: remote=c2a9ee75cb conn_id=131489551360368 path_id=0 network_path=Relay(https://127.0.0.1:34999/, c2a9ee75cb) status=Backup prev_status=Available
+2026-10-09T11:55:46.948681Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_message{msg=AddConnection(131489551360368)}:select_path: iroh::_events::path::selected: remote=c2a9ee75cb network_path=Relay(https://127.0.0.1:34999/, c2a9ee75cb) prev_network_path=None
+2026-10-09T11:55:46.948726Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_message{msg=AddConnection(131489551360368)}:select_path: iroh::_events::path::set_status: remote=c2a9ee75cb conn_id=131489551360368 path_id=0 network_path=Relay(https://127.0.0.1:34999/, c2a9ee75cb) status=Available prev_status=Backup
+2026-10-09T11:55:46.948867Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}: iroh::socket::remote_map::remote_state: connections are not good enough, triggering holepunching
+2026-10-09T11:55:46.949266Z DEBUG router.accept{me=e7e9baf9af alpn="iroh-example/echo/0" remote=c2a9ee75cb}: rust_api::network::control::handler: [CONTROL] received chat invite: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, members=2
+2026-10-09T11:55:46.949823Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection::paths: remote changed path status status=Available seq=2
+2026-10-09T11:55:46.950113Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:do_holepunching: iroh::_events::qnt::init: remote=e7e9baf9af local_candidates={127.0.0.1:47837, 192.168.0.100:47837} remote_candidates={127.0.0.1:50880, 192.168.0.100:50880}
+2026-10-09T11:55:46.951412Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection: path added validated=false path_id=1 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:50880)
+2026-10-09T11:55:46.951472Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection: Opened NAT traversal path path_id=1 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:50880) new_path=true
+2026-10-09T11:55:46.951713Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection: path added validated=false path_id=2 network_path=(local: 192.168.0.100, remote: [::ffff:192.168.0.100]:50880)
+2026-10-09T11:55:46.951758Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection: Opened NAT traversal path path_id=2 network_path=(local: 192.168.0.100, remote: [::ffff:192.168.0.100]:50880) new_path=true
+2026-10-09T11:55:46.952344Z DEBUG router.accept{me=e7e9baf9af alpn="iroh-example/echo/0" remote=c2a9ee75cb}:drive{id=1}: noq_proto::connection: path added validated=false path_id=1 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837)
+2026-10-09T11:55:46.952633Z DEBUG router.accept{me=e7e9baf9af alpn="iroh-example/echo/0" remote=c2a9ee75cb}:drive{id=1}: noq_proto::connection: path added validated=false path_id=2 network_path=(local: 192.168.0.100, remote: [::ffff:192.168.0.100]:47837)
+2026-10-09T11:55:46.953774Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection: Opened NAT traversal path path_id=1 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:50880) new_path=false
+2026-10-09T11:55:46.954061Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection: Opened NAT traversal path path_id=2 network_path=(local: 192.168.0.100, remote: [::ffff:192.168.0.100]:50880) new_path=false
+2026-10-09T11:55:46.955881Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490625150272) event=Ok(Established { id: PathId(1) })}: iroh::_events::path::open: remote=e7e9baf9af conn_id=131490625150272 path_id=1 network_path=Ip(127.0.0.1->127.0.0.1:50880)
+2026-10-09T11:55:46.955992Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490625150272) event=Ok(Established { id: PathId(1) })}:select_path: iroh::_events::path::selected: remote=e7e9baf9af network_path=Ip(127.0.0.1->127.0.0.1:50880) prev_network_path=Relay(https://127.0.0.1:34999/, e7e9baf9af)
+2026-10-09T11:55:46.956031Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490625150272) event=Ok(Established { id: PathId(1) })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490625150272 path_id=0 network_path=Relay(https://127.0.0.1:34999/, e7e9baf9af) status=Backup prev_status=Available
+2026-10-09T11:55:46.956062Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490625150272) event=Ok(Established { id: PathId(1) })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490625150272 path_id=1 network_path=Ip(127.0.0.1->127.0.0.1:50880) status=Available prev_status=Backup
+2026-10-09T11:55:46.956163Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490625150272) event=Ok(Established { id: PathId(2) })}: iroh::_events::path::open: remote=e7e9baf9af conn_id=131490625150272 path_id=2 network_path=Ip(192.168.0.100->192.168.0.100:50880)
+2026-10-09T11:55:46.956358Z  INFO rust_api::network::chat::session: [CHAT-SESSION] subscribing to topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534 with 1 bootstrap peers
+2026-10-09T11:55:46.956416Z DEBUG rust_api::network::chat::session: [CHAT-SESSION] topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534 bootstrap peers=[c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e]
+2026-10-09T11:55:46.956527Z  INFO rust_api::network::chat::sessions: [CHAT-SESSIONS] added chat session for topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, total_sessions=1
+2026-10-09T11:55:46.956570Z  INFO router.accept{me=e7e9baf9af alpn="iroh-example/echo/0" remote=c2a9ee75cb}: rust_api::network::control::handler: [CONTROL] chat invite accepted and session added: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534
+2026-10-09T11:55:46.956673Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle in_event event=Command(TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), Join([PublicKey(c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e)]))
+2026-10-09T11:55:46.956793Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle out_event event=SendMessage(PublicKey(c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e), Message { topic: TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), message: Swarm(Join(Some(PeerData(43b)))) })
+2026-10-09T11:55:46.956844Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: start to dial peer=c2a9ee75cb
+2026-10-09T11:55:46.957030Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}: iroh::_events::conn::connecting: remote_id=c2a9ee75cb alpn=/iroh-gossip/1
+2026-10-09T11:55:46.957064Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}: iroh::endpoint: connecting relay_url=None ip_addresses=[]
+2026-10-09T11:55:46.957239Z DEBUG router.accept{me=e7e9baf9af alpn="iroh-example/echo/0" remote=c2a9ee75cb}:drive{id=1}: noq_proto::connection::paths: remote changed path status status=Backup seq=3
+2026-10-09T11:55:46.957275Z DEBUG router.accept{me=e7e9baf9af alpn="iroh-example/echo/0" remote=c2a9ee75cb}:drive{id=1}: noq_proto::connection::paths: remote changed path status status=Available seq=2
+2026-10-09T11:55:46.957298Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490625150272) event=Ok(Abandoned { id: PathId(2), reason: ApplicationClosed { error_code: 62 } })}: iroh::_events::path::abandoned: remote=e7e9baf9af conn_id=131490625150272 path_id=2 network_path=Ip(192.168.0.100->192.168.0.100:50880) reason=ApplicationClosed { error_code: 62 }
+2026-10-09T11:55:46.957828Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489551360368) event=Ok(Established { id: PathId(1) })}: iroh::_events::path::open: remote=c2a9ee75cb conn_id=131489551360368 path_id=1 network_path=Ip(127.0.0.1->127.0.0.1:47837)
+2026-10-09T11:55:46.957889Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489551360368) event=Ok(Established { id: PathId(1) })}: iroh::_events::path::set_status: remote=c2a9ee75cb conn_id=131489551360368 path_id=1 network_path=Ip(127.0.0.1->127.0.0.1:47837) status=Backup prev_status=Available
+2026-10-09T11:55:46.958234Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489551360368) event=Ok(Established { id: PathId(1) })}:select_path: iroh::_events::path::selected: remote=c2a9ee75cb network_path=Ip(127.0.0.1->127.0.0.1:47837) prev_network_path=Relay(https://127.0.0.1:34999/, c2a9ee75cb)
+2026-10-09T11:55:46.958291Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489551360368) event=Ok(Established { id: PathId(1) })}:select_path: iroh::_events::path::set_status: remote=c2a9ee75cb conn_id=131489551360368 path_id=0 network_path=Relay(https://127.0.0.1:34999/, c2a9ee75cb) status=Backup prev_status=Available
+2026-10-09T11:55:46.958573Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489551360368) event=Ok(Established { id: PathId(1) })}:select_path: iroh::_events::path::set_status: remote=c2a9ee75cb conn_id=131489551360368 path_id=1 network_path=Ip(127.0.0.1->127.0.0.1:47837) status=Available prev_status=Backup
+2026-10-09T11:55:46.958841Z DEBUG connect{me=c2a9ee75cb alpn=iroh-example/echo/0 remote=e7e9baf9af}:drive{id=1}: noq_proto::connection::paths: remote changed path status status=Backup seq=1
+2026-10-09T11:55:46.959111Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489551360368) event=Ok(Established { id: PathId(2) })}: iroh::_events::path::open: remote=c2a9ee75cb conn_id=131489551360368 path_id=2 network_path=Ip(192.168.0.100->192.168.0.100:47837)
+2026-10-09T11:55:46.959181Z  INFO rust_api::network::control::invite_delivery: [INVITES] invite accepted: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, target=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f
+2026-10-09T11:55:46.959201Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}: iroh::_events::conn::closed: conn_id=131490625150272 remote_id=e7e9baf9af reason=LocallyClosed
+2026-10-09T11:55:46.959302Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489551360368) event=Ok(Established { id: PathId(2) })}: iroh::_events::path::set_status: remote=c2a9ee75cb conn_id=131489551360368 path_id=2 network_path=Ip(192.168.0.100->192.168.0.100:47837) status=Backup prev_status=Available
+2026-10-09T11:55:46.959444Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}: rustls::client::hs: No cached session for DnsName("oakustebk6n1h1rt0decgr0cruh8d4nqss6t4b71sl4hvm767tn0.iroh.invalid")
+2026-10-09T11:55:46.959479Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}: rustls::client::hs: Not resuming any session
+2026-10-09T11:55:46.959468Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489551360368) event=Ok(Abandoned { id: PathId(2), reason: RemoteAbandoned { error_code: 62 } })}: iroh::_events::path::abandoned: remote=c2a9ee75cb conn_id=131489551360368 path_id=2 network_path=Ip(192.168.0.100->192.168.0.100:47837) reason=RemoteAbandoned { error_code: 62 }
+2026-10-09T11:55:46.959645Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}: iroh::_events::conn::closed: conn_id=131489551360368 remote_id=c2a9ee75cb reason=LocallyClosed
+2026-10-09T11:55:46.960079Z DEBUG rust_api::network::control::invite_delivery: [INVITES] marked member joined: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, member=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f
+2026-10-09T11:55:46.960155Z DEBUG rust_api::network::application::service: [NW-SERVICE] invite delivery requested for topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534
+2026-10-09T11:55:46.960185Z  INFO core_instance: [TEST] created chat: 9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534
+2026-10-09T11:55:46.960409Z DEBUG core_instance: [TEST] Alice chats: [TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534)]
+2026-10-09T11:55:46.960429Z  INFO core_instance: [TEST] Alice receives chat: condition met
+2026-10-09T11:55:46.960520Z DEBUG iroh::_events::conn::incoming: remote_addr=Ip(192.168.0.100:50880)
+2026-10-09T11:55:46.960658Z DEBUG core_instance: [TEST] Bob chats: [TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534)]
+2026-10-09T11:55:46.960679Z  INFO core_instance: [TEST] Bob receives chat: condition met
+2026-10-09T11:55:46.960686Z  INFO core_instance: [TEST] both nodes have chat
+2026-10-09T11:55:46.960693Z  INFO core_instance: [TEST] sending Alice message
+2026-10-09T11:55:46.960709Z DEBUG rust_api::network::application::service: [NW-SERVICE] send_message: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sent_at=1791546946960, content_len=16
+2026-10-09T11:55:46.960727Z DEBUG rust_api::network::chat::sessions: [CHAT-SESSIONS] request_send_message: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sent_at=1791546946960, content_len=16
+2026-10-09T11:55:46.960788Z DEBUG rust_api::network::chat::sessions: [CHAT-SESSIONS] command SendMessage: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sent_at=1791546946960, content_len=16, active_sessions=1
+2026-10-09T11:55:46.960822Z DEBUG rust_api::network::chat::session: [CHAT-SESSION] send start: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sender=c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e, sent_at=1791546946960, content_len=16
+2026-10-09T11:55:46.960911Z DEBUG router.accept{me=c2a9ee75cb}: rustls::server::hs: decided upon suite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.961170Z DEBUG rust_api::network::chat::session: [CHAT-SESSION] gossip broadcast complete: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sender=c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e
+2026-10-09T11:55:46.961206Z DEBUG rust_api::network::persistence::sessions: [SESSION-STORE] record_message start: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sender=c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e, sent_at=1791546946960, content_len=16
+2026-10-09T11:55:46.961304Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle command topic=TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534) key=Key(0) command=Some(Broadcast(Bytes(88)))
+2026-10-09T11:55:46.961343Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle in_event event=Command(TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), Broadcast(<88b>, Swarm))
+2026-10-09T11:55:46.961487Z DEBUG router.accept{me=c2a9ee75cb}: rustls::server::hs: Chosen ALPN protocol ProtocolName(2f69726f682d676f737369702f31)
+2026-10-09T11:55:46.961967Z DEBUG router.accept{me=c2a9ee75cb}: noq_proto::connection: multipath negotiated initial_max_path_id=7
+2026-10-09T11:55:46.961993Z DEBUG router.accept{me=c2a9ee75cb}: noq_proto::connection: n0's nat traversal negotiated max_remote_addresses=32 max_local_addresses=32
+2026-10-09T11:55:46.962008Z DEBUG rust_api::network::persistence::sessions: [SESSION-STORE] record_message done: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sender=c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e, sent_at=1791546946960
+2026-10-09T11:55:46.962044Z DEBUG rust_api::network::chat::session: [CHAT-SESSION] send persisted locally: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sender=c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e, sent_at=1791546946960
+2026-10-09T11:55:46.962091Z DEBUG rust_api::network::application::service: [NW-SERVICE] send_message queued to chat session: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534
+2026-10-09T11:55:46.962116Z  INFO core_instance: [TEST] sending Bob message
+2026-10-09T11:55:46.962128Z DEBUG rust_api::network::application::service: [NW-SERVICE] send_message: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sent_at=1791546946962, content_len=14
+2026-10-09T11:55:46.962138Z DEBUG rust_api::network::chat::sessions: [CHAT-SESSIONS] request_send_message: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sent_at=1791546946962, content_len=14
+2026-10-09T11:55:46.962194Z DEBUG rust_api::network::chat::sessions: [CHAT-SESSIONS] command SendMessage: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sent_at=1791546946962, content_len=14, active_sessions=1
+2026-10-09T11:55:46.962230Z DEBUG rust_api::network::chat::session: [CHAT-SESSION] send start: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sender=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f, sent_at=1791546946962, content_len=14
+2026-10-09T11:55:46.962545Z DEBUG rust_api::network::chat::session: [CHAT-SESSION] gossip broadcast complete: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sender=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f
+2026-10-09T11:55:46.962557Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: rustls::client::hs: Using ciphersuite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:46.962575Z DEBUG rust_api::network::persistence::sessions: [SESSION-STORE] record_message start: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sender=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f, sent_at=1791546946962, content_len=14
+2026-10-09T11:55:46.962603Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: rustls::client::tls13: Not resuming
+2026-10-09T11:55:46.962659Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle command topic=TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534) key=Key(0) command=Some(Broadcast(Bytes(86)))
+2026-10-09T11:55:46.962699Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle in_event event=Command(TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), Broadcast(<86b>, Swarm))
+2026-10-09T11:55:46.963163Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: rustls::client::tls13: TLS1.3 encrypted extensions: ServerExtensions { server_name_ack: (), selected_protocol: SingleProtocolName(ProtocolName(2f69726f682d676f737369702f31)), client_certificate_type: RawPublicKey, server_certificate_type: RawPublicKey, transport_parameters: c0003d7f911204010120090240640f0823daa2a060244ddd00141f8bb7529ba76df5d2d8cb4f2b3aef234c11bc1520048000ffffc0000000ff04de1b0243e8080240640704801312d00604801312d00e01050408ffffffffffffffffd299b163e3396a300502495ed8d40104800075300504801312d00210c73e0ec8ef49c9a024bf7493b6deb548030245c03e0107, unknown_extensions: {}, .. }
+2026-10-09T11:55:46.963251Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: rustls::client::hs: ALPN protocol is Some(b"/iroh-gossip/1")
+2026-10-09T11:55:46.963295Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: rustls::client::tls13: Got CertificateRequest CertificateRequestPayloadTls13 { context: , extensions: CertificateRequestExtensions { signature_algorithms: [ED25519], .. } }
+2026-10-09T11:55:46.963331Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: rustls::client::common: Attempting client auth
+2026-10-09T11:55:46.963359Z DEBUG rust_api::network::persistence::sessions: [SESSION-STORE] record_message done: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sender=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f, sent_at=1791546946962
+2026-10-09T11:55:46.963393Z DEBUG rust_api::network::chat::session: [CHAT-SESSION] send persisted locally: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, sender=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f, sent_at=1791546946962
+2026-10-09T11:55:46.963431Z DEBUG rust_api::network::application::service: [NW-SERVICE] send_message queued to chat session: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534
+2026-10-09T11:55:46.963665Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:46.971143Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: multipath negotiated initial_max_path_id=7
+2026-10-09T11:55:46.971208Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: n0's nat traversal negotiated max_remote_addresses=32 max_local_addresses=32
+2026-10-09T11:55:46.971668Z DEBUG gossip{me=e7e9baf9af}: iroh::_events::conn::connected: conn_id=131489954049184 side=Client remote_id=c2a9ee75cb alpn=/iroh-gossip/1
+2026-10-09T11:55:46.972386Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_message{msg=AddConnection(131489954049184)}: iroh::_events::path::open: remote=c2a9ee75cb conn_id=131489954049184 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:47837)
+2026-10-09T11:55:46.972459Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_message{msg=AddConnection(131489954049184)}: iroh::_events::path::set_status: remote=c2a9ee75cb conn_id=131489954049184 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:47837) status=Backup prev_status=Available
+2026-10-09T11:55:46.972575Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_message{msg=AddConnection(131489954049184)}:do_holepunching: iroh::_events::qnt::init: remote=c2a9ee75cb local_candidates={127.0.0.1:50880, 192.168.0.100:50880} remote_candidates={}
+2026-10-09T11:55:46.972646Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_message{msg=AddConnection(131489954049184)}:select_path: iroh::_events::path::selected: remote=c2a9ee75cb network_path=Ip(192.168.0.100->192.168.0.100:47837) prev_network_path=None
+2026-10-09T11:55:46.972690Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_message{msg=AddConnection(131489954049184)}:select_path: iroh::_events::path::set_status: remote=c2a9ee75cb conn_id=131489954049184 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:47837) status=Available prev_status=Backup
+2026-10-09T11:55:46.972841Z DEBUG gossip{me=e7e9baf9af}: iroh::endpoint: Connection established. me=e7e9baf9af remote=c2a9ee75cb alpn=/iroh-gossip/1
+2026-10-09T11:55:46.972980Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: dial successful peer=c2a9ee75cb
+2026-10-09T11:55:46.973130Z DEBUG gossip{me=e7e9baf9af}:conn{peer=c2a9ee75cb}: iroh_gossip::net: connection established origin=Dial
+2026-10-09T11:55:46.973249Z DEBUG gossip{me=e7e9baf9af}:conn{peer=c2a9ee75cb}:send: iroh_gossip::net::util: stream opened topic=9fb0deb046
+2026-10-09T11:55:46.979519Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1"}:drive{id=2}: noq_proto::connection::paths: remote changed path status status=Available seq=2
+2026-10-09T11:55:46.979586Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1"}:drive{id=2}: noq_proto::connection: received PATH_CIDS_BLOCKED path_id=1 next_seq=0
+2026-10-09T11:55:46.980127Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1"}: iroh::_events::conn::connected: conn_id=131490490921584 side=Server remote_id=e7e9baf9af alpn=/iroh-gossip/1
+2026-10-09T11:55:46.980284Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1"}:drive{id=2}: noq_proto::connection::packet_crypto: dropping unexpected packet encryption_level=Some(Handshake) bytes=227
+2026-10-09T11:55:46.980320Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1"}:drive{id=2}: noq_proto::connection::packet_crypto: dropping unexpected packet encryption_level=Some(Handshake) bytes=227
+2026-10-09T11:55:46.980741Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=AddConnection(131490490921584)}: iroh::_events::path::open: remote=e7e9baf9af conn_id=131490490921584 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:50880)
+2026-10-09T11:55:46.980814Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=AddConnection(131490490921584)}: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:50880) status=Backup prev_status=Available
+2026-10-09T11:55:46.980903Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=AddConnection(131490490921584)}:select_path: iroh::_events::path::selected: remote=e7e9baf9af network_path=Ip(192.168.0.100->192.168.0.100:50880) prev_network_path=None
+2026-10-09T11:55:46.980969Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_message{msg=AddConnection(131490490921584)}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:50880) status=Available prev_status=Backup
+2026-10-09T11:55:46.981486Z DEBUG gossip{me=c2a9ee75cb}:conn{peer=e7e9baf9af}: iroh_gossip::net: connection established origin=Accept
+2026-10-09T11:55:46.982345Z DEBUG gossip{me=c2a9ee75cb}:conn{peer=e7e9baf9af}:recv: iroh_gossip::net::util: stream opened topic=9fb0deb046
+2026-10-09T11:55:46.982376Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection::paths: remote changed path status status=Available seq=2
+2026-10-09T11:55:46.982576Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle in_event event=RecvMessage(PublicKey(e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f), Message { topic: TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), message: Swarm(Join(Some(PeerData(43b)))) })
+2026-10-09T11:55:46.982703Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::proto::hyparview: add to active view other=PublicKey(e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f)
+2026-10-09T11:55:46.982764Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle out_event event=PeerData(PublicKey(e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f), PeerData(43b))
+2026-10-09T11:55:46.982878Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: add known addrs: AddrInfo { relay_url: Some(RelayUrl("https://127.0.0.1:34999/")), direct_addresses: {127.0.0.1:50880, 192.168.0.100:50880} } peer=PublicKey(e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f)
+2026-10-09T11:55:46.982952Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle out_event event=EmitEvent(TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), NeighborUp(PublicKey(e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f)))
+2026-10-09T11:55:46.983000Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle out_event event=SendMessage(PublicKey(e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f), Message { topic: TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), message: Swarm(Neighbor(Neighbor { priority: High, data: Some(PeerData(43b)) })) })
+2026-10-09T11:55:46.983141Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:do_holepunching: iroh::_events::qnt::init: remote=c2a9ee75cb local_candidates={127.0.0.1:50880, 192.168.0.100:50880} remote_candidates={127.0.0.1:47837, 192.168.0.100:47837}
+2026-10-09T11:55:46.983157Z  INFO rust_api::network::chat::session: [CHAT-SESSION] neighbor up: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, peer=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f
+2026-10-09T11:55:46.984253Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=0 network_path=(local: 192.168.0.100, remote: [::ffff:192.168.0.100]:47837) new_path=false
+2026-10-09T11:55:46.984496Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: path added validated=false path_id=1 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837)
+2026-10-09T11:55:46.984530Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=1 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837) new_path=true
+2026-10-09T11:55:46.985225Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=1 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837) new_path=false
+2026-10-09T11:55:46.985944Z DEBUG gossip{me=c2a9ee75cb}:conn{peer=e7e9baf9af}:send: iroh_gossip::net::util: stream opened topic=9fb0deb046
+2026-10-09T11:55:46.986018Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1" remote=e7e9baf9af}:drive{id=2}: noq_proto::connection: path added validated=false path_id=1 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:50880)
+2026-10-09T11:55:46.986629Z DEBUG gossip{me=e7e9baf9af}:conn{peer=c2a9ee75cb}:recv: iroh_gossip::net::util: stream opened topic=9fb0deb046
+2026-10-09T11:55:46.987819Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489954049184) event=Ok(Established { id: PathId(1) })}: iroh::_events::path::open: remote=c2a9ee75cb conn_id=131489954049184 path_id=1 network_path=Ip(127.0.0.1->127.0.0.1:47837)
+2026-10-09T11:55:46.987911Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle in_event event=RecvMessage(PublicKey(c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e), Message { topic: TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), message: Swarm(Neighbor(Neighbor { priority: High, data: Some(PeerData(43b)) })) })
+2026-10-09T11:55:46.988071Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::proto::hyparview: add to active view other=PublicKey(c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e)
+2026-10-09T11:55:46.988152Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle out_event event=PeerData(PublicKey(c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e), PeerData(43b))
+2026-10-09T11:55:46.988289Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: add known addrs: AddrInfo { relay_url: Some(RelayUrl("https://127.0.0.1:34999/")), direct_addresses: {127.0.0.1:47837, 192.168.0.100:47837} } peer=PublicKey(c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e)
+2026-10-09T11:55:46.988358Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489954049184) event=Ok(Abandoned { id: PathId(1), reason: ApplicationClosed { error_code: 62 } })}: iroh::_events::path::abandoned: remote=c2a9ee75cb conn_id=131489954049184 path_id=1 network_path=Ip(127.0.0.1->127.0.0.1:47837) reason=ApplicationClosed { error_code: 62 }
+2026-10-09T11:55:46.988392Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle out_event event=EmitEvent(TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), NeighborUp(PublicKey(c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e)))
+2026-10-09T11:55:46.988485Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle out_event event=SendMessage(PublicKey(c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e), Message { topic: TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), message: Swarm(Neighbor(Neighbor { priority: High, data: Some(PeerData(43b)) })) })
+2026-10-09T11:55:46.988576Z  INFO rust_api::network::chat::session: [CHAT-SESSION] neighbor up: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, peer=c2a9ee75cba1ae18877d035cc86c0cdfa28692fae70dd22ce1e5491fd8e63f6e
+2026-10-09T11:55:46.988802Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(1) })}: iroh::_events::path::open: remote=e7e9baf9af conn_id=131490490921584 path_id=1 network_path=Ip(127.0.0.1->127.0.0.1:50880)
+2026-10-09T11:55:46.988867Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(1) })}: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=1 network_path=Ip(127.0.0.1->127.0.0.1:50880) status=Backup prev_status=Available
+2026-10-09T11:55:46.989028Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Abandoned { id: PathId(1), reason: RemoteAbandoned { error_code: 62 } })}: iroh::_events::path::abandoned: remote=e7e9baf9af conn_id=131490490921584 path_id=1 network_path=Ip(127.0.0.1->127.0.0.1:50880) reason=RemoteAbandoned { error_code: 62 }
+2026-10-09T11:55:46.989594Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection::paths: remote changed path status status=Backup seq=1
+2026-10-09T11:55:46.990732Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle in_event event=RecvMessage(PublicKey(e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f), Message { topic: TopicId(9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534), message: Swarm(Neighbor(Neighbor { priority: High, data: Some(PeerData(43b)) })) })
+2026-10-09T11:55:47.064061Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:47.164503Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:47.265493Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:47.306775Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}: noq_proto::connection: path added validated=false path_id=2 network_path=(local: <unspecified>, remote: [fd15:70a:510b:1::1]:12345)
+2026-10-09T11:55:47.308292Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1" remote=e7e9baf9af}:drive{id=2}: noq_proto::connection: path added validated=false path_id=2 network_path=(local: <unspecified>, remote: [fd15:70a:510b:1::2]:12345)
+2026-10-09T11:55:47.309788Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1" remote=e7e9baf9af}:drive{id=2}: noq_proto::connection: halting ECN due to verification failure: ECN bleaching
+2026-10-09T11:55:47.309919Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489954049184) event=Ok(Established { id: PathId(2) })}: iroh::_events::path::open: remote=c2a9ee75cb conn_id=131489954049184 path_id=2 network_path=Relay(https://127.0.0.1:34999/, c2a9ee75cb)
+2026-10-09T11:55:47.310786Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: halting ECN due to verification failure: ECN bleaching
+2026-10-09T11:55:47.311269Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(2) })}: iroh::_events::path::open: remote=e7e9baf9af conn_id=131490490921584 path_id=2 network_path=Relay(https://127.0.0.1:34999/, e7e9baf9af)
+2026-10-09T11:55:47.311336Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(2) })}: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=2 network_path=Relay(https://127.0.0.1:34999/, e7e9baf9af) status=Backup prev_status=Available
+2026-10-09T11:55:47.311661Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection::paths: remote changed path status status=Backup seq=1
+2026-10-09T11:55:47.358552Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: igd_next::aio::tokio: received broadcast response from: 192.168.0.1:37572
+2026-10-09T11:55:47.358609Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: igd_next::aio::tokio: handling broadcast response from: 192.168.0.1:37572
+2026-10-09T11:55:47.358721Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: igd_next::aio::tokio: requesting control url from: http://192.168.0.1:49153/IGDdevicedesc_brlan0.xml
+2026-10-09T11:55:47.358876Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connecting to 192.168.0.1:49153
+2026-10-09T11:55:47.359547Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: igd_next::aio::tokio: received broadcast response from: 192.168.0.1:43469
+2026-10-09T11:55:47.359581Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: igd_next::aio::tokio: handling broadcast response from: 192.168.0.1:43469
+2026-10-09T11:55:47.359650Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: igd_next::aio::tokio: requesting control url from: http://192.168.0.1:49153/IGDdevicedesc_brlan0.xml
+2026-10-09T11:55:47.359758Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connecting to 192.168.0.1:49153
+2026-10-09T11:55:47.363906Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connected to 192.168.0.1:49153
+2026-10-09T11:55:47.364088Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connected to 192.168.0.1:49153
+2026-10-09T11:55:47.366039Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:47.372838Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: igd_next::aio::tokio: handling control response from: 192.168.0.1:49153
+2026-10-09T11:55:47.372847Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: igd_next::aio::tokio: handling control response from: 192.168.0.1:49153
+2026-10-09T11:55:47.373732Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: igd_next::aio::tokio: requesting control schema from: http://192.168.0.1:49153/WANIPConnectionServiceSCPD.xml
+2026-10-09T11:55:47.373758Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: igd_next::aio::tokio: requesting control schema from: http://192.168.0.1:49153/WANIPConnectionServiceSCPD.xml
+2026-10-09T11:55:47.373837Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connecting to 192.168.0.1:49153
+2026-10-09T11:55:47.373837Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connecting to 192.168.0.1:49153
+2026-10-09T11:55:47.376318Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connected to 192.168.0.1:49153
+2026-10-09T11:55:47.376318Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connected to 192.168.0.1:49153
+2026-10-09T11:55:47.384060Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: igd_next::aio::tokio: handling schema response from: 192.168.0.1:49153
+2026-10-09T11:55:47.386018Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: igd_next::aio::tokio: handling schema response from: 192.168.0.1:49153
+2026-10-09T11:55:47.387426Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connecting to 192.168.0.1:49153
+2026-10-09T11:55:47.388846Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connected to 192.168.0.1:49153
+2026-10-09T11:55:47.389047Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connecting to 192.168.0.1:49153
+2026-10-09T11:55:47.391493Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connected to 192.168.0.1:49153
+2026-10-09T11:55:47.392440Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: hyper_util::client::legacy::pool: pooling idle connection for ("http", 192.168.0.1:49153)
+2026-10-09T11:55:47.392694Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connecting to 192.168.0.1:49153
+2026-10-09T11:55:47.396447Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connected to 192.168.0.1:49153
+2026-10-09T11:55:47.396933Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connecting to 192.168.0.1:49153
+2026-10-09T11:55:47.399772Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service:upnp: hyper_util::client::legacy::connect::http: connected to 192.168.0.1:49153
+2026-10-09T11:55:47.428501Z DEBUG endpoint{id=c2a9ee75cb}:portmapper.service: portmapper::current_mapping: new port mapping Some(Upnp(Mapping { protocol: UDP, gateway: http://192.168.0.1:49153/upnp/control/WANIPConnection0, external_ip: 81.97.66.168, external_port: 44773 }))
+2026-10-09T11:55:47.428780Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::socket: external address updated: Some(81.97.66.168:44773)
+2026-10-09T11:55:47.428879Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::socket: starting direct addr update (PortmapUpdated)
+2026-10-09T11:55:47.429053Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::net_report: net_report starting do_full=false
+2026-10-09T11:55:47.429453Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}: rustls::client::hs: Resuming session
+2026-10-09T11:55:47.431473Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: iroh_relay::quic::server: incoming
+2026-10-09T11:55:47.432155Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: rustls::server::hs: decided upon suite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:47.433395Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: rustls::server::hs: Chosen ALPN protocol ProtocolName(2f69726f682d7161642f30)
+2026-10-09T11:55:47.434372Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: noq_proto::transport_parameters: address discovery enabled for peer role=Role { send: false, receive: true }
+2026-10-09T11:55:47.435901Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=1}: rustls::client::hs: Using ciphersuite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:47.435996Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=1}: rustls::client::tls13: Resuming using PSK
+2026-10-09T11:55:47.436734Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=1}: rustls::client::tls13: TLS1.3 encrypted extensions: ServerExtensions { selected_protocol: SingleProtocolName(ProtocolName(2f69726f682d7161642f30)), transport_parameters: c0000000ff04de1b0243e820048000ffff0504801312d00604801312d06ab20002107718a51e557de7101e077ea78c3de578010480007530030245c0e5b76d38df0170a9000704801312d00408ffffffffffffffff0e0105c00000009f81a176010000142463f16dfb81915e17244f918af634f49b3ed4ad0f08d5c93c49518fdae7, unknown_extensions: {}, .. }
+2026-10-09T11:55:47.436845Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=1}: rustls::client::hs: ALPN protocol is Some(b"/iroh-qad/0")
+2026-10-09T11:55:47.437351Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=1}: noq_proto::transport_parameters: address discovery enabled for peer role=Role { send: true, receive: false }
+2026-10-09T11:55:47.438455Z DEBUG endpoint{id=c2a9ee75cb}:actor:QADv4: iroh::net_report: probe report r=QadProbeReport { relay: RelayUrl("https://127.0.0.1:34999/"), latency: 4.781955ms, addr: 127.0.0.1:47837 }
+2026-10-09T11:55:47.438859Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::net_report: net_report generated report=Report { udp_v4: true, udp_v6: false, mapping_varies_by_dest_ipv4: None, mapping_varies_by_dest_ipv6: None, preferred_relay: Some(RelayUrl("https://127.0.0.1:34999/")), relay_latency: RelayLatencies { ipv4: {RelayUrl("https://127.0.0.1:34999/"): 4.781955ms}, ipv6: {}, https: {} }, global_v4: Some(127.0.0.1:47837), global_v6: None, captive_portal: None } duration=9.806505ms
+2026-10-09T11:55:47.438989Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::socket: direct addr update done (PortmapUpdated)
+2026-10-09T11:55:47.439289Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}:drive{id=2}: noq_proto::connection::packet_crypto: dropping unexpected packet encryption_level=Some(Handshake) bytes=55
+2026-10-09T11:55:47.439290Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::_events::direct_addrs: addrs={DirectAddr { addr: 81.97.66.168:44773, typ: Portmapped }, DirectAddr { addr: 127.0.0.1:47837, typ: Qad }, DirectAddr { addr: 192.168.0.100:47837, typ: Local }}
+2026-10-09T11:55:47.439447Z DEBUG endpoint{id=c2a9ee75cb}:actor: iroh::socket: scheduling periodic_stun to run in 25s
+2026-10-09T11:55:47.439474Z DEBUG gossip{me=c2a9ee75cb}: iroh_gossip::net: handle in_event event=UpdatePeerData(PeerData(51b))
+2026-10-09T11:55:47.439655Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: iroh_relay::quic::server: established
+2026-10-09T11:55:47.439706Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:47837}: iroh_relay::quic::server: peer disconnected
+2026-10-09T11:55:47.440481Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:do_holepunching: iroh::_events::qnt::init: remote=c2a9ee75cb local_candidates={127.0.0.1:50880, 192.168.0.100:50880} remote_candidates={81.97.66.168:44773, 127.0.0.1:47837, 192.168.0.100:47837}
+2026-10-09T11:55:47.441300Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1" remote=e7e9baf9af}:drive{id=2}: noq_proto::connection::packet_builder: routine key update due to phase exhaustion
+2026-10-09T11:55:47.441910Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=0 network_path=(local: 192.168.0.100, remote: [::ffff:192.168.0.100]:47837) new_path=false
+2026-10-09T11:55:47.442154Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: path added validated=false path_id=3 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837)
+2026-10-09T11:55:47.442200Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=3 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837) new_path=true
+2026-10-09T11:55:47.442946Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1" remote=e7e9baf9af}:drive{id=2}: noq_proto::connection: path added validated=false path_id=3 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:50880)
+2026-10-09T11:55:47.443438Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=3 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837) new_path=false
+2026-10-09T11:55:47.444312Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489954049184) event=Ok(Established { id: PathId(3) })}: iroh::_events::path::open: remote=c2a9ee75cb conn_id=131489954049184 path_id=3 network_path=Ip(127.0.0.1->127.0.0.1:47837)
+2026-10-09T11:55:47.444816Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489954049184) event=Ok(Abandoned { id: PathId(3), reason: ApplicationClosed { error_code: 62 } })}: iroh::_events::path::abandoned: remote=c2a9ee75cb conn_id=131489954049184 path_id=3 network_path=Ip(127.0.0.1->127.0.0.1:47837) reason=ApplicationClosed { error_code: 62 }
+2026-10-09T11:55:47.445247Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(3) })}: iroh::_events::path::open: remote=e7e9baf9af conn_id=131490490921584 path_id=3 network_path=Ip(127.0.0.1->127.0.0.1:50880)
+2026-10-09T11:55:47.445336Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(3) })}: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=3 network_path=Ip(127.0.0.1->127.0.0.1:50880) status=Backup prev_status=Available
+2026-10-09T11:55:47.445432Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(3) })}:select_path: iroh::_events::path::selected: remote=e7e9baf9af network_path=Ip(127.0.0.1->127.0.0.1:50880) prev_network_path=Ip(192.168.0.100->192.168.0.100:50880)
+2026-10-09T11:55:47.445481Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(3) })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:50880) status=Backup prev_status=Available
+2026-10-09T11:55:47.445523Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(3) })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=3 network_path=Ip(127.0.0.1->127.0.0.1:50880) status=Available prev_status=Backup
+2026-10-09T11:55:47.445686Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Abandoned { id: PathId(3), reason: RemoteAbandoned { error_code: 62 } })}: iroh::_events::path::abandoned: remote=e7e9baf9af conn_id=131490490921584 path_id=3 network_path=Ip(127.0.0.1->127.0.0.1:50880) reason=RemoteAbandoned { error_code: 62 }
+2026-10-09T11:55:47.445759Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Abandoned { id: PathId(3), reason: RemoteAbandoned { error_code: 62 } })}:select_path: iroh::_events::path::selected: remote=e7e9baf9af network_path=Ip(192.168.0.100->192.168.0.100:50880) prev_network_path=Ip(127.0.0.1->127.0.0.1:50880)
+2026-10-09T11:55:47.445802Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Abandoned { id: PathId(3), reason: RemoteAbandoned { error_code: 62 } })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:50880) status=Available prev_status=Backup
+2026-10-09T11:55:47.446439Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection::paths: remote changed path status status=Available seq=2
+2026-10-09T11:55:47.466731Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:47.483023Z DEBUG endpoint{id=e7e9baf9af}:portmapper.service: portmapper::current_mapping: new port mapping Some(Upnp(Mapping { protocol: UDP, gateway: http://192.168.0.1:49153/upnp/control/WANIPConnection0, external_ip: 81.97.66.168, external_port: 51526 }))
+2026-10-09T11:55:47.483255Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::socket: external address updated: Some(81.97.66.168:51526)
+2026-10-09T11:55:47.483383Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::socket: starting direct addr update (PortmapUpdated)
+2026-10-09T11:55:47.483676Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::net_report: net_report starting do_full=false
+2026-10-09T11:55:47.484419Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}: rustls::client::hs: Resuming session
+2026-10-09T11:55:47.487136Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: iroh_relay::quic::server: incoming
+2026-10-09T11:55:47.488074Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: rustls::server::hs: decided upon suite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:47.489782Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: rustls::server::hs: Chosen ALPN protocol ProtocolName(2f69726f682d7161642f30)
+2026-10-09T11:55:47.490901Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: noq_proto::transport_parameters: address discovery enabled for peer role=Role { send: false, receive: true }
+2026-10-09T11:55:47.492110Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=1}: rustls::client::hs: Using ciphersuite TLS13_AES_256_GCM_SHA384
+2026-10-09T11:55:47.492178Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=1}: rustls::client::tls13: Resuming using PSK
+2026-10-09T11:55:47.492765Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=1}: rustls::client::tls13: TLS1.3 encrypted extensions: ServerExtensions { selected_protocol: SingleProtocolName(ProtocolName(2f69726f682d7161642f30)), transport_parameters: 0704801312d0c00000009f81a17601000504801312d020048000ffffc3edfb6ef3bbe05b08899bd1f4f7387e8b6ab2000014e23d5364b67a50b3effeeafe9e8a82f6cfceab1a030245c0010480007530c0000000ff04de1b0243e8021076d0751cd0e45bcd0aafac7db439c5640e01050f0801d0a936a6c494540408ffffffffffffffff0604801312d0, unknown_extensions: {}, .. }
+2026-10-09T11:55:47.492855Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=1}: rustls::client::hs: ALPN protocol is Some(b"/iroh-qad/0")
+2026-10-09T11:55:47.493284Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4{relay_url=https://127.0.0.1:34999/}:drive{id=1}: noq_proto::transport_parameters: address discovery enabled for peer role=Role { send: true, receive: false }
+2026-10-09T11:55:47.494249Z DEBUG endpoint{id=e7e9baf9af}:actor:QADv4: iroh::net_report: probe report r=QadProbeReport { relay: RelayUrl("https://127.0.0.1:34999/"), latency: 5.764224ms, addr: 127.0.0.1:50880 }
+2026-10-09T11:55:47.494630Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::net_report: net_report generated report=Report { udp_v4: true, udp_v6: false, mapping_varies_by_dest_ipv4: None, mapping_varies_by_dest_ipv6: None, preferred_relay: Some(RelayUrl("https://127.0.0.1:34999/")), relay_latency: RelayLatencies { ipv4: {RelayUrl("https://127.0.0.1:34999/"): 5.764224ms}, ipv6: {}, https: {} }, global_v4: Some(127.0.0.1:50880), global_v6: None, captive_portal: None } duration=10.957912ms
+2026-10-09T11:55:47.494727Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::socket: direct addr update done (PortmapUpdated)
+2026-10-09T11:55:47.494947Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}:drive{id=3}: noq_proto::connection::packet_crypto: dropping unexpected packet encryption_level=Some(Handshake) bytes=55
+2026-10-09T11:55:47.494987Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::_events::direct_addrs: addrs={DirectAddr { addr: 81.97.66.168:51526, typ: Portmapped }, DirectAddr { addr: 127.0.0.1:50880, typ: Qad }, DirectAddr { addr: 192.168.0.100:50880, typ: Local }}
+2026-10-09T11:55:47.495149Z DEBUG endpoint{id=e7e9baf9af}:actor: iroh::socket: scheduling periodic_stun to run in 21s
+2026-10-09T11:55:47.495198Z DEBUG gossip{me=e7e9baf9af}: iroh_gossip::net: handle in_event event=UpdatePeerData(PeerData(51b))
+2026-10-09T11:55:47.495259Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: iroh_relay::quic::server: established
+2026-10-09T11:55:47.495294Z DEBUG quic-endpoint:qad-conn{remote_addr=127.0.0.1:50880}: iroh_relay::quic::server: peer disconnected
+2026-10-09T11:55:47.495417Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:do_holepunching: iroh::_events::qnt::init: remote=c2a9ee75cb local_candidates={81.97.66.168:51526, 127.0.0.1:50880, 192.168.0.100:50880} remote_candidates={81.97.66.168:44773, 127.0.0.1:47837, 192.168.0.100:47837}
+2026-10-09T11:55:47.496630Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=0 network_path=(local: 192.168.0.100, remote: [::ffff:192.168.0.100]:47837) new_path=false
+2026-10-09T11:55:47.496887Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: path added validated=false path_id=4 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837)
+2026-10-09T11:55:47.496927Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=4 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837) new_path=true
+2026-10-09T11:55:47.497547Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1" remote=e7e9baf9af}:drive{id=2}: noq_proto::connection: path added validated=false path_id=4 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:50880)
+2026-10-09T11:55:47.497586Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=4 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837) new_path=false
+2026-10-09T11:55:47.498989Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489954049184) event=Ok(Established { id: PathId(4) })}: iroh::_events::path::open: remote=c2a9ee75cb conn_id=131489954049184 path_id=4 network_path=Ip(127.0.0.1->127.0.0.1:47837)
+2026-10-09T11:55:47.499725Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(4) })}: iroh::_events::path::open: remote=e7e9baf9af conn_id=131490490921584 path_id=4 network_path=Ip(127.0.0.1->127.0.0.1:50880)
+2026-10-09T11:55:47.499787Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489954049184) event=Ok(Abandoned { id: PathId(4), reason: ApplicationClosed { error_code: 62 } })}: iroh::_events::path::abandoned: remote=c2a9ee75cb conn_id=131489954049184 path_id=4 network_path=Ip(127.0.0.1->127.0.0.1:47837) reason=ApplicationClosed { error_code: 62 }
+2026-10-09T11:55:47.499901Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(4) })}: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=4 network_path=Ip(127.0.0.1->127.0.0.1:50880) status=Backup prev_status=Available
+2026-10-09T11:55:47.499961Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(4) })}:select_path: iroh::_events::path::selected: remote=e7e9baf9af network_path=Ip(127.0.0.1->127.0.0.1:50880) prev_network_path=Ip(192.168.0.100->192.168.0.100:50880)
+2026-10-09T11:55:47.499991Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(4) })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:50880) status=Backup prev_status=Available
+2026-10-09T11:55:47.500024Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(4) })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=4 network_path=Ip(127.0.0.1->127.0.0.1:50880) status=Available prev_status=Backup
+2026-10-09T11:55:47.500137Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Abandoned { id: PathId(4), reason: RemoteAbandoned { error_code: 62 } })}: iroh::_events::path::abandoned: remote=e7e9baf9af conn_id=131490490921584 path_id=4 network_path=Ip(127.0.0.1->127.0.0.1:50880) reason=RemoteAbandoned { error_code: 62 }
+2026-10-09T11:55:47.500186Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Abandoned { id: PathId(4), reason: RemoteAbandoned { error_code: 62 } })}:select_path: iroh::_events::path::selected: remote=e7e9baf9af network_path=Ip(192.168.0.100->192.168.0.100:50880) prev_network_path=Ip(127.0.0.1->127.0.0.1:50880)
+2026-10-09T11:55:47.500216Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Abandoned { id: PathId(4), reason: RemoteAbandoned { error_code: 62 } })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:50880) status=Available prev_status=Backup
+2026-10-09T11:55:47.500593Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection::paths: remote changed path status status=Available seq=2
+2026-10-09T11:55:47.567482Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:47.667954Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:47.768543Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:47.868923Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:47.969315Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:48.069772Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:48.170229Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:48.270846Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:48.371343Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:48.471849Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:48.572310Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:48.672724Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:48.773165Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:48.873560Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:48.973969Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:49.074381Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:49.174800Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:49.275201Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:49.375695Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:49.476209Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:49.576593Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:49.676961Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:49.777459Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:49.877860Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:49.978228Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:50.078759Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:50.179231Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:50.279702Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:50.380184Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:50.480759Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:50.581185Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:50.681587Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:50.781998Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:50.882389Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:50.982910Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:51.083293Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:51.183750Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:51.284185Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:51.384920Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:51.485532Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:51.586052Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:51.615203Z DEBUG rust_api::network::control::invite_delivery: [INVITES] delivering pending invites: count=0
+2026-10-09T11:55:51.632290Z DEBUG rust_api::network::control::invite_delivery: [INVITES] delivering pending invites: count=1
+2026-10-09T11:55:51.632323Z DEBUG rust_api::network::control::invite_delivery: [INVITES] sending chat invite: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, target=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f
+2026-10-09T11:55:51.632469Z DEBUG rust_api::network::control::invite_delivery: [INVITES] chat invite failed: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, target=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f, error=Connecting to ourself is not supported
+2026-10-09T11:55:51.686553Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:51.786988Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:51.887576Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:51.987977Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:52.088414Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:52.188960Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:52.289351Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:52.389851Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:52.490201Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:52.496987Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:do_holepunching: iroh::_events::qnt::init: remote=c2a9ee75cb local_candidates={81.97.66.168:51526, 127.0.0.1:50880, 192.168.0.100:50880} remote_candidates={81.97.66.168:44773, 127.0.0.1:47837, 192.168.0.100:47837}
+2026-10-09T11:55:52.498187Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=0 network_path=(local: 192.168.0.100, remote: [::ffff:192.168.0.100]:47837) new_path=false
+2026-10-09T11:55:52.498389Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: path added validated=false path_id=5 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837)
+2026-10-09T11:55:52.498426Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=5 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837) new_path=true
+2026-10-09T11:55:52.498901Z DEBUG router.accept{me=c2a9ee75cb alpn="/iroh-gossip/1" remote=e7e9baf9af}:drive{id=2}: noq_proto::connection: path added validated=false path_id=5 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:50880)
+2026-10-09T11:55:52.498951Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection: Opened NAT traversal path path_id=5 network_path=(local: 127.0.0.1, remote: [::ffff:127.0.0.1]:47837) new_path=false
+2026-10-09T11:55:52.500080Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489954049184) event=Ok(Established { id: PathId(5) })}: iroh::_events::path::open: remote=c2a9ee75cb conn_id=131489954049184 path_id=5 network_path=Ip(127.0.0.1->127.0.0.1:47837)
+2026-10-09T11:55:52.500953Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(5) })}: iroh::_events::path::open: remote=e7e9baf9af conn_id=131490490921584 path_id=5 network_path=Ip(127.0.0.1->127.0.0.1:50880)
+2026-10-09T11:55:52.501030Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(5) })}: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=5 network_path=Ip(127.0.0.1->127.0.0.1:50880) status=Backup prev_status=Available
+2026-10-09T11:55:52.501105Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(5) })}:select_path: iroh::_events::path::selected: remote=e7e9baf9af network_path=Ip(127.0.0.1->127.0.0.1:50880) prev_network_path=Ip(192.168.0.100->192.168.0.100:50880)
+2026-10-09T11:55:52.501139Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(5) })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:50880) status=Backup prev_status=Available
+2026-10-09T11:55:52.501166Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Established { id: PathId(5) })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=5 network_path=Ip(127.0.0.1->127.0.0.1:50880) status=Available prev_status=Backup
+2026-10-09T11:55:52.501163Z DEBUG endpoint{id=e7e9baf9af}:RemoteStateActor{remote=c2a9ee75cb}:handle_path_event{conn_id=ConnId(131489954049184) event=Ok(Abandoned { id: PathId(5), reason: ApplicationClosed { error_code: 62 } })}: iroh::_events::path::abandoned: remote=c2a9ee75cb conn_id=131489954049184 path_id=5 network_path=Ip(127.0.0.1->127.0.0.1:47837) reason=ApplicationClosed { error_code: 62 }
+2026-10-09T11:55:52.501286Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Abandoned { id: PathId(5), reason: RemoteAbandoned { error_code: 62 } })}: iroh::_events::path::abandoned: remote=e7e9baf9af conn_id=131490490921584 path_id=5 network_path=Ip(127.0.0.1->127.0.0.1:50880) reason=RemoteAbandoned { error_code: 62 }
+2026-10-09T11:55:52.501333Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Abandoned { id: PathId(5), reason: RemoteAbandoned { error_code: 62 } })}:select_path: iroh::_events::path::selected: remote=e7e9baf9af network_path=Ip(192.168.0.100->192.168.0.100:50880) prev_network_path=Ip(127.0.0.1->127.0.0.1:50880)
+2026-10-09T11:55:52.501357Z DEBUG endpoint{id=c2a9ee75cb}:RemoteStateActor{remote=e7e9baf9af}:handle_path_event{conn_id=ConnId(131490490921584) event=Ok(Abandoned { id: PathId(5), reason: RemoteAbandoned { error_code: 62 } })}:select_path: iroh::_events::path::set_status: remote=e7e9baf9af conn_id=131490490921584 path_id=0 network_path=Ip(192.168.0.100->192.168.0.100:50880) status=Available prev_status=Backup
+2026-10-09T11:55:52.501821Z DEBUG gossip{me=e7e9baf9af}:connect{me=e7e9baf9af alpn=/iroh-gossip/1 remote=c2a9ee75cb}:drive{id=2}: noq_proto::connection::paths: remote changed path status status=Available seq=2
+2026-10-09T11:55:52.590564Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:52.691105Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:52.791532Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:52.891933Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:52.992345Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:53.092814Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:53.193306Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:53.293720Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:53.394073Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:53.494462Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:53.594843Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:53.695248Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:53.795612Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:53.896012Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:53.996445Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:54.096901Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:54.197283Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:54.297682Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:54.398060Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:54.498485Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:54.598884Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:54.699347Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:54.799858Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:54.900279Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:55.000774Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:55.101163Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:55.201951Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:55.302440Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:55.402835Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:55.503263Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:55.603725Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:55.704135Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:55.804584Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:55.905067Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:56.005458Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:56.105883Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:56.206275Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:56.306724Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:56.407117Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:56.507496Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:56.607989Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:56.615034Z DEBUG rust_api::network::control::invite_delivery: [INVITES] delivering pending invites: count=0
+2026-10-09T11:55:56.632348Z DEBUG rust_api::network::control::invite_delivery: [INVITES] delivering pending invites: count=1
+2026-10-09T11:55:56.632388Z DEBUG rust_api::network::control::invite_delivery: [INVITES] sending chat invite: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, target=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f
+2026-10-09T11:55:56.632636Z DEBUG rust_api::network::control::invite_delivery: [INVITES] chat invite failed: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, target=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f, error=Connecting to ourself is not supported
+2026-10-09T11:55:56.708368Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:56.808793Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:56.909251Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:57.009799Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:57.110187Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:57.210671Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:57.311074Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:57.411559Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:57.512044Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:57.612549Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:57.713022Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:57.813437Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:57.913881Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:58.014263Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:58.114792Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:58.215210Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:58.315765Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:58.416228Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:58.516627Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:58.617031Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:58.717570Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:58.818020Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:58.918487Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:59.019661Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:59.120941Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:59.221382Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:59.321915Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:59.422306Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:59.522827Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:59.623198Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:59.723733Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:59.824235Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:55:59.924583Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:00.024952Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:00.125417Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:00.225829Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:00.326315Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:00.426788Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:00.527212Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:00.627633Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:00.727995Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:00.828512Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:00.928902Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:01.029390Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:01.129811Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:01.230280Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:01.330709Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:01.431192Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:01.531731Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:01.615288Z DEBUG rust_api::network::control::invite_delivery: [INVITES] delivering pending invites: count=0
+2026-10-09T11:56:01.632091Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:01.632182Z DEBUG rust_api::network::control::invite_delivery: [INVITES] delivering pending invites: count=1
+2026-10-09T11:56:01.632204Z DEBUG rust_api::network::control::invite_delivery: [INVITES] sending chat invite: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, target=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f
+2026-10-09T11:56:01.632349Z DEBUG rust_api::network::control::invite_delivery: [INVITES] chat invite failed: topic=9fb0deb046cd08d3955e42a9d5ab309798feac59c6136f557a1f09a3ed95e534, target=e7e9baf9af348c853a9d4ce03b8a2a4a9148e372e6142fbd410ebd9c5deafa7f, error=Connecting to ourself is not supported
+2026-10-09T11:56:01.732635Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:01.832990Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:01.933426Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:02.033831Z DEBUG core_instance: [TEST] Alice messages: ["hello from alice"]
+2026-10-09T11:56:02.034163Z ERROR iroh::socket: Endpoint dropped without calling `Endpoint::close`. Aborting ungracefully.
+2026-10-09T11:56:02.034247Z  WARN relay-http-serve:conn{peer=127.0.0.1:38710}:handler:client-connection-actor{remote_endpoint=e7e9baf9af connection_id=1}: iroh_relay::server::client: actor errored peer closed connection without sending TLS close_notify: https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof: peer closed connection without sending TLS close_notify: https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof, exiting
+2026-10-09T11:56:02.034388Z  INFO rust_api::database::workers: [DB-READER] loop exit
+2026-10-09T11:56:02.034388Z  INFO rust_api::database::workers: [DB-WRITER] loop exit
+2026-10-09T11:56:02.034553Z  WARN rust_api::database::manager: [DB-WRITER] exited without error
+2026-10-09T11:56:02.034553Z  WARN rust_api::database::manager: [DB-READER] exited without error
+2026-10-09T11:56:02.036224Z ERROR gossip{me=c2a9ee75cb}: iroh::socket: Endpoint dropped without calling `Endpoint::close`. Aborting ungracefully.
+2026-10-09T11:56:02.036361Z  INFO rust_api::database::workers: [DB-WRITER] loop exit
+2026-10-09T11:56:02.036412Z  INFO rust_api::database::workers: [DB-READER] loop exit
+2026-10-09T11:56:02.036458Z  WARN rust_api::database::manager: [DB-WRITER] exited without error
+2026-10-09T11:56:02.036568Z  WARN rust_api::database::manager: [DB-READER] exited without error
+2026-10-09T11:56:02.036545Z  WARN relay-http-serve:conn{peer=127.0.0.1:38696}:handler:client-connection-actor{remote_endpoint=c2a9ee75cb connection_id=0}: iroh_relay::server::client: actor errored peer closed connection without sending TLS close_notify: https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof: peer closed connection without sending TLS close_notify: https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof, exiting
+Error: [TEST] Alice receives both messages: condition was not met within 15s
+test two_nodes_create_a_chat_and_exchange_messages ... FAILED
+
+failures:
+
+failures:
+    two_nodes_create_a_chat_and_exchange_messages
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.44s
+
+error: test failed, to rerun pass `-p rust_api --test core_instance`

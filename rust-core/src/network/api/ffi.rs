@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use iroh::endpoint::presets;
 use iroh_gossip::proto::TopicId;
 

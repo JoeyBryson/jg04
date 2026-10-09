@@ -64,14 +64,32 @@ impl SessionStore {
         content: String,
         sent_at: i64,
     ) -> Result<()> {
+        let topic_id = self.chat.topic_id;
+        let content_len = content.len();
+
+        log::debug!(
+            "[SESSION-STORE] record_message start: topic={}, sender={}, sent_at={}, content_len={}",
+            topic_id,
+            sender,
+            sent_at,
+            content_len
+        );
+
         self.db
             .add_nw_message(NwMessage {
-                topic_id: self.chat.topic_id,
+                topic_id,
                 endpoint_id: sender,
                 content,
                 sent_at,
             })
             .await?;
+
+        log::debug!(
+            "[SESSION-STORE] record_message done: topic={}, sender={}, sent_at={}",
+            topic_id,
+            sender,
+            sent_at
+        );
 
         Ok(())
     }

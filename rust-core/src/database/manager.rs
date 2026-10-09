@@ -110,7 +110,7 @@ impl DbManager {
             if let Err(error) = result {
                 log::error!("[DB-WRITER] exited with error: {}", error);
             } else {
-                log::warn!("[DB-WRITER] exited without error");
+                log::info!("[DB-WRITER] exited without error");
             }
         });
 
@@ -126,7 +126,7 @@ impl DbManager {
             if let Err(error) = result {
                 log::error!("[DB-READER] exited with error: {}", error);
             } else {
-                log::warn!("[DB-READER] exited without error");
+                log::info!("[DB-READER] exited without error");
             }
         });
 

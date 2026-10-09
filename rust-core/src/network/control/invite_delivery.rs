@@ -22,6 +22,9 @@ enum ChatInviteCommand {
     DeliverPendingInvites {
         reply: oneshot::Sender<Result<()>>,
     },
+    Shutdown {
+        reply: oneshot::Sender<Result<()>>,
+    },
 }
 
 impl ChatInvitesHandle {
@@ -46,6 +49,10 @@ impl ChatInvitesHandle {
                         match command {
                             ChatInviteCommand::DeliverPendingInvites { reply } => {
                                 let _ = reply.send(actor.deliver_pending_invites(&store).await);
+                            }
+                            ChatInviteCommand::Shutdown { reply } => {
+                                let _ = reply.send(actor.shutdown().await);
+                                break;
                             }
                         }
                     }
@@ -77,27 +84,84 @@ impl ChatInvitesHandle {
             .await
             .context("chat invite actor stopped")?
     }
+
+    pub async fn shutdown(&self) -> Result<()> {
+        let (reply, receiver) = oneshot::channel();
+
+        self.sender
+            .send(ChatInviteCommand::Shutdown { reply })
+            .await
+            .context("chat invite actor stopped before shutdown request")?;
+
+        receiver
+            .await
+            .context("chat invite actor stopped during shutdown")?
+    }
 }
 
 impl ChatInviteActor {
     async fn deliver_pending_invites(&self, store: &InviteStore) -> Result<()> {
-        for invite in store.pending_invites().await? {
+        let pending_invites = store.pending_invites().await?;
+        log::debug!(
+            "[INVITES] delivering pending invites: count={}",
+            pending_invites.len()
+        );
+
+        for invite in pending_invites {
+            log::debug!(
+                "[INVITES] sending chat invite: topic={}, target={}",
+                invite.chat.topic_id,
+                invite.contact.endpoint_id
+            );
+
             match send_chat_invite(&self.router, &invite).await {
                 Ok(()) => {
+                    log::info!(
+                        "[INVITES] invite accepted: topic={}, target={}",
+                        invite.chat.topic_id,
+                        invite.contact.endpoint_id
+                    );
+
                     store
                         .mark_joined(invite.chat.topic_id, invite.contact.endpoint_id)
                         .await?;
+
+                    log::debug!(
+                        "[INVITES] marked member joined: topic={}, member={}",
+                        invite.chat.topic_id,
+                        invite.contact.endpoint_id
+                    );
                 }
 
                 Err(error) => {
-                    log::debug!(
-                        "chat invite to {} failed: {error}",
-                        invite.contact.endpoint_id
-                    );
+                    let error_text = error.to_string();
+                    let transient_response_race = error_text.contains("read error: connection lost")
+                        || error_text.contains("Hit the end of buffer, expected more data");
+
+                    if transient_response_race {
+                        log::debug!(
+                            "[INVITES] transient invite delivery race: topic={}, target={}, error={}",
+                            invite.chat.topic_id,
+                            invite.contact.endpoint_id,
+                            error_text,
+                        );
+                    } else {
+                        log::warn!(
+                            "[INVITES] chat invite failed: topic={}, target={}, error={}",
+                            invite.chat.topic_id,
+                            invite.contact.endpoint_id,
+                            error_text,
+                        );
+                    }
                 }
             }
         }
 
+        Ok(())
+    }
+
+    async fn shutdown(&self) -> Result<()> {
+        self.router.shutdown().await?;
         Ok(())
     }
 }
@@ -106,6 +170,12 @@ async fn send_chat_invite(
     router: &Router,
     invite: &PendingChatInvite,
 ) -> Result<()> {
+    log::trace!(
+        "[INVITES] opening control connection: topic={}, target={}",
+        invite.chat.topic_id,
+        invite.contact.endpoint_id
+    );
+
     tokio::time::timeout(Duration::from_secs(5), async {
         let connection = router
             .endpoint()
@@ -131,6 +201,11 @@ async fn send_chat_invite(
             ControlResponse::ChatInviteAccepted { topic_id }
                 if topic_id == invite.chat.topic_id =>
             {
+                log::trace!(
+                    "[INVITES] received invite acceptance: topic={}, target={}",
+                    topic_id,
+                    invite.contact.endpoint_id
+                );
                 Ok(())
             }
 

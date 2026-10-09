@@ -11,7 +11,7 @@ use crate::database::client::DbClient;
 use crate::network::chat::ChatSessionsHandle;
 use crate::network::control::{ChatInvitesHandle, ControlProtocol};
 use crate::network::messaging::signed::MessageData;
-use crate::network::persistence::{ControlProtocolStore, InviteStore, SessionManagerStore};
+use crate::network::persistence::{InviteStore, SessionManagerStore};
 use crate::network::{NwChatMember, CONTROL_ALPN};
 
 /// Coordinates networking use cases across persisted state, live chat
@@ -42,8 +42,6 @@ impl NwService {
         .await?;
 
         let control_protocol = ControlProtocol {
-            profile: profile.clone(),
-            store: ControlProtocolStore::new(db_client.clone()),
             chat_sessions: chat_sessions.clone(),
         };
 
@@ -66,12 +64,22 @@ impl NwService {
         members: Vec<NwChatMember>,
         name: Option<String>,
     ) -> Result<String> {
+        log::info!(
+            "[NW-SERVICE] create_chat requested: members={}, named={}",
+            members.len(),
+            name.is_some()
+        );
+
         let topic_id = self
             .chat_sessions
             .request_create_chat(members, name)
             .await?;
 
+        log::info!("[NW-SERVICE] create_chat started session for topic={topic_id}");
+
         self.chat_invites.request_invite_delivery().await?;
+
+        log::debug!("[NW-SERVICE] invite delivery requested for topic={topic_id}");
 
         Ok(topic_id.to_string())
     }
@@ -88,10 +96,23 @@ impl NwService {
 
         let message_data = MessageData { content, sent_at };
 
+        log::debug!(
+            "[NW-SERVICE] send_message: topic={}, sent_at={}, content_len={}",
+            topic_id,
+            message_data.sent_at,
+            message_data.content.len()
+        );
+
         self.chat_sessions
             .request_send_message(topic_id, message_data)
             .await?;
 
+        log::debug!("[NW-SERVICE] send_message queued to chat session: topic={topic_id}");
+
         Ok(())
+    }
+
+    pub(in crate::network) async fn shutdown(&self) -> Result<()> {
+        self.chat_invites.shutdown().await
     }
 }

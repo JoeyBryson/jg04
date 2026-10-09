@@ -37,9 +37,23 @@ impl ChatSession {
                     && member.contact != store.profile().contact
             })
             .map(|member| member.contact.endpoint_id)
-            .collect();
+            .collect::<Vec<_>>();
 
         let topic_id = store.topic_id();
+
+        log::info!(
+            "[CHAT-SESSION] subscribing to topic={} with {} bootstrap peers",
+            topic_id,
+            bootstrap_ids.len()
+        );
+        if !bootstrap_ids.is_empty() {
+            let peers = bootstrap_ids
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(",");
+            log::debug!("[CHAT-SESSION] topic={} bootstrap peers=[{}]", topic_id, peers);
+        }
 
         let connection = gossip.subscribe(topic_id, bootstrap_ids).await?;
         let (sender, receiver) = connection.split();
@@ -70,12 +84,40 @@ impl ChatSession {
 
         let profile = self.store.profile();
         let sender = profile.contact.endpoint_id;
+        let topic_id = self.store.topic_id();
+
+        log::debug!(
+            "[CHAT-SESSION] send start: topic={}, sender={}, sent_at={}, content_len={}",
+            topic_id,
+            sender,
+            message_data.sent_at,
+            content.len()
+        );
+
         let bytes = sign_and_encode(&profile.secret_key, message_data)?;
+        log::trace!(
+            "[CHAT-SESSION] encoded message: topic={}, sender={}, bytes={}",
+            topic_id,
+            sender,
+            bytes.len()
+        );
         self.sender.broadcast(bytes.into()).await?;
+        log::debug!(
+            "[CHAT-SESSION] gossip broadcast complete: topic={}, sender={}",
+            topic_id,
+            sender
+        );
 
         self.store
             .record_message(sender, content, sent_at)
             .await?;
+
+        log::debug!(
+            "[CHAT-SESSION] send persisted locally: topic={}, sender={}, sent_at={}",
+            topic_id,
+            sender,
+            sent_at
+        );
 
         Ok(())
     }
@@ -87,10 +129,30 @@ pub async fn receive_loop(
 ) -> anyhow::Result<()> {
     while let Some(gossip_event) = receiver.try_next().await? {
         match gossip_event {
-            GossipEvent::NeighborUp(_endpoint_id) => {}
-            GossipEvent::NeighborDown(_endpoint_id) => {}
+            GossipEvent::NeighborUp(endpoint_id) => {
+                log::info!(
+                    "[CHAT-SESSION] neighbor up: topic={}, peer={}",
+                    store.topic_id(),
+                    endpoint_id
+                );
+            }
+            GossipEvent::NeighborDown(endpoint_id) => {
+                log::info!(
+                    "[CHAT-SESSION] neighbor down: topic={}, peer={}",
+                    store.topic_id(),
+                    endpoint_id
+                );
+            }
             GossipEvent::Received(gossip_message) => match verify_and_decode(gossip_message) {
                 Ok(received_message) => {
+                    log::debug!(
+                        "[CHAT-SESSION] received message: topic={}, sender={}, sent_at={}, content_len={}",
+                        store.topic_id(),
+                        received_message.sender,
+                        received_message.sent_at,
+                        received_message.content.len()
+                    );
+
                     store
                         .record_message(
                             received_message.sender,
@@ -98,6 +160,12 @@ pub async fn receive_loop(
                             received_message.sent_at as i64,
                         )
                         .await?;
+
+                    log::debug!(
+                        "[CHAT-SESSION] persisted received message: topic={}, sender={}",
+                        store.topic_id(),
+                        received_message.sender
+                    );
                 }
                 Err(e) => {
                     log::warn!(
@@ -107,8 +175,13 @@ pub async fn receive_loop(
                     );
                 }
             },
-            GossipEvent::Lagged => {}
+            GossipEvent::Lagged => {
+                log::warn!("[CHAT-SESSION] receiver lagged for topic={}", store.topic_id());
+            }
         }
     }
+
+    log::info!("[CHAT-SESSION] receive loop ended for topic={}", store.topic_id());
+
     Ok(())
 }

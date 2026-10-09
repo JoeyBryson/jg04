@@ -20,4 +20,3 @@ pub enum SetupError {
     #[error("profile has already been set")]
     ProfileAlreadySet,
 }
-

@@ -22,6 +22,7 @@ impl InviteStore {
     }
 
     pub(in crate::network) async fn pending_invites(&self) -> Result<Vec<PendingChatInvite>> {
+        let local_endpoint_id = self.db.get_nw_profile_async().await?.contact.endpoint_id;
         let chats = self.db.get_nw_chats().await?;
         let mut invites = Vec::new();
 
@@ -29,7 +30,10 @@ impl InviteStore {
             for member in chat
                 .members
                 .iter()
-                .filter(|member| member.status != NwChatMemberStatus::Joined)
+                .filter(|member| {
+                    member.status != NwChatMemberStatus::Joined
+                        && member.contact.endpoint_id != local_endpoint_id
+                })
             {
                 invites.push(PendingChatInvite {
                     chat: chat.clone(),
