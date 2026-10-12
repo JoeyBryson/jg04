@@ -1,5 +1,5 @@
-use std::time::{Duration, Instant};
 use std::sync::Once;
+use std::time::{Duration, Instant};
 
 use anyhow::{Result, bail};
 use iroh_gossip::proto::TopicId;
@@ -32,12 +32,12 @@ fn wait_until(
 
     loop {
         if condition()? {
-            tracing::info!("[TEST] {name}: condition met");
+            tracing::info!(stage = name, "condition met");
             return Ok(());
         }
 
         if Instant::now() >= deadline {
-            bail!("[TEST] {name}: condition was not met within {timeout:?}");
+            bail!("{name} not reached within {timeout:?}");
         }
 
         std::thread::sleep(Duration::from_millis(100));
@@ -63,45 +63,36 @@ fn two_nodes_create_a_chat_and_exchange_messages() -> Result<()> {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+                .unwrap_or_else(|_| {
+                    tracing_subscriber::EnvFilter::new(
+                        "debug,iroh=off,iroh_gossip=off,iroh_relay=off,portmapper=off,igd_next=off,reqwest=off,hyper=off,hyper_util=off,rustls=off,hickory_net=off,hickory_resolver=off,noq_proto=off",
+                    )
+                }),
         )
         .try_init();
 
-    tracing::info!("[TEST] spawning network");
+    tracing::info!("starting two-node chat exchange");
+
+    tracing::debug!("starting local test network");
     let network = TestNetwork::spawn()?;
 
-    tracing::info!("[TEST] spawning Alice");
     let alice = network.spawn_node("Alice")?;
 
-    tracing::info!("[TEST] spawning Bob");
     let bob = network.spawn_node("Bob")?;
+    tracing::info!("both peers are online");
 
     let alice_contact = alice.db_client.get_nw_profile_sync()?.contact;
     let bob_contact = bob.db_client.get_nw_profile_sync()?.contact;
 
-    tracing::info!(
-        "[TEST] Alice endpoint: {}",
-        alice_contact.endpoint_id
-    );
-    tracing::info!(
-        "[TEST] Bob endpoint: {}",
-        bob_contact.endpoint_id
-    );
-
     // Each side needs to know the other as a contact before invites can be accepted.
-    tracing::info!("[TEST] adding contacts");
-
     alice.db_client.add_nw_contact_sync(bob_contact.clone())?;
     bob.db_client.add_nw_contact_sync(alice_contact.clone())?;
-
-    tracing::info!("[TEST] contacts added");
+    tracing::debug!("peer contacts exchanged");
 
     let bob_member = NwChatMember {
         contact: bob_contact.clone(),
         status: NwChatMemberStatus::Pending,
     };
-
-    tracing::info!("[TEST] Alice creating chat");
 
     let chat_id = alice
         .nw_core
@@ -109,39 +100,26 @@ fn two_nodes_create_a_chat_and_exchange_messages() -> Result<()> {
 
     let topic_id = parse_topic_id(&chat_id)?;
 
-    tracing::info!("[TEST] created chat: {chat_id}");
+    tracing::info!(topic_id = %&chat_id[..10], "chat created; waiting for both peers");
 
-    wait_until("Alice receives chat", Duration::from_secs(15), || {
-        let chats = alice.db_client.get_nw_chats_sync()?;
-
-        tracing::debug!(
-            "[TEST] Alice chats: {:?}",
-            chats.iter().map(|c| c.topic_id).collect::<Vec<_>>()
-        );
-
-        Ok(chats.iter().any(|c| c.topic_id.to_string() == chat_id))
+    alice.peer_span.in_scope(|| {
+        wait_until("received chat", Duration::from_secs(15), || {
+            let chats = alice.db_client.get_nw_chats_sync()?;
+            Ok(chats.iter().any(|c| c.topic_id.to_string() == chat_id))
+        })
     })?;
 
-    wait_until("Bob receives chat", Duration::from_secs(15), || {
-        let chats = bob.db_client.get_nw_chats_sync()?;
-
-        tracing::debug!(
-            "[TEST] Bob chats: {:?}",
-            chats.iter().map(|c| c.topic_id).collect::<Vec<_>>()
-        );
-
-        Ok(chats.iter().any(|c| c.topic_id.to_string() == chat_id))
+    bob.peer_span.in_scope(|| {
+        wait_until("received chat", Duration::from_secs(15), || {
+            let chats = bob.db_client.get_nw_chats_sync()?;
+            Ok(chats.iter().any(|c| c.topic_id.to_string() == chat_id))
+        })
     })?;
 
-    tracing::info!("[TEST] both nodes have chat");
-
-    tracing::info!("[TEST] sending Alice message");
-
+    tracing::info!(topic_id = %&chat_id[..10], "chat visible to both peers; sending messages");
     alice
         .nw_core
         .send_message("hello from alice".to_string(), topic_id)?;
-
-    tracing::info!("[TEST] sending Bob message");
 
     bob.nw_core
         .send_message("hello from bob".to_string(), topic_id)?;
@@ -155,22 +133,12 @@ fn two_nodes_create_a_chat_and_exchange_messages() -> Result<()> {
         || {
             let messages = alice.db_client.get_ui_chat_messages(chat_id.clone())?;
 
-            tracing::debug!(
-                "[TEST] Alice messages: {:?}",
-                messages
-                    .iter()
-                    .map(|m| &m.content)
-                    .collect::<Vec<_>>()
-            );
-
             Ok(has_both_test_messages(&messages))
         },
     );
 
     if let Err(error) = first_attempt {
-        tracing::warn!(
-            "[TEST] first message exchange attempt did not converge: {error}. retrying sends once"
-        );
+        tracing::warn!(error = %error, "message delivery delayed; retrying once");
 
         alice
             .nw_core
@@ -179,70 +147,33 @@ fn two_nodes_create_a_chat_and_exchange_messages() -> Result<()> {
             .send_message("hello from bob".to_string(), topic_id)?;
     }
 
-    wait_until(
-        "Alice receives both messages",
-        Duration::from_secs(15),
-        || {
+    alice.peer_span.in_scope(|| {
+        wait_until("received both messages", Duration::from_secs(15), || {
             let messages = alice.db_client.get_ui_chat_messages(chat_id.clone())?;
-
-            tracing::debug!(
-                "[TEST] Alice messages: {:?}",
-                messages
-                    .iter()
-                    .map(|m| &m.content)
-                    .collect::<Vec<_>>()
-            );
-
             Ok(has_both_test_messages(&messages))
-        },
-    )?;
+        })
+    })?;
 
-    wait_until(
-        "Bob receives both messages",
-        Duration::from_secs(15),
-        || {
+    bob.peer_span.in_scope(|| {
+        wait_until("received both messages", Duration::from_secs(15), || {
             let messages = bob.db_client.get_ui_chat_messages(chat_id.clone())?;
-
-            tracing::debug!(
-                "[TEST] Bob messages: {:?}",
-                messages
-                    .iter()
-                    .map(|m| &m.content)
-                    .collect::<Vec<_>>()
-            );
-
             Ok(has_both_test_messages(&messages))
-        },
-    )?;
+        })
+    })?;
 
     let alice_messages = alice.db_client.get_ui_chat_messages(chat_id.clone())?;
     let bob_messages = bob.db_client.get_ui_chat_messages(chat_id.clone())?;
 
-    tracing::info!("[TEST] Alice messages: {:?}", alice_messages);
-    tracing::info!("[TEST] Bob messages: {:?}", bob_messages);
-
     assert!(
         alice_messages
             .iter()
             .any(|m| m.content == "hello from alice")
     );
-    assert!(
-        alice_messages
-            .iter()
-            .any(|m| m.content == "hello from bob")
-    );
-    assert!(
-        bob_messages
-            .iter()
-            .any(|m| m.content == "hello from alice")
-    );
-    assert!(
-        bob_messages
-            .iter()
-            .any(|m| m.content == "hello from bob")
-    );
+    assert!(alice_messages.iter().any(|m| m.content == "hello from bob"));
+    assert!(bob_messages.iter().any(|m| m.content == "hello from alice"));
+    assert!(bob_messages.iter().any(|m| m.content == "hello from bob"));
 
-    tracing::info!("[TEST] test completed successfully");
+    tracing::info!("both peers received both messages");
 
     Ok(())
 }

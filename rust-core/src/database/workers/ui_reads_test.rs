@@ -80,7 +80,7 @@ fn ui_chat_messages_are_ordered_and_last_message_is_optional() -> Result<()> {
 }
 
 #[test]
-fn ui_message_order_uses_row_id_when_timestamps_tie() -> Result<()> {
+fn ui_message_order_uses_author_id_when_timestamps_tie() -> Result<()> {
     let mut writer = new_writer();
     let profile = profile();
     let alice = contact(1, "Alice");
@@ -99,21 +99,33 @@ fn ui_message_order_uses_row_id_when_timestamps_tie() -> Result<()> {
 
     writer.add_nw_chat(chat.clone())?;
 
-    writer.add_nw_message(message(chat.topic_id, alice.endpoint_id, "first", 100))?;
-    writer.add_nw_message(message(chat.topic_id, alice.endpoint_id, "second", 100))?;
+    let alice_sorts_first = alice.endpoint_id.as_bytes() < profile.contact.endpoint_id.as_bytes();
+    let first = if alice_sorts_first {
+        message(chat.topic_id, alice.endpoint_id, "from Alice", 100)
+    } else {
+        message(chat.topic_id, profile.contact.endpoint_id, "from me", 100)
+    };
+    let second = if alice_sorts_first {
+        message(chat.topic_id, profile.contact.endpoint_id, "from me", 100)
+    } else {
+        message(chat.topic_id, alice.endpoint_id, "from Alice", 100)
+    };
+
+    writer.add_nw_message(second.clone())?;
+    writer.add_nw_message(first.clone())?;
 
     let reader = reader_from(writer.conn);
     let messages = reader.get_ui_chat_messages(&chat.topic_id.to_string())?;
 
     assert_eq!(messages.len(), 2);
-    assert_eq!(messages[0].content, "first");
-    assert_eq!(messages[1].content, "second");
+    assert_eq!(messages[0].content, first.content);
+    assert_eq!(messages[1].content, second.content);
 
     let last = reader
         .get_ui_last_chat_message(&chat.topic_id.to_string())?
         .expect("last message should exist");
 
-    assert_eq!(last.content, "second");
+    assert_eq!(last.content, second.content);
 
     Ok(())
 }
@@ -132,10 +144,7 @@ fn ui_chat_headers_are_deterministically_ordered() -> Result<()> {
         vec![member(alice.clone(), NwChatMemberStatus::Joined)],
     ))?;
 
-    writer.add_nw_chat(chat(
-        19,
-        vec![member(alice, NwChatMemberStatus::Joined)],
-    ))?;
+    writer.add_nw_chat(chat(19, vec![member(alice, NwChatMemberStatus::Joined)]))?;
 
     let reader = reader_from(writer.conn);
     let headers = reader.get_ui_chat_headers()?;
@@ -153,7 +162,7 @@ fn ui_chat_headers_are_deterministically_ordered() -> Result<()> {
 }
 
 #[test]
-fn ui_message_reads_cover_me_unknown_senders_and_all_messages() -> Result<()> {
+fn ui_message_reads_include_me_and_reject_nonmember_senders() -> Result<()> {
     let mut writer = new_writer();
     let profile = profile();
     let alice = contact(1, "Alice");
@@ -180,35 +189,25 @@ fn ui_message_reads_cover_me_unknown_senders_and_all_messages() -> Result<()> {
         1,
     ))?;
 
-    writer.add_nw_message(message(
-        chat.topic_id,
-        unknown.endpoint_id,
-        "unknown",
-        2,
-    ))?;
+    assert!(
+        writer
+            .add_nw_message(message(chat.topic_id, unknown.endpoint_id, "unknown", 2))
+            .is_err()
+    );
 
     let reader = reader_from(writer.conn);
     let ui_messages = reader.get_ui_chat_messages(&chat.topic_id.to_string())?;
 
-    assert_eq!(ui_messages.len(), 2);
+    assert_eq!(ui_messages.len(), 1);
     assert_eq!(ui_messages[0].content, "mine");
-    assert_eq!(ui_messages[1].content, "unknown");
 
-    assert!(matches!(
-        ui_messages[0].sender,
-        crate::ui::UiSender::Me
-    ));
-
-    assert!(matches!(
-        ui_messages[1].sender,
-        crate::ui::UiSender::Other(_)
-    ));
+    assert!(matches!(ui_messages[0].sender, crate::ui::UiSender::Me));
 
     Ok(())
 }
 
 #[test]
-fn contacts_are_sorted_and_unknown_ui_senders_are_supported() -> Result<()> {
+fn contacts_are_sorted_and_nonmember_messages_are_rejected() -> Result<()> {
     let mut writer = new_writer();
     let profile = profile();
     let zed = contact(1, "Zed");
@@ -230,12 +229,11 @@ fn contacts_are_sorted_and_unknown_ui_senders_are_supported() -> Result<()> {
 
     let unknown = contact(99, "Unknown");
 
-    writer.add_nw_message(message(
-        chat.topic_id,
-        unknown.endpoint_id,
-        "unknown",
-        1,
-    ))?;
+    assert!(
+        writer
+            .add_nw_message(message(chat.topic_id, unknown.endpoint_id, "unknown", 1))
+            .is_err()
+    );
 
     let reader = reader_from(writer.conn);
     let contacts = reader.get_ui_contacts()?;
@@ -245,12 +243,10 @@ fn contacts_are_sorted_and_unknown_ui_senders_are_supported() -> Result<()> {
     assert_eq!(contacts[1].name, "Me");
     assert_eq!(contacts[2].name, "Zed");
 
-    assert_eq!(
+    assert!(
         reader
             .get_ui_last_chat_message(&chat.topic_id.to_string())?
-            .unwrap()
-            .content,
-        "unknown"
+            .is_none()
     );
 
     Ok(())
@@ -291,15 +287,9 @@ fn ui_reads_decode_contacts_profiles_and_chat_data() -> Result<()> {
     assert_eq!(header.name, chat.name);
     assert_eq!(header.members.len(), 2);
 
-    assert!(
-        header
-            .members
-            .iter()
-            .any(|member| {
-                member.endpoint_id
-                    == hex::encode(profile.contact.endpoint_id.as_bytes())
-            })
-    );
+    assert!(header.members.iter().any(|member| {
+        member.endpoint_id == hex::encode(profile.contact.endpoint_id.as_bytes())
+    }));
 
     assert_eq!(reader.get_ui_chat_headers()?.len(), 1);
 
@@ -336,9 +326,11 @@ fn ui_chat_header_has_no_last_message_when_chat_is_empty() -> Result<()> {
     let header = reader.get_ui_chat_header(&chat.topic_id.to_string())?;
 
     assert!(header.last_message.is_none());
-    assert!(reader
-        .get_ui_last_chat_message(&chat.topic_id.to_string())?
-        .is_none());
+    assert!(
+        reader
+            .get_ui_last_chat_message(&chat.topic_id.to_string())?
+            .is_none()
+    );
 
     Ok(())
 }
@@ -350,21 +342,28 @@ fn ui_message_reads_fail_when_profile_is_missing() -> Result<()> {
 
     writer.add_nw_contact(alice.clone())?;
 
-    let chat = chat(
-        26,
-        vec![member(alice.clone(), NwChatMemberStatus::Joined)],
-    );
+    let chat = chat(26, vec![member(alice.clone(), NwChatMemberStatus::Joined)]);
 
     writer.add_nw_chat(chat.clone())?;
     writer.add_nw_message(message(chat.topic_id, alice.endpoint_id, "hello", 1))?;
 
     let reader = reader_from(writer.conn);
 
-    assert!(reader.get_ui_chat_messages(&chat.topic_id.to_string()).is_err());
-    assert!(reader
-        .get_ui_last_chat_message(&chat.topic_id.to_string())
-        .is_err());
-    assert!(reader.get_ui_chat_header(&chat.topic_id.to_string()).is_err());
+    assert!(
+        reader
+            .get_ui_chat_messages(&chat.topic_id.to_string())
+            .is_err()
+    );
+    assert!(
+        reader
+            .get_ui_last_chat_message(&chat.topic_id.to_string())
+            .is_err()
+    );
+    assert!(
+        reader
+            .get_ui_chat_header(&chat.topic_id.to_string())
+            .is_err()
+    );
 
     Ok(())
 }

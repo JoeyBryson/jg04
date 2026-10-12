@@ -1,7 +1,7 @@
-//! This module defines the [`DbClient`] object, it's public API and it's internal methods 
-use tokio::sync::oneshot;
-use tokio::sync::mpsc;
+//! This module defines the [`DbClient`] object, it's public API and it's internal methods
 use tokio::runtime::Handle;
+use tokio::sync::mpsc;
+use tokio::sync::oneshot;
 
 use crate::database::macros::db_requests;
 use crate::network::{NwChat, NwChatMember, NwContact, NwMessage, NwProfile};
@@ -39,7 +39,6 @@ impl DbClient {
         }
     }
 }
-
 
 //request sending and response receiving helper functions.
 //Sync and Async variants are available to allow us the flexibility to use DbClient in
@@ -95,8 +94,6 @@ impl DbClient {
         rx.await?
     }
 }
-
-
 
 // Add a DB call: write the query fn in reads.rs/writes.rs, then add one line
 // below. Modes: ffi_sync/ffi_async (uniffi-exported) or sync/async (internal

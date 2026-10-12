@@ -3131,12 +3131,12 @@ name = "rust_api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "blake3",
  "futures-lite",
  "hex",
  "iroh",
  "iroh-gossip",
  "iroh-relay",
- "log",
  "n0-error",
  "postcard",
  "rand",

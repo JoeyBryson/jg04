@@ -1,4 +1,4 @@
-//! This module defines the [`DbManager`] object, it's public API and it's internal methods 
+//! This module defines the [`DbManager`] object, it's public API and it's internal methods
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -29,9 +29,9 @@ pub enum DbMode {
 /// [`tokio::sync::mpsc::Sender`]
 ///
 /// A single [`DbManager`] should exist for each database. In the released
-/// application, this means there is one [`DbManager`]. The test framework 
+/// application, this means there is one [`DbManager`]. The test framework
 /// allows multiple nodes to be simulated, each node having its own database and [`DbManager`].
-/// 
+///
 /// # Example
 ///
 /// ```
@@ -45,7 +45,7 @@ pub enum DbMode {
 /// let _client = manager.spawn_client();
 /// # std::fs::remove_file(db_path).ok();
 /// ```
-/// 
+///
 #[derive(uniffi::Object)]
 pub struct DbManager {
     reader_tx: mpsc::Sender<ReadRequest>,
@@ -56,19 +56,17 @@ pub struct DbManager {
 
 impl DbManager {
     pub fn start_conn(db_path: &Path, mode: DbMode) -> Result<Connection> {
-
         let flags = match mode {
             DbMode::ReadOnly => OpenFlags::SQLITE_OPEN_READ_ONLY,
-            DbMode::ReadWrite => {
-                OpenFlags::SQLITE_OPEN_READ_WRITE
-                    | OpenFlags::SQLITE_OPEN_CREATE
-            }
+            DbMode::ReadWrite => OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
         };
 
         let conn = Connection::open_with_flags(db_path, flags).map_err(|e| {
-            log::error!("[DB-MANAGER] open failed: {}", e);
+            tracing::error!(error = %e, "database open failed");
             e
         })?;
+
+        conn.execute_batch("PRAGMA foreign_keys = ON;")?;
 
         if matches!(mode, DbMode::ReadWrite) {
             let _ = conn.execute_batch("PRAGMA journal_mode = WAL;");
@@ -78,11 +76,10 @@ impl DbManager {
     }
 
     fn execute_schema(db_path: &Path) -> Result<()> {
-
         let conn = Self::start_conn(db_path, DbMode::ReadWrite)?;
         conn.execute_batch(include_str!("sql/schema.sql"))?;
 
-        log::info!("[DB-MANAGER] schema executed");
+        tracing::info!("schema executed");
 
         Ok(())
     }
@@ -95,39 +92,45 @@ impl DbManager {
         JoinHandle<()>,
         JoinHandle<()>,
     ) {
+        let parent_span = tracing::Span::current();
         let (reader_tx, reader_rx) = mpsc::channel::<ReadRequest>(32);
         let (writer_tx, writer_rx) = mpsc::channel::<WriteRequest>(32);
 
         let db_path_clone = db_path.clone();
+        let writer_span = parent_span.clone();
         let writer_handle = std::thread::spawn(move || {
-            let result = (|| -> Result<()> {
-                let conn = Self::start_conn(&db_path_clone, DbMode::ReadWrite)?;
-                let writer = DbWriter::new(writer_rx, conn);
-                writer.request_loop();
-                Ok(())
-            })();
+            writer_span.in_scope(|| {
+                let result = (|| -> Result<()> {
+                    let conn = Self::start_conn(&db_path_clone, DbMode::ReadWrite)?;
+                    let writer = DbWriter::new(writer_rx, conn);
+                    writer.request_loop();
+                    Ok(())
+                })();
 
-            if let Err(error) = result {
-                log::error!("[DB-WRITER] exited with error: {}", error);
-            } else {
-                log::info!("[DB-WRITER] exited without error");
-            }
+                if let Err(error) = result {
+                    tracing::error!(error = %error, "writer exited with error");
+                } else {
+                    tracing::info!("writer exited without error");
+                }
+            });
         });
 
         let db_path_clone = db_path.clone();
         let reader_handle = std::thread::spawn(move || {
-            let result = (|| -> Result<()> {
-                let conn = Self::start_conn(&db_path_clone, DbMode::ReadOnly)?;
-                let reader = DbReader::new(reader_rx, conn);
-                reader.request_loop();
-                Ok(())
-            })();
+            parent_span.in_scope(|| {
+                let result = (|| -> Result<()> {
+                    let conn = Self::start_conn(&db_path_clone, DbMode::ReadOnly)?;
+                    let reader = DbReader::new(reader_rx, conn);
+                    reader.request_loop();
+                    Ok(())
+                })();
 
-            if let Err(error) = result {
-                log::error!("[DB-READER] exited with error: {}", error);
-            } else {
-                log::info!("[DB-READER] exited without error");
-            }
+                if let Err(error) = result {
+                    tracing::error!(error = %error, "reader exited with error");
+                } else {
+                    tracing::info!("reader exited without error");
+                }
+            });
         });
 
         (reader_tx, writer_tx, reader_handle, writer_handle)
@@ -138,12 +141,14 @@ impl DbManager {
 impl DbManager {
     #[uniffi::constructor]
     pub fn spawn(db_path_string: String) -> Result<Self, FfiError> {
+        
         (move || -> anyhow::Result<Self> {
             let db_path = PathBuf::from_str(&db_path_string)?;
 
             Self::execute_schema(&db_path)?;
 
-            let (reader_tx, writer_tx, reader_handle, writer_handle) = Self::spawn_workers(&db_path);
+            let (reader_tx, writer_tx, reader_handle, writer_handle) =
+                Self::spawn_workers(&db_path);
 
             Ok(Self {
                 reader_tx,
@@ -157,12 +162,14 @@ impl DbManager {
 
     //Arc is required by uniffi for memory safety across ffi
     //Note: uniffi constructors wrap their objects in Arc implicitly
-    
+
     pub fn spawn_client(&self) -> Arc<DbClient> {
-        Arc::new(DbClient::new(self.reader_tx.clone(), self.writer_tx.clone()))
+        Arc::new(DbClient::new(
+            self.reader_tx.clone(),
+            self.writer_tx.clone(),
+        ))
     }
 }
-
 
 impl DbManager {
     //incase we want an unwrapped DbClient for in-crate purposes

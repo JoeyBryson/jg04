@@ -3,10 +3,11 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use iroh::protocol::Router;
 use tokio::sync::{mpsc, oneshot};
+use tracing::Instrument;
 
 use super::{ControlRequest, ControlResponse};
 use crate::network::persistence::{InviteStore, PendingChatInvite};
-use crate::network::CONTROL_ALPN;
+use crate::network::{CONTROL_ALPN, short_topic_id};
 
 #[derive(Clone, Debug)]
 /// Cloneable command handle for the actor that delivers pending chat invites.
@@ -19,52 +20,51 @@ struct ChatInviteActor {
 }
 
 enum ChatInviteCommand {
-    DeliverPendingInvites {
-        reply: oneshot::Sender<Result<()>>,
-    },
-    Shutdown {
-        reply: oneshot::Sender<Result<()>>,
-    },
+    DeliverPendingInvites { reply: oneshot::Sender<Result<()>> },
+    Shutdown { reply: oneshot::Sender<Result<()>> },
 }
 
 impl ChatInvitesHandle {
     pub(in crate::network) async fn spawn(router: Router, store: InviteStore) -> Result<Self> {
         let (sender, mut receiver) = mpsc::channel(8);
 
-        tokio::spawn(async move {
-            let actor = ChatInviteActor { router };
+        tokio::spawn(
+            async move {
+                let actor = ChatInviteActor { router };
 
-            let mut interval = tokio::time::interval_at(
-                tokio::time::Instant::now() + Duration::from_secs(5),
-                Duration::from_secs(5),
-            );
+                let mut interval = tokio::time::interval_at(
+                    tokio::time::Instant::now() + Duration::from_secs(5),
+                    Duration::from_secs(5),
+                );
 
-            loop {
-                tokio::select! {
-                    command = receiver.recv() => {
-                        let Some(command) = command else {
-                            break;
-                        };
-
-                        match command {
-                            ChatInviteCommand::DeliverPendingInvites { reply } => {
-                                let _ = reply.send(actor.deliver_pending_invites(&store).await);
-                            }
-                            ChatInviteCommand::Shutdown { reply } => {
-                                let _ = reply.send(actor.shutdown().await);
+                loop {
+                    tokio::select! {
+                        command = receiver.recv() => {
+                            let Some(command) = command else {
                                 break;
+                            };
+
+                            match command {
+                                ChatInviteCommand::DeliverPendingInvites { reply } => {
+                                    let _ = reply.send(actor.deliver_pending_invites(&store).await);
+                                }
+                                ChatInviteCommand::Shutdown { reply } => {
+                                    let _ = reply.send(actor.shutdown().await);
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    _ = interval.tick() => {
-                        if let Err(error) = actor.deliver_pending_invites(&store).await {
-                            log::warn!("chat invite cycle failed: {error}");
+                        _ = interval.tick() => {
+                            if let Err(error) = actor.deliver_pending_invites(&store).await {
+                                    tracing::warn!(error = %error, "invite delivery cycle failed");
+                            }
                         }
                     }
                 }
             }
-        });
+            .instrument(tracing::Span::current()),
+        );
 
         let manager = Self { sender };
 
@@ -80,9 +80,7 @@ impl ChatInvitesHandle {
             .send(ChatInviteCommand::DeliverPendingInvites { reply })
             .await?;
 
-        receiver
-            .await
-            .context("chat invite actor stopped")?
+        receiver.await.context("chat invite actor stopped")?
     }
 
     pub async fn shutdown(&self) -> Result<()> {
@@ -102,57 +100,29 @@ impl ChatInvitesHandle {
 impl ChatInviteActor {
     async fn deliver_pending_invites(&self, store: &InviteStore) -> Result<()> {
         let pending_invites = store.pending_invites().await?;
-        log::debug!(
-            "[INVITES] delivering pending invites: count={}",
-            pending_invites.len()
-        );
+        if pending_invites.is_empty() {
+            return Ok(());
+        }
+
+        tracing::debug!(count = pending_invites.len(), "delivering pending invites");
 
         for invite in pending_invites {
-            log::debug!(
-                "[INVITES] sending chat invite: topic={}, target={}",
-                invite.chat.topic_id,
-                invite.contact.endpoint_id
-            );
+            tracing::debug!(topic_id = %short_topic_id(&invite.chat.topic_id), target = %short_endpoint_id(&invite.contact.endpoint_id), "sending chat invite");
 
             match send_chat_invite(&self.router, &invite).await {
                 Ok(()) => {
-                    log::info!(
-                        "[INVITES] invite accepted: topic={}, target={}",
-                        invite.chat.topic_id,
-                        invite.contact.endpoint_id
-                    );
+                    tracing::info!(topic_id = %short_topic_id(&invite.chat.topic_id), target = %short_endpoint_id(&invite.contact.endpoint_id), "invite accepted");
 
                     store
                         .mark_joined(invite.chat.topic_id, invite.contact.endpoint_id)
                         .await?;
 
-                    log::debug!(
-                        "[INVITES] marked member joined: topic={}, member={}",
-                        invite.chat.topic_id,
-                        invite.contact.endpoint_id
-                    );
+                    tracing::debug!(topic_id = %short_topic_id(&invite.chat.topic_id), member = %short_endpoint_id(&invite.contact.endpoint_id), "marked member joined");
                 }
 
                 Err(error) => {
                     let error_text = error.to_string();
-                    let transient_response_race = error_text.contains("read error: connection lost")
-                        || error_text.contains("Hit the end of buffer, expected more data");
-
-                    if transient_response_race {
-                        log::debug!(
-                            "[INVITES] transient invite delivery race: topic={}, target={}, error={}",
-                            invite.chat.topic_id,
-                            invite.contact.endpoint_id,
-                            error_text,
-                        );
-                    } else {
-                        log::warn!(
-                            "[INVITES] chat invite failed: topic={}, target={}, error={}",
-                            invite.chat.topic_id,
-                            invite.contact.endpoint_id,
-                            error_text,
-                        );
-                    }
+                    tracing::warn!(topic_id = %short_topic_id(&invite.chat.topic_id), target = %short_endpoint_id(&invite.contact.endpoint_id), error = %error_text, "chat invite failed; member remains pending until acceptance is acknowledged");
                 }
             }
         }
@@ -166,15 +136,8 @@ impl ChatInviteActor {
     }
 }
 
-async fn send_chat_invite(
-    router: &Router,
-    invite: &PendingChatInvite,
-) -> Result<()> {
-    log::trace!(
-        "[INVITES] opening control connection: topic={}, target={}",
-        invite.chat.topic_id,
-        invite.contact.endpoint_id
-    );
+async fn send_chat_invite(router: &Router, invite: &PendingChatInvite) -> Result<()> {
+    tracing::trace!(topic_id = %short_topic_id(&invite.chat.topic_id), target = %short_endpoint_id(&invite.contact.endpoint_id), "opening control connection");
 
     tokio::time::timeout(Duration::from_secs(5), async {
         let connection = router
@@ -197,25 +160,29 @@ async fn send_chat_invite(
 
         let response: ControlResponse = postcard::from_bytes(&bytes)?;
 
-        match response {
+        let result = match response {
             ControlResponse::ChatInviteAccepted { topic_id }
                 if topic_id == invite.chat.topic_id =>
             {
-                log::trace!(
-                    "[INVITES] received invite acceptance: topic={}, target={}",
-                    topic_id,
-                    invite.contact.endpoint_id
-                );
+                tracing::trace!(topic_id = %short_topic_id(&topic_id), target = %short_endpoint_id(&invite.contact.endpoint_id), "received invite acceptance");
                 Ok(())
             }
 
             ControlResponse::ChatInviteAccepted { .. } => {
                 anyhow::bail!("chat invite accepted for unexpected topic")
             }
-        }
+        };
+
+        connection.close(0u32.into(), b"invite acknowledgement received");
+        result
     })
     .await
     .map_err(|_| anyhow::anyhow!("timed out waiting for chat invite acceptance"))??;
 
     Ok(())
+}
+
+fn short_endpoint_id(endpoint_id: &impl std::fmt::Display) -> String {
+    let id = endpoint_id.to_string();
+    id[..10].to_owned()
 }

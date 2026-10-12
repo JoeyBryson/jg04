@@ -181,6 +181,10 @@ CREATE TABLE IF NOT EXISTS messages (
     endpoint_id BLOB NOT NULL,
     content TEXT NOT NULL,
     sent_at INTEGER NOT NULL,
+    message_id BLOB NOT NULL CHECK (length(message_id) = 32),
+    signature BLOB NOT NULL CHECK (length(signature) = 64),
+
+    UNIQUE (topic_id, message_id),
 
     FOREIGN KEY (topic_id)
     REFERENCES chats (topic_id)

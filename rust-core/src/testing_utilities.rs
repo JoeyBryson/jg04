@@ -1,15 +1,14 @@
 //! This file is temporary, it is for development purposes
 //! and should be removed, or have the content moved somewhere else
-use iroh::EndpointId;
-use std::result::Result;
-use tokio::runtime::Runtime;
 use crate::database::client::DbClient;
 use crate::database::manager::DbManager;
 use crate::ffi_error::FfiError;
 use crate::network::{NwChat, NwChatMember, NwChatMemberStatus, NwContact};
+use iroh::EndpointId;
 use iroh_gossip::TopicId;
+use std::result::Result;
 use std::sync::Arc;
-
+use tokio::runtime::Runtime;
 
 #[uniffi::export]
 pub fn add_sample_messages(db_path_string: String) -> Result<(), FfiError> {
@@ -59,7 +58,7 @@ fn print_endpoint_id(db_client: Arc<DbClient>) -> std::result::Result<(), FfiErr
     let profile = db_client.get_nw_profile_sync()?;
 
     let endpoint_id_hex = hex::encode(profile.secret_key.public().as_bytes());
-    log::info!("Endpoint_id: {}", endpoint_id_hex);
+    tracing::info!(endpoint_id = %endpoint_id_hex, "endpoint identity");
 
     Ok(())
 }

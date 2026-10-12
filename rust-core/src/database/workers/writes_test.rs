@@ -139,10 +139,7 @@ fn marking_members_joined_is_idempotent_and_missing_rows_fail() -> Result<()> {
 
     writer.add_nw_contact(alice.clone())?;
 
-    let chat = chat(
-        11,
-        vec![member(alice.clone(), NwChatMemberStatus::Pending)],
-    );
+    let chat = chat(11, vec![member(alice.clone(), NwChatMemberStatus::Pending)]);
 
     writer.add_nw_chat(chat.clone())?;
 
@@ -166,6 +163,134 @@ fn marking_members_joined_is_idempotent_and_missing_rows_fail() -> Result<()> {
 }
 
 #[test]
+fn message_write_requires_current_joined_membership() -> Result<()> {
+    let mut writer = new_writer();
+    let profile = profile();
+    let alice = contact(1, "Alice");
+    let bob = contact(2, "Bob");
+    let outsider = contact(3, "Outsider");
+
+    writer.set_nw_profile(profile.clone())?;
+    writer.add_nw_contact(alice.clone())?;
+    writer.add_nw_contact(bob.clone())?;
+    writer.add_nw_contact(outsider.clone())?;
+
+    let chat = chat(
+        31,
+        vec![
+            member(profile.contact.clone(), NwChatMemberStatus::Joined),
+            member(alice.clone(), NwChatMemberStatus::Joined),
+            member(bob.clone(), NwChatMemberStatus::Pending),
+        ],
+    );
+    writer.add_nw_chat(chat.clone())?;
+
+    writer.add_nw_message(message(chat.topic_id, alice.endpoint_id, "accepted", 1))?;
+    assert!(
+        writer
+            .add_nw_message(message(chat.topic_id, bob.endpoint_id, "pending", 2))
+            .is_err()
+    );
+    assert!(
+        writer
+            .add_nw_message(message(
+                chat.topic_id,
+                outsider.endpoint_id,
+                "not a member",
+                3
+            ))
+            .is_err()
+    );
+
+    writer.update_chat_members(
+        chat.topic_id,
+        vec![
+            member(profile.contact, NwChatMemberStatus::Joined),
+            member(bob, NwChatMemberStatus::Joined),
+        ],
+    )?;
+
+    assert!(
+        writer
+            .add_nw_message(message(chat.topic_id, alice.endpoint_id, "removed", 4))
+            .is_err()
+    );
+
+    let reader = reader_from(writer.conn);
+    let messages = reader.get_nw_chat_messages(&chat.topic_id)?;
+    assert_eq!(messages.len(), 1);
+    assert_eq!(messages[0].content, "accepted");
+
+    Ok(())
+}
+
+#[test]
+fn signed_message_metadata_is_persisted_and_deduplicated() -> Result<()> {
+    let mut writer = new_writer();
+    let profile = profile();
+    let alice = contact(1, "Alice");
+    writer.set_nw_profile(profile.clone())?;
+    writer.add_nw_contact(alice.clone())?;
+
+    let chat = chat(
+        32,
+        vec![
+            member(profile.contact, NwChatMemberStatus::Joined),
+            member(alice.clone(), NwChatMemberStatus::Joined),
+        ],
+    );
+    writer.add_nw_chat(chat.clone())?;
+
+    let mut signed_message = message(chat.topic_id, alice.endpoint_id, "signed", 42);
+    signed_message.message_id = vec![9; 32];
+    signed_message.signature = vec![4; 64];
+
+    writer.add_nw_message(signed_message.clone())?;
+
+    let mut duplicate_with_conflicting_body = signed_message;
+    duplicate_with_conflicting_body.content = "different body for same ID".to_string();
+    writer.add_nw_message(duplicate_with_conflicting_body)?;
+
+    let reader = reader_from(writer.conn);
+    let stored = reader.get_nw_chat_messages(&chat.topic_id)?;
+    assert_eq!(stored.len(), 1);
+    assert_eq!(stored[0].content, "signed");
+    assert_eq!(stored[0].message_id, vec![9; 32]);
+    assert_eq!(stored[0].signature, vec![4; 64]);
+
+    Ok(())
+}
+
+#[test]
+fn message_write_rejects_content_over_gossip_limit() -> Result<()> {
+    let mut writer = new_writer();
+    let profile = profile();
+    let alice = contact(1, "Alice");
+    writer.set_nw_profile(profile.clone())?;
+    writer.add_nw_contact(alice.clone())?;
+    let chat = chat(
+        34,
+        vec![
+            member(profile.contact, NwChatMemberStatus::Joined),
+            member(alice.clone(), NwChatMemberStatus::Joined),
+        ],
+    );
+    writer.add_nw_chat(chat.clone())?;
+
+    let mut oversized = message(
+        chat.topic_id,
+        alice.endpoint_id,
+        &"x".repeat(crate::network::MAX_CHAT_MESSAGE_CONTENT_BYTES + 1),
+        42,
+    );
+    oversized.signature = vec![0; 64];
+
+    assert!(writer.add_nw_message(oversized).is_err());
+
+    Ok(())
+}
+
+#[test]
 fn convenience_writes_and_chat_conflicts_are_handled() -> Result<()> {
     let mut writer = new_writer();
     let profile = profile();
@@ -178,12 +303,14 @@ fn convenience_writes_and_chat_conflicts_are_handled() -> Result<()> {
         endpoint_id: hex::encode(alice.endpoint_id.as_bytes()),
     })?;
 
-    assert!(writer
-        .add_ui_contact(crate::ui::UiContact {
-            name: alice.name.clone(),
-            endpoint_id: hex::encode(alice.endpoint_id.as_bytes()),
-        })
-        .is_err());
+    assert!(
+        writer
+            .add_ui_contact(crate::ui::UiContact {
+                name: alice.name.clone(),
+                endpoint_id: hex::encode(alice.endpoint_id.as_bytes()),
+            })
+            .is_err()
+    );
 
     let chat_id = writer.add_chat_ui(
         vec![crate::ui::UiContact {
@@ -281,9 +408,11 @@ fn update_contact_name_updates_contact_and_profile_name() -> Result<()> {
     writer.update_contact_name(alice.endpoint_id, "Alice Renamed".to_string())?;
     writer.update_contact_name(profile.contact.endpoint_id, "Me Renamed".to_string())?;
 
-    assert!(writer
-        .update_contact_name(contact(9, "Missing").endpoint_id, "Nope".to_string())
-        .is_err());
+    assert!(
+        writer
+            .update_contact_name(contact(9, "Missing").endpoint_id, "Nope".to_string())
+            .is_err()
+    );
 
     let reader = reader_from(writer.conn);
 
@@ -307,10 +436,7 @@ fn update_chat_members_replaces_members_and_rejects_invalid_updates() -> Result<
     writer.add_nw_contact(alice.clone())?;
     writer.add_nw_contact(bob.clone())?;
 
-    let chat = chat(
-        21,
-        vec![member(alice.clone(), NwChatMemberStatus::Pending)],
-    );
+    let chat = chat(21, vec![member(alice.clone(), NwChatMemberStatus::Pending)]);
 
     writer.add_nw_chat(chat.clone())?;
 
@@ -322,13 +448,20 @@ fn update_chat_members_replaces_members_and_rejects_invalid_updates() -> Result<
         ],
     )?;
 
-    assert!(writer
-        .update_chat_members(chat.topic_id, Vec::new())
-        .is_err());
+    assert!(
+        writer
+            .update_chat_members(chat.topic_id, Vec::new())
+            .is_err()
+    );
 
-    assert!(writer
-        .update_chat_members(TopicId::from_bytes([22; 32]), vec![member(alice, NwChatMemberStatus::Joined)])
-        .is_err());
+    assert!(
+        writer
+            .update_chat_members(
+                TopicId::from_bytes([22; 32]),
+                vec![member(alice, NwChatMemberStatus::Joined)]
+            )
+            .is_err()
+    );
 
     let reader = reader_from(writer.conn);
     let updated_chat = reader.get_nw_chat(&chat.topic_id)?;
@@ -339,8 +472,14 @@ fn update_chat_members_replaces_members_and_rejects_invalid_updates() -> Result<
     updated_members.sort_by(|left, right| left.0.cmp(&right.0));
 
     let mut expected_members = vec![
-        (bob_endpoint.as_bytes().to_vec(), NwChatMemberStatus::Pending),
-        (alice_endpoint.as_bytes().to_vec(), NwChatMemberStatus::Joined),
+        (
+            bob_endpoint.as_bytes().to_vec(),
+            NwChatMemberStatus::Pending,
+        ),
+        (
+            alice_endpoint.as_bytes().to_vec(),
+            NwChatMemberStatus::Joined,
+        ),
     ];
     expected_members.sort_by(|left, right| left.0.cmp(&right.0));
 
@@ -399,22 +538,21 @@ fn update_chat_members_is_atomic_when_fk_fails() -> Result<()> {
 
     writer.add_nw_contact(alice.clone())?;
 
-    let chat = chat(
-        23,
-        vec![member(alice.clone(), NwChatMemberStatus::Pending)],
-    );
+    let chat = chat(23, vec![member(alice.clone(), NwChatMemberStatus::Pending)]);
 
     writer.add_nw_chat(chat.clone())?;
 
-    assert!(writer
-        .update_chat_members(
-            chat.topic_id,
-            vec![
-                member(alice.clone(), NwChatMemberStatus::Joined),
-                member(missing, NwChatMemberStatus::Pending),
-            ],
-        )
-        .is_err());
+    assert!(
+        writer
+            .update_chat_members(
+                chat.topic_id,
+                vec![
+                    member(alice.clone(), NwChatMemberStatus::Joined),
+                    member(missing, NwChatMemberStatus::Pending),
+                ],
+            )
+            .is_err()
+    );
 
     let reader = reader_from(writer.conn);
     let stored_chat = reader.get_nw_chat(&chat.topic_id)?;

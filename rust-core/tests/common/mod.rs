@@ -1,11 +1,14 @@
 use anyhow::Result;
-use iroh::endpoint::presets::Preset;
-use iroh::endpoint::Builder;
-use iroh::test_utils::DnsPkarrServer;
-use iroh::tls::CaTlsConfig;
+use iroh::Endpoint;
 use iroh::RelayMap;
 use iroh::RelayMode;
 use iroh::SecretKey;
+use iroh::endpoint::Builder;
+use iroh::endpoint::presets::Preset;
+use iroh::protocol::Router;
+use iroh::test_utils::DnsPkarrServer;
+use iroh::tls::CaTlsConfig;
+use iroh_gossip::net::Gossip;
 use tempfile::TempDir;
 use tokio::runtime::Runtime;
 
@@ -22,6 +25,10 @@ pub struct TestNetwork {
 }
 
 impl TestNetwork {
+    pub fn runtime(&self) -> &Runtime {
+        &self._runtime
+    }
+
     pub fn spawn() -> Result<Self> {
         let runtime = Runtime::new()?;
 
@@ -41,34 +48,76 @@ impl TestNetwork {
 
     /// Spawns a node with a fresh temporary database and a freshly generated identity.
     pub fn spawn_node(&self, name: impl Into<String>) -> Result<TestNode> {
-        let (db_manager, temp_dir) = spawn_test_db_manager()?;
-        let db_client = db_manager.spawn_client_raw();
-
+        let name = name.into();
         let secret_key = SecretKey::generate();
-
         let profile = NwProfile {
             contact: NwContact {
-                name: name.into(),
+                name: name.clone(),
                 endpoint_id: secret_key.public(),
             },
             secret_key,
         };
 
-        db_client.set_profile(profile)?;
+        let id = profile.contact.endpoint_id.to_string();
+        let peer_span = tracing::info_span!("peer", name = %name.to_lowercase(), id = %id[..10]);
+        let (db_manager, db_client, nw_core, temp_dir) = peer_span.in_scope(|| {
+            let (db_manager, temp_dir) = spawn_test_db_manager()?;
+            let db_client = db_manager.spawn_client_raw();
+            db_client.set_profile(profile)?;
 
-        let preset = LocalNetworkPreset {
-            dns_pkarr: &self.dns_pkarr,
-            relay_map: self.relay_map.clone(),
-        };
+            let preset = LocalNetworkPreset {
+                dns_pkarr: &self.dns_pkarr,
+                relay_map: self.relay_map.clone(),
+            };
 
-        let nw_core = NwCore::spawn(db_client.clone(), preset)?;
+            let nw_core = NwCore::spawn(db_client.clone(), preset)?;
+            Ok::<_, anyhow::Error>((db_manager, db_client, nw_core, temp_dir))
+        })?;
 
         Ok(TestNode {
             _db_manager: db_manager,
             db_client,
             nw_core,
+            peer_span,
             _temp_dir: temp_dir,
         })
+    }
+
+    pub async fn spawn_gossip_peer(&self, secret_key: SecretKey) -> Result<TestGossipPeer> {
+        let endpoint = Endpoint::builder(LocalNetworkPreset {
+            dns_pkarr: &self.dns_pkarr,
+            relay_map: self.relay_map.clone(),
+        })
+        .secret_key(secret_key)
+        .alpns(vec![iroh_gossip::ALPN.to_vec()])
+        .bind()
+        .await?;
+
+        let endpoint_id = endpoint.id();
+        let gossip = Gossip::builder().spawn(endpoint.clone());
+        let router = Router::builder(endpoint)
+            .accept(iroh_gossip::ALPN, gossip.clone())
+            .spawn();
+
+        Ok(TestGossipPeer {
+            endpoint_id,
+            gossip,
+            router,
+        })
+    }
+}
+
+pub struct TestGossipPeer {
+    pub endpoint_id: iroh::EndpointId,
+    pub gossip: Gossip,
+    router: Router,
+}
+
+impl TestGossipPeer {
+    pub async fn shutdown(self) -> Result<()> {
+        self.gossip.shutdown().await?;
+        self.router.shutdown().await?;
+        Ok(())
     }
 }
 
@@ -91,6 +140,7 @@ pub struct TestNode {
     pub _db_manager: DbManager,
     pub db_client: DbClient,
     pub nw_core: NwCore,
+    pub peer_span: tracing::Span,
 
     // Keeps the temporary database alive for the lifetime of the node.
     _temp_dir: TempDir,
@@ -100,9 +150,7 @@ fn spawn_test_db_manager() -> Result<(DbManager, TempDir)> {
     let temp_dir = tempfile::tempdir()?;
     let db_path = temp_dir.path().join("app.db");
 
-    let db_manager = DbManager::spawn(
-        db_path.to_string_lossy().into_owned(),
-    )?;
+    let db_manager = DbManager::spawn(db_path.to_string_lossy().into_owned())?;
 
     Ok((db_manager, temp_dir))
 }

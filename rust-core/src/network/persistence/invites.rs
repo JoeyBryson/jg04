@@ -27,14 +27,10 @@ impl InviteStore {
         let mut invites = Vec::new();
 
         for chat in chats {
-            for member in chat
-                .members
-                .iter()
-                .filter(|member| {
-                    member.status != NwChatMemberStatus::Joined
-                        && member.contact.endpoint_id != local_endpoint_id
-                })
-            {
+            for member in chat.members.iter().filter(|member| {
+                member.status != NwChatMemberStatus::Joined
+                    && member.contact.endpoint_id != local_endpoint_id
+            }) {
                 invites.push(PendingChatInvite {
                     chat: chat.clone(),
                     contact: member.contact.clone(),
@@ -50,9 +46,7 @@ impl InviteStore {
         topic_id: TopicId,
         member: EndpointId,
     ) -> Result<()> {
-        self.db
-            .mark_nw_chat_member_joined(topic_id, member)
-            .await?;
+        self.db.mark_nw_chat_member_joined(topic_id, member).await?;
 
         Ok(())
     }

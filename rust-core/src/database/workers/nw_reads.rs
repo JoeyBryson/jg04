@@ -9,15 +9,12 @@
 //! - `get_nw_chat_messages(topic_id: &TopicId) -> Result<Vec<NwMessage>>`
 //! - `get_nw_messages() -> Result<Vec<NwMessage>>`
 
-use crate::network::{
-    NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile,
-};
 use super::DbReader;
+use crate::network::{NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile};
 use anyhow::{Context, Result, anyhow};
 use iroh::{EndpointId, PublicKey, SecretKey};
 use iroh_gossip::TopicId;
 use std::collections::BTreeMap;
-
 
 impl DbReader {
     pub fn get_nw_profile(&self) -> Result<NwProfile> {
@@ -91,8 +88,7 @@ impl DbReader {
                         .map_err(anyhow::Error::from)
                         .with_context(|| "invalid public key for chat member")?,
                 },
-                status: NwChatMemberStatus::try_from(status)
-                    .map_err(anyhow::Error::msg)?,
+                status: NwChatMemberStatus::try_from(status).map_err(anyhow::Error::msg)?,
             });
         }
 
@@ -102,7 +98,6 @@ impl DbReader {
 
         Ok(chats.into_values().collect())
     }
-    
 
     pub fn get_nw_contact(&self, endpoint_id: &EndpointId) -> Result<NwContact> {
         let endpoint_id_bytes: Vec<u8> = endpoint_id.as_bytes().to_vec();
@@ -147,8 +142,7 @@ impl DbReader {
                     name: row.get(0)?,
                     endpoint_id: PublicKey::from_bytes(&endpoint_id)?,
                 },
-                status: NwChatMemberStatus::try_from(status)
-                    .map_err(anyhow::Error::msg)?,
+                status: NwChatMemberStatus::try_from(status).map_err(anyhow::Error::msg)?,
             });
         }
 
@@ -200,8 +194,7 @@ impl DbReader {
                     name,
                     endpoint_id: PublicKey::from_bytes(&endpoint_id_bytes)?,
                 },
-                status: NwChatMemberStatus::try_from(status)
-                    .map_err(anyhow::Error::msg)?,
+                status: NwChatMemberStatus::try_from(status).map_err(anyhow::Error::msg)?,
             });
         }
 
@@ -217,10 +210,10 @@ impl DbReader {
     pub fn get_nw_chat_messages(&self, topic_id: &TopicId) -> Result<Vec<NwMessage>> {
         let mut stmt = self.conn.prepare(
             "
-            SELECT topic_id, endpoint_id, content, sent_at
+                     SELECT topic_id, endpoint_id, content, sent_at, message_id, signature
             FROM messages
             WHERE topic_id = ?1
-            ORDER BY id ASC
+                    ORDER BY sent_at ASC, endpoint_id ASC, message_id ASC
             ",
         )?;
 
@@ -228,14 +221,15 @@ impl DbReader {
         let mut messages = Vec::new();
 
         while let Some(row) = rows.next()? {
-            let endpoint_id =
-                PublicKey::from_bytes(&row.get::<_, [u8; 32]>(1)?)?;
+            let endpoint_id = PublicKey::from_bytes(&row.get::<_, [u8; 32]>(1)?)?;
 
             messages.push(NwMessage {
                 topic_id: TopicId::from_bytes(row.get(0)?),
                 endpoint_id,
                 content: row.get(2)?,
                 sent_at: row.get(3)?,
+                message_id: row.get(4)?,
+                signature: row.get(5)?,
             });
         }
 
@@ -245,9 +239,9 @@ impl DbReader {
     pub fn get_nw_messages(&self) -> Result<Vec<NwMessage>> {
         let mut stmt = self.conn.prepare(
             "
-            SELECT topic_id, endpoint_id, content, sent_at
+                     SELECT topic_id, endpoint_id, content, sent_at, message_id, signature
             FROM messages
-            ORDER BY id ASC
+                    ORDER BY topic_id ASC, sent_at ASC, endpoint_id ASC, message_id ASC
             ",
         )?;
 
@@ -255,14 +249,15 @@ impl DbReader {
         let mut messages = Vec::new();
 
         while let Some(row) = rows.next()? {
-            let endpoint_id =
-                PublicKey::from_bytes(&row.get::<_, [u8; 32]>(1)?)?;
+            let endpoint_id = PublicKey::from_bytes(&row.get::<_, [u8; 32]>(1)?)?;
 
             messages.push(NwMessage {
                 topic_id: TopicId::from_bytes(row.get(0)?),
                 endpoint_id,
                 content: row.get(2)?,
                 sent_at: row.get(3)?,
+                message_id: row.get(4)?,
+                signature: row.get(5)?,
             });
         }
 

@@ -20,7 +20,7 @@ pub struct NwCore {
 impl NwCore {
     pub fn spawn(db_client: DbClient, preset: impl presets::Preset) -> Result<Self> {
         let runtime = Runtime::new()?;
-        let service = runtime.block_on(NwService::spawn(db_client,preset))?;
+        let service = runtime.block_on(NwService::spawn(db_client, preset))?;
 
         Ok(Self { runtime, service })
     }
@@ -45,7 +45,7 @@ impl NwCore {
 impl Drop for NwCore {
     fn drop(&mut self) {
         if let Err(error) = self.runtime.block_on(self.service.shutdown()) {
-            log::warn!("[NW-CORE] graceful shutdown failed: {error}");
+            tracing::warn!(error = %error, "graceful shutdown failed");
         }
     }
 }

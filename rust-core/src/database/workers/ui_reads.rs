@@ -11,17 +11,14 @@
 //! - `get_ui_profile() -> Result<Option<UiProfile>>`
 
 use super::DbReader;
+use anyhow::Context;
 use anyhow::Result;
-use anyhow::{Context};
 
 use crate::ui::{UiChatData, UiChatHeader, UiContact, UiMessage, UiProfile, UiSender};
 use rusqlite::{OptionalExtension, Row};
 
 impl DbReader {
-    fn map_message_row(
-        row: &Row,
-        my_endpoint_id: &[u8],
-    ) -> rusqlite::Result<UiMessage> {
+    fn map_message_row(row: &Row, my_endpoint_id: &[u8]) -> rusqlite::Result<UiMessage> {
         let endpoint_id: Vec<u8> = row.get(0)?;
         let contact_name: Option<String> = row.get(1)?;
         let content: String = row.get(2)?;
@@ -62,7 +59,7 @@ impl DbReader {
              FROM messages m
              LEFT JOIN contacts c ON m.endpoint_id = c.endpoint_id
              WHERE m.topic_id = ?1
-             ORDER BY m.sent_at DESC, m.id DESC
+             ORDER BY m.sent_at DESC, m.endpoint_id DESC, m.message_id DESC
              LIMIT 1",
         )?;
 
@@ -143,7 +140,7 @@ impl DbReader {
              FROM messages m
              LEFT JOIN contacts c ON m.endpoint_id = c.endpoint_id
              WHERE m.topic_id = ?1
-             ORDER BY m.sent_at ASC, m.id ASC",
+             ORDER BY m.sent_at ASC, m.endpoint_id ASC, m.message_id ASC",
         )?;
 
         let rows = stmt.query_map([topic_id], |row| {

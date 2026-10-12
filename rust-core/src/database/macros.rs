@@ -6,7 +6,6 @@
 //! I would not mess with this file, it's purpose is to reduce boilerplate when adding new db calls.
 //!
 
-
 // Generates a single DbClient read method for a specific execution mode.
 //
 // For example:
@@ -74,7 +73,6 @@ macro_rules! db_read_method_body {
         }
     };
 }
-
 
 // Selects how a read method is exposed and executed.
 //
@@ -154,7 +152,6 @@ macro_rules! db_read_mode {
         );
     };
 }
-
 
 // Generates a single DbClient write method, including its UI events.
 //
@@ -237,7 +234,6 @@ macro_rules! db_write_method_body {
         }
     };
 }
-
 
 // Selects how a write method is exposed and executed.
 //
@@ -323,7 +319,6 @@ macro_rules! db_write_mode {
     };
 }
 
-
 // Recursively generates all requested read methods for a database operation.
 //
 // For example:
@@ -379,7 +374,6 @@ macro_rules! db_read_modes {
         )?
     };
 }
-
 
 // Recursively generates all requested write methods for a database operation.
 //
@@ -442,7 +436,6 @@ macro_rules! db_write_modes {
         )?
     };
 }
-
 
 // Defines database requests, worker dispatch, and the corresponding DbClient API
 // from a single list of database operations.

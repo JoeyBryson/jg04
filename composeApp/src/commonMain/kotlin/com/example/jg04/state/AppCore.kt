@@ -50,7 +50,7 @@ object AppCore {
     }
 
     fun initialize(dbPath: String) {
-        deleteDb(dbPath)
+//        deleteDb(dbPath)
 //        resetDbForWal(dbPath)
 //        addSampleData(dbPath)
 

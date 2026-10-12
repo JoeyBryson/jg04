@@ -46,8 +46,7 @@ impl NwCoreInterface {
 
     pub fn send_message(&self, content: String, chat_id: String) -> Result<(), FfiError> {
         let mut topic_id_bytes = [0u8; 32];
-        hex::decode_to_slice(&chat_id, &mut topic_id_bytes)
-            .map_err(anyhow::Error::from)?;
+        hex::decode_to_slice(&chat_id, &mut topic_id_bytes).map_err(anyhow::Error::from)?;
 
         let topic_id = TopicId::from_bytes(topic_id_bytes);
         self.core.send_message(content, topic_id)

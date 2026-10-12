@@ -9,6 +9,8 @@ pub struct NwMessage {
     pub endpoint_id: EndpointId,
     pub content: String,
     pub sent_at: i64,
+    pub message_id: Vec<u8>,
+    pub signature: Vec<u8>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

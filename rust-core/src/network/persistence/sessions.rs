@@ -1,8 +1,8 @@
 use anyhow::Result;
-use iroh::EndpointId;
 use iroh_gossip::proto::TopicId;
 
 use crate::database::client::DbClient;
+use crate::network::messaging::signed::MessageDataAndSender;
 use crate::network::{NwChat, NwMessage, NwProfile};
 
 #[derive(Clone)]
@@ -60,36 +60,22 @@ impl SessionStore {
 
     pub(in crate::network) async fn record_message(
         &self,
-        sender: EndpointId,
-        content: String,
-        sent_at: i64,
+        message: MessageDataAndSender,
     ) -> Result<()> {
-        let topic_id = self.chat.topic_id;
-        let content_len = content.len();
-
-        log::debug!(
-            "[SESSION-STORE] record_message start: topic={}, sender={}, sent_at={}, content_len={}",
-            topic_id,
-            sender,
-            sent_at,
-            content_len
-        );
+        if message.topic_id != self.chat.topic_id {
+            anyhow::bail!("signed message belongs to a different chat topic")
+        }
 
         self.db
             .add_nw_message(NwMessage {
-                topic_id,
-                endpoint_id: sender,
-                content,
-                sent_at,
+                topic_id: message.topic_id,
+                endpoint_id: message.sender,
+                content: message.content,
+                sent_at: message.sent_at as i64,
+                message_id: message.message_id.to_vec(),
+                signature: message.signature,
             })
             .await?;
-
-        log::debug!(
-            "[SESSION-STORE] record_message done: topic={}, sender={}, sent_at={}",
-            topic_id,
-            sender,
-            sent_at
-        );
 
         Ok(())
     }

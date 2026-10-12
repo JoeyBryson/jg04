@@ -15,10 +15,8 @@
 //!
 //! This may be over-engineering, but it's done now.
 
-
 use rusqlite::Connection;
 use tokio::sync::mpsc;
-
 
 mod nw_reads;
 mod ui_reads;
@@ -52,7 +50,6 @@ impl DbReader {
     }
 
     pub fn request_loop(mut self) {
-        log::info!("[DB-READER] loop start");
 
         while let Some(request) = self.rx.blocking_recv() {
             // Dispatch is generated in super::client.rs using macros from super::macros.rs.
@@ -60,8 +57,6 @@ impl DbReader {
             // internal methods.
             self.dispatch(request);
         }
-
-        log::info!("[DB-READER] loop exit");
     }
 }
 
@@ -74,24 +69,21 @@ impl DbWriter {
     }
 
     pub fn request_loop(mut self) {
-        log::info!("[DB-WRITER] loop start");
 
         while let Some(request) = self.rx.blocking_recv() {
             self.dispatch(request);
         }
-
-        log::info!("[DB-WRITER] loop exit");
     }
 }
 
 ///Testing utilities
 #[cfg(test)]
 pub(super) mod test_utils {
+    use super::*;
     use iroh::{EndpointId, SecretKey};
     use iroh_gossip::proto::TopicId;
     use rusqlite::Connection;
     use tokio::sync::mpsc;
-    use super::*;
 
     use crate::network::{
         NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile,
@@ -138,10 +130,7 @@ pub(super) mod test_utils {
         }
     }
 
-    pub(super) fn chat(
-        topic_seed: u8,
-        members: Vec<NwChatMember>,
-    ) -> NwChat {
+    pub(super) fn chat(topic_seed: u8, members: Vec<NwChatMember>) -> NwChat {
         NwChat {
             name: Some("Test chat".to_string()),
             members,
@@ -149,10 +138,7 @@ pub(super) mod test_utils {
         }
     }
 
-    pub(super) fn member(
-        contact: NwContact,
-        status: NwChatMemberStatus,
-    ) -> NwChatMember {
+    pub(super) fn member(contact: NwContact, status: NwChatMemberStatus) -> NwChatMember {
         NwChatMember { contact, status }
     }
 
@@ -167,12 +153,16 @@ pub(super) mod test_utils {
             endpoint_id,
             content: content.to_string(),
             sent_at,
+            message_id: blake3::hash(
+                format!("{topic_id}:{endpoint_id}:{content}:{sent_at}").as_bytes(),
+            )
+            .as_bytes()
+            .to_vec(),
+            signature: vec![0; 64],
         }
     }
 
-    pub(super) fn member_keys(
-        chat: &NwChat,
-    ) -> Vec<(Vec<u8>, NwChatMemberStatus)> {
+    pub(super) fn member_keys(chat: &NwChat) -> Vec<(Vec<u8>, NwChatMemberStatus)> {
         member_keys_from_members(&chat.members)
     }
 

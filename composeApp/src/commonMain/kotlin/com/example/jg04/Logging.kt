@@ -5,73 +5,31 @@ import uniffi.rust_api.LogListener
 
 class NativeLogListener : LogListener {
 
-    override fun log(
-        level: LogLevel,
-        target: String,
-        file: String?,
-        line: UInt?,
-        msg: String,
-    ) {
-        PlatformLogger.logOut(
-            level = level,
-            target = target,
-            file = file,
-            line = line,
-            msg = msg,
-        )
+    override fun log(level: LogLevel, line: String) {
+        PlatformLogger.logOut(level, line)
     }
 }
 
 expect object PlatformLogger {
-    fun logOut(
-        level: LogLevel,
-        target: String,
-        file: String?,
-        line: UInt?,
-        msg: String,
-    )
+    fun logOut(level: LogLevel, line: String)
 }
 
 object KotlinLogger {
 
     fun trace(tag: String, message: String) {
-        PlatformLogger.logOut(
-            level = LogLevel.TRACE,
-            target = tag,
-            file = null,
-            line = null,
-            msg = message,
-        )
+        PlatformLogger.logOut(LogLevel.TRACE, "$tag: $message")
     }
 
     fun debug(tag: String, message: String) {
-        PlatformLogger.logOut(
-            level = LogLevel.DEBUG,
-            target = tag,
-            file = null,
-            line = null,
-            msg = message,
-        )
+        PlatformLogger.logOut(LogLevel.DEBUG, "$tag: $message")
     }
 
     fun info(tag: String, message: String) {
-        PlatformLogger.logOut(
-            level = LogLevel.INFO,
-            target = tag,
-            file = null,
-            line = null,
-            msg = message,
-        )
+        PlatformLogger.logOut(LogLevel.INFO, "$tag: $message")
     }
 
     fun warn(tag: String, message: String) {
-        PlatformLogger.logOut(
-            level = LogLevel.WARN,
-            target = tag,
-            file = null,
-            line = null,
-            msg = message,
-        )
+        PlatformLogger.logOut(LogLevel.WARN, "$tag: $message")
     }
 
     fun error(
@@ -88,12 +46,6 @@ object KotlinLogger {
             }
         }
 
-        PlatformLogger.logOut(
-            level = LogLevel.ERROR,
-            target = tag,
-            file = null,
-            line = null,
-            msg = finalMessage,
-        )
+        PlatformLogger.logOut(LogLevel.ERROR, "$tag: $finalMessage")
     }
 }

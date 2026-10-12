@@ -23,7 +23,6 @@ pub trait UiEventListener: Send + Sync {
     fn on_event(&self, event: UiEvent);
 }
 
-
 ///holds the foreign implementation and makes it accessible from anywhere in the crate
 static UI_EVENT_LISTENER: OnceLock<Box<dyn UiEventListener>> = OnceLock::new();
 
@@ -41,6 +40,6 @@ pub fn emit_ui_event(event: UiEvent) {
     if let Some(listener) = UI_EVENT_LISTENER.get() {
         listener.on_event(event);
     } else {
-        log::warn!("[EVENT-BUS] Drop event: No UI listener registered yet.");
+        tracing::warn!("dropping event; no UI listener registered");
     }
 }

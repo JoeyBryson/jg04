@@ -11,8 +11,8 @@
 //! stored as a `String`. This preserves the diagnostic information but loses
 //! the original error types and their ability to be inspected or downcast
 //! across the FFI boundary. If specific errors need to be handled across the
-//! FFI, we can do this by adding additional variants to the FfiError enum. 
-//! Otherwise, the main purpose is for diagnosing failures and this can be handled 
+//! FFI, we can do this by adding additional variants to the FfiError enum.
+//! Otherwise, the main purpose is for diagnosing failures and this can be handled
 //! with the [`FfiError::Internal`] variant.
 
 #[derive(uniffi::Error, Debug, PartialEq)]

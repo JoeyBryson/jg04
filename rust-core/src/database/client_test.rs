@@ -24,9 +24,7 @@ use tokio::sync::mpsc as tokio_mpsc;
 
 use super::manager::{DbManager, DbMode};
 use super::workers::DbReader;
-use crate::network::{
-    NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile,
-};
+use crate::network::{NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile};
 use crate::ui::UiContact;
 
 fn temp_db_path() -> PathBuf {
@@ -144,8 +142,56 @@ fn dbclient_get_nw_chats_sync_matches_direct_reader() -> Result<()> {
     Ok(())
 }
 
-#[tokio::test]
-async fn dbclient_get_nw_chat_messages_matches_direct_reader() -> Result<()> {
+#[test]
+fn database_connections_enable_foreign_key_enforcement() -> Result<()> {
+    let db_path = temp_db_path();
+    let _manager = DbManager::spawn(db_path.to_string_lossy().into_owned())?;
+
+    let writer = DbManager::start_conn(&db_path, DbMode::ReadWrite)?;
+    let writer_foreign_keys: i32 =
+        writer.query_row("PRAGMA foreign_keys", [], |row| row.get(0))?;
+    assert_eq!(writer_foreign_keys, 1);
+
+    let topic_id = TopicId::from_bytes([31; 32]);
+    writer.execute(
+        "INSERT INTO chats (topic_id, chat_name) VALUES (?1, ?2)",
+        (topic_id.as_bytes(), "Cascade test"),
+    )?;
+    writer.execute(
+        "INSERT INTO messages (topic_id, endpoint_id, content, sent_at, message_id, signature)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        (
+            topic_id.as_bytes(),
+            &[42u8; 32][..],
+            "test",
+            1i64,
+            &[1u8; 32][..],
+            &[2u8; 64][..],
+        ),
+    )?;
+    writer.execute(
+        "DELETE FROM chats WHERE topic_id = ?1",
+        [topic_id.as_bytes()],
+    )?;
+
+    let remaining_messages: i64 =
+        writer.query_row("SELECT COUNT(*) FROM messages", [], |row| row.get(0))?;
+    assert_eq!(remaining_messages, 0);
+
+    let reader = DbManager::start_conn(&db_path, DbMode::ReadOnly)?;
+    let reader_foreign_keys: i32 =
+        reader.query_row("PRAGMA foreign_keys", [], |row| row.get(0))?;
+    assert_eq!(reader_foreign_keys, 1);
+
+    drop(reader);
+    drop(writer);
+    drop(_manager);
+    let _ = std::fs::remove_file(&db_path);
+    Ok(())
+}
+
+#[test]
+fn dbclient_get_nw_chat_messages_matches_direct_reader() -> Result<()> {
     let db_path = temp_db_path();
     let manager = DbManager::spawn(db_path.to_string_lossy().into_owned())?;
     let client = manager.spawn_client_raw();
@@ -154,8 +200,6 @@ async fn dbclient_get_nw_chat_messages_matches_direct_reader() -> Result<()> {
     let alice = contact(21, "Alice");
 
     client.set_profile(profile.clone())?;
-    client.add_nw_contact(alice.clone()).await?;
-
     let inserted_chat = NwChat {
         name: Some("Test chat".to_string()),
         members: vec![
@@ -171,29 +215,35 @@ async fn dbclient_get_nw_chat_messages_matches_direct_reader() -> Result<()> {
         topic_id: TopicId::from_bytes([9; 32]),
     };
 
-    client.add_nw_chat(inserted_chat.clone()).await?;
+    let runtime = tokio::runtime::Runtime::new()?;
+    let via_client = runtime.block_on(async {
+        client.add_nw_contact(alice.clone()).await?;
+        client.add_nw_chat(inserted_chat.clone()).await?;
 
-    client
-        .add_nw_message(NwMessage {
-            topic_id: inserted_chat.topic_id,
-            endpoint_id: alice.endpoint_id,
-            content: "first".to_string(),
-            sent_at: 1,
-        })
-        .await?;
+        client
+            .add_nw_message(NwMessage {
+                topic_id: inserted_chat.topic_id,
+                endpoint_id: alice.endpoint_id,
+                content: "first".to_string(),
+                sent_at: 1,
+                message_id: vec![1; 32],
+                signature: vec![1; 64],
+            })
+            .await?;
 
-    client
-        .add_nw_message(NwMessage {
-            topic_id: inserted_chat.topic_id,
-            endpoint_id: profile.contact.endpoint_id,
-            content: "second".to_string(),
-            sent_at: 2,
-        })
-        .await?;
+        client
+            .add_nw_message(NwMessage {
+                topic_id: inserted_chat.topic_id,
+                endpoint_id: profile.contact.endpoint_id,
+                content: "second".to_string(),
+                sent_at: 2,
+                message_id: vec![2; 32],
+                signature: vec![2; 64],
+            })
+            .await?;
 
-    let via_client = client
-        .get_nw_chat_messages(inserted_chat.topic_id)
-        .await?;
+        client.get_nw_chat_messages(inserted_chat.topic_id).await
+    })?;
 
     let direct_reader = new_direct_reader(&db_path)?;
     let via_worker = direct_reader.get_nw_chat_messages(&inserted_chat.topic_id)?;
@@ -215,9 +265,7 @@ async fn sync_read_methods_return_error_in_async_runtime() -> Result<()> {
         .expect_err("sync read should fail inside async runtime");
 
     assert!(
-        error
-            .to_string()
-            .contains("called from async runtime"),
+        error.to_string().contains("called from async runtime"),
         "unexpected error: {error}"
     );
 
@@ -239,9 +287,7 @@ async fn sync_write_methods_return_error_in_async_runtime() -> Result<()> {
         .expect_err("sync write should fail inside async runtime");
 
     assert!(
-        error
-            .to_string()
-            .contains("called from async runtime"),
+        error.to_string().contains("called from async runtime"),
         "unexpected error: {error}"
     );
 

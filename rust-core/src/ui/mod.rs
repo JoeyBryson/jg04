@@ -31,7 +31,6 @@ pub struct UiContact {
     pub endpoint_id: String,
 }
 
-
 //members DOES include the self contact like NwChat
 #[derive(uniffi::Record, Debug)]
 pub struct UiChatHeader {

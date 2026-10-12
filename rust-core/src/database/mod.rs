@@ -17,12 +17,11 @@
 //! let db_manager = DbManager::spawn(db_path_string);
 //! let db_client = db_manager.spawn_client();
 //! ```
-//! 
+//!
 //! The database layer should remain independent of higher-level
-//! application logic, but it does take and return primative types 
+//! application logic, but it does take and return primative types
 //! from other dependencies needed to represent Ui or Networking state strictly through the
 //! methods of DbClient.
-
 
 use std::path::PathBuf;
 
@@ -38,8 +37,7 @@ pub mod manager;
 pub mod sample_data_insertions;
 mod workers;
 
-
-//Run this to reset the db after schema changes. 
+//Run this to reset the db after schema changes.
 //Once we have real users database migrations will have to be implemented
 #[uniffi::export]
 pub fn delete_db(db_path_string: String) -> Result<(), FfiError> {
@@ -50,7 +48,7 @@ pub fn delete_db(db_path_string: String) -> Result<(), FfiError> {
             std::fs::remove_file(&db_path)?;
         }
 
-        log::info!("[DB] database file deleted");
+        tracing::info!("database file deleted");
 
         Ok(())
     })()

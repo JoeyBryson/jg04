@@ -5,9 +5,8 @@
 //!    byte lengths), preventing silent decode corruption.
 //! 3) Empty network reads are stable: no chats and no messages return empty vectors.
 //! 4) Network chat list ordering is deterministic by topic id.
-//! 5) Per-chat message reads return records in stable insertion order (message row id order),
-//!    matching current network read behavior.
-//! 6) Network message reads include both known and unknown senders without dropping data.
+//! 5) Per-chat and global message reads use the deterministic canonical ledger order.
+//! 6) Network message reads contain only messages accepted from joined chat members.
 //! 7) End-to-end write->read paths for chats/members/messages are consistent for valid rows.
 //! 8) Reader-side validation catches malformed persisted data early instead of returning partially
 //!    decoded network types.
@@ -84,10 +83,7 @@ fn network_chat_reads_are_deterministically_ordered() -> Result<()> {
         vec![member(alice.clone(), NwChatMemberStatus::Joined)],
     ))?;
 
-    writer.add_nw_chat(chat(
-        19,
-        vec![member(alice, NwChatMemberStatus::Joined)],
-    ))?;
+    writer.add_nw_chat(chat(19, vec![member(alice, NwChatMemberStatus::Joined)]))?;
 
     let reader = reader_from(writer.conn);
     let chats = reader.get_nw_chats()?;
@@ -99,7 +95,7 @@ fn network_chat_reads_are_deterministically_ordered() -> Result<()> {
 }
 
 #[test]
-fn network_chat_messages_are_read_descending_by_timestamp() -> Result<()> {
+fn network_chat_messages_use_canonical_timestamp_order() -> Result<()> {
     let mut writer = new_writer();
     let profile = profile();
     let alice = contact(1, "Alice");
@@ -118,31 +114,59 @@ fn network_chat_messages_are_read_descending_by_timestamp() -> Result<()> {
 
     writer.add_nw_chat(chat.clone())?;
 
-    writer.add_nw_message(message(
-        chat.topic_id,
-        alice.endpoint_id,
-        "later",
-        20,
-    ))?;
+    writer.add_nw_message(message(chat.topic_id, alice.endpoint_id, "later", 20))?;
 
-    writer.add_nw_message(message(
-        chat.topic_id,
-        alice.endpoint_id,
-        "earlier",
-        10,
-    ))?;
+    writer.add_nw_message(message(chat.topic_id, alice.endpoint_id, "earlier", 10))?;
 
     let reader = reader_from(writer.conn);
     let messages = reader.get_nw_chat_messages(&chat.topic_id)?;
 
-    assert_eq!(messages[0].content, "later");
-    assert_eq!(messages[1].content, "earlier");
+    assert_eq!(messages[0].content, "earlier");
+    assert_eq!(messages[1].content, "later");
 
     Ok(())
 }
 
 #[test]
-fn network_message_reads_cover_known_and_unknown_senders() -> Result<()> {
+fn network_message_order_uses_message_id_as_final_tie_breaker() -> Result<()> {
+    let mut writer = new_writer();
+    let profile = profile();
+    let alice = contact(1, "Alice");
+    writer.set_nw_profile(profile.clone())?;
+    writer.add_nw_contact(profile.contact.clone())?;
+    writer.add_nw_contact(alice.clone())?;
+
+    let chat = chat(
+        33,
+        vec![
+            member(profile.contact, NwChatMemberStatus::Joined),
+            member(alice.clone(), NwChatMemberStatus::Joined),
+        ],
+    );
+    writer.add_nw_chat(chat.clone())?;
+
+    let mut first = message(chat.topic_id, alice.endpoint_id, "first", 42);
+    let mut second = message(chat.topic_id, alice.endpoint_id, "second", 42);
+    if first.message_id > second.message_id {
+        std::mem::swap(&mut first, &mut second);
+    }
+
+    writer.add_nw_message(second.clone())?;
+    writer.add_nw_message(first.clone())?;
+
+    let reader = reader_from(writer.conn);
+    let stored = reader.get_nw_chat_messages(&chat.topic_id)?;
+    assert_eq!(stored.len(), 2);
+    assert_eq!(stored[0].message_id, first.message_id);
+    assert_eq!(stored[0].content, first.content);
+    assert_eq!(stored[1].message_id, second.message_id);
+    assert_eq!(stored[1].content, second.content);
+
+    Ok(())
+}
+
+#[test]
+fn network_message_reads_exclude_nonmember_senders() -> Result<()> {
     let mut writer = new_writer();
     let profile = profile();
     let alice = contact(1, "Alice");
@@ -169,28 +193,21 @@ fn network_message_reads_cover_known_and_unknown_senders() -> Result<()> {
         1,
     ))?;
 
-    writer.add_nw_message(message(
-        chat.topic_id,
-        unknown.endpoint_id,
-        "unknown",
-        2,
-    ))?;
+    assert!(
+        writer
+            .add_nw_message(message(chat.topic_id, unknown.endpoint_id, "unknown", 2))
+            .is_err()
+    );
 
     let reader = reader_from(writer.conn);
     let messages = reader.get_nw_messages()?;
 
-    assert_eq!(messages.len(), 2);
+    assert_eq!(messages.len(), 1);
 
     assert!(
         messages
             .iter()
             .any(|message| message.endpoint_id == profile.contact.endpoint_id)
-    );
-
-    assert!(
-        messages
-            .iter()
-            .any(|message| message.endpoint_id == unknown.endpoint_id)
     );
 
     Ok(())
@@ -214,17 +231,21 @@ fn network_message_reads_reject_malformed_endpoint_rows() -> Result<()> {
 
     writer.add_nw_contact(alice.clone())?;
 
-    let chat = chat(
-        24,
-        vec![member(alice.clone(), NwChatMemberStatus::Joined)],
-    );
+    let chat = chat(24, vec![member(alice.clone(), NwChatMemberStatus::Joined)]);
 
     writer.add_nw_chat(chat.clone())?;
 
     writer.conn.execute(
-        "INSERT INTO messages (topic_id, endpoint_id, content, sent_at)
-         VALUES (?1, ?2, ?3, ?4)",
-        (chat.topic_id.as_bytes(), vec![1u8, 2, 3], "bad", 1),
+        "INSERT INTO messages (topic_id, endpoint_id, content, sent_at, message_id, signature)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        (
+            chat.topic_id.as_bytes(),
+            vec![1u8, 2, 3],
+            "bad",
+            1,
+            &[1u8; 32][..],
+            &[2u8; 64][..],
+        ),
     )?;
 
     let reader = reader_from(writer.conn);

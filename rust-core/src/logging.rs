@@ -1,13 +1,20 @@
-//! Previously, the log crate would route all logs to the stout
-//! Mobile apps implement their own logging systems in which these logs may not appear
-//! in order to maintain coherence so that app framework logging and internal rust logging can be viewed together 
-//! we implement a listener pattern similar to ./notifications.rs. Read documentation there for more explanation of
-//! how dynamic trait objects are used to call unknown foreign language code from a rust library.
-//! The difference is our `LogListener` trait object is owned by a `Logger` object which owned by the the log crate itself
+//! Forwards tracing's standard single-line output to the native application.
+//!
+//! Register a [`LogListener`] once during application startup, before another
+//! global tracing subscriber is installed. Active spans are included in each
+//! formatted line. The `tracing-log` subscriber feature also forwards existing
+//! `log` records while the codebase is migrated.
+
+use std::io::{self, Write};
+use std::sync::Arc;
+
+use tracing::Metadata;
+use tracing_subscriber::fmt::MakeWriter;
+use tracing_subscriber::prelude::*;
 
 use crate::ffi_error::FfiError;
 
-#[derive(uniffi::Enum)]
+#[derive(Clone, Copy, uniffi::Enum)]
 pub enum LogLevel {
     Error,
     Warn,
@@ -17,54 +24,89 @@ pub enum LogLevel {
 }
 
 #[uniffi::export(callback_interface)]
-
 pub trait LogListener: Send + Sync {
-    fn log(
-        &self,
-        level: LogLevel,
-        target: String,
-        file: Option<String>,
-        line: Option<u32>,
-        msg: String,
-    );
+    fn log(&self, level: LogLevel, line: String);
 }
 
-struct Logger {
-    listener: Box<dyn LogListener>,
+struct NativeMakeWriter {
+    listener: Arc<dyn LogListener>,
 }
 
-impl log::Log for Logger {
-    fn enabled(&self, _metadata: &log::Metadata) -> bool {
-        true
+impl<'a> MakeWriter<'a> for NativeMakeWriter {
+    type Writer = NativeWriter;
+
+    fn make_writer(&'a self) -> Self::Writer {
+        self.make_writer_for_level(LogLevel::Info)
     }
 
-    fn log(&self, record: &log::Record) {
-        let level = match record.level() {
-            log::Level::Error => LogLevel::Error,
-            log::Level::Warn => LogLevel::Warn,
-            log::Level::Info => LogLevel::Info,
-            log::Level::Debug => LogLevel::Debug,
-            log::Level::Trace => LogLevel::Trace,
+    fn make_writer_for(&'a self, metadata: &Metadata<'_>) -> Self::Writer {
+        let level = match *metadata.level() {
+            tracing::Level::ERROR => LogLevel::Error,
+            tracing::Level::WARN => LogLevel::Warn,
+            tracing::Level::INFO => LogLevel::Info,
+            tracing::Level::DEBUG => LogLevel::Debug,
+            tracing::Level::TRACE => LogLevel::Trace,
         };
+        self.make_writer_for_level(level)
+    }
+}
 
-        self.listener.log(
+impl NativeMakeWriter {
+    fn make_writer_for_level(&self, level: LogLevel) -> NativeWriter {
+        NativeWriter {
+            listener: Arc::clone(&self.listener),
             level,
-            record.target().to_string(),
-            record.file().map(|s| s.to_string()),
-            record.line(),
-            format!("{}", record.args()),
-        );
+            buffer: Vec::new(),
+        }
+    }
+}
+
+struct NativeWriter {
+    listener: Arc<dyn LogListener>,
+    level: LogLevel,
+    buffer: Vec<u8>,
+}
+
+impl Write for NativeWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.buffer.extend_from_slice(bytes);
+        Ok(bytes.len())
     }
 
-    fn flush(&self) {}
+    fn flush(&mut self) -> io::Result<()> {
+        let line = String::from_utf8_lossy(&self.buffer)
+            .trim_end_matches(['\r', '\n'])
+            .to_string();
+        self.buffer.clear();
+
+        if !line.is_empty() {
+            self.listener.log(self.level, line);
+        }
+
+        Ok(())
+    }
+}
+
+impl Drop for NativeWriter {
+    fn drop(&mut self) {
+        let _ = self.flush();
+    }
 }
 
 #[uniffi::export]
 pub fn register_native_log_listener(listener: Box<dyn LogListener>) -> Result<(), FfiError> {
+    let layer = tracing_subscriber::fmt::layer()
+        .with_writer(NativeMakeWriter {
+            listener: Arc::from(listener),
+        })
+        .with_ansi(false)
+        .with_file(true)
+        .with_line_number(true);
 
-    let logger = Logger { listener};
+    tracing_subscriber::registry()
+        .with(layer)
+        .try_init()
+        .map_err(anyhow::Error::from)?;
 
-    log::set_boxed_logger(Box::new(logger)).map_err(anyhow::Error::from)?;
-    log::set_max_level(log::LevelFilter::Trace);
     Ok(())
 }

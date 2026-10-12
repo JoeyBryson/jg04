@@ -1,16 +1,15 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use iroh_gossip::net::Gossip;
 use iroh_gossip::proto::TopicId;
 use tokio::sync::{mpsc, oneshot};
+use tracing::Instrument;
 
-use crate::network::NwChat;
-use crate::network::NwChatMember;
 use super::session::ChatSession;
-use crate::network::persistence::SessionManagerStore;
-use crate::network::NwChatMemberStatus;
 use crate::network::messaging::signed::MessageData;
+use crate::network::persistence::SessionManagerStore;
+use crate::network::{NwChat, NwChatMember, NwChatMemberStatus, short_topic_id};
 
 #[derive(Clone, Debug)]
 /// Cloneable command handle for the actor that owns all active chat sessions.
@@ -36,10 +35,7 @@ enum ChatSessionCommand {
 }
 
 impl ChatSessionsHandle {
-    pub async fn spawn(
-        gossip: Gossip,
-        store: SessionManagerStore,
-    ) -> Result<Self> {
+    pub async fn spawn(gossip: Gossip, store: SessionManagerStore) -> Result<Self> {
         let (sender, receiver) = mpsc::channel(32);
 
         let mut sessions = HashMap::new();
@@ -47,12 +43,10 @@ impl ChatSessionsHandle {
             Self::add_chat_session(&mut sessions, chat, &store, &gossip).await?;
         }
 
-        tokio::spawn(Self::command_loop(
-            receiver,
-            sessions,
-            gossip,
-            store,
-        ));
+        tokio::spawn(
+            Self::command_loop(receiver, sessions, gossip, store)
+                .instrument(tracing::Span::current()),
+        );
 
         Ok(Self { sender })
     }
@@ -75,7 +69,11 @@ impl ChatSessionsHandle {
         let (reply, receiver) = oneshot::channel();
 
         self.sender
-            .send(ChatSessionCommand::CreateChat { members, name, reply })
+            .send(ChatSessionCommand::CreateChat {
+                members,
+                name,
+                reply,
+            })
             .await?;
 
         receiver.await?
@@ -84,15 +82,8 @@ impl ChatSessionsHandle {
     pub async fn request_send_message(
         &self,
         topic_id: TopicId,
-        message_data: MessageData
+        message_data: MessageData,
     ) -> Result<()> {
-        log::debug!(
-            "[CHAT-SESSIONS] request_send_message: topic={}, sent_at={}, content_len={}",
-            topic_id,
-            message_data.sent_at,
-            message_data.content.len()
-        );
-
         let (reply, receiver) = oneshot::channel();
 
         self.sender
@@ -106,11 +97,7 @@ impl ChatSessionsHandle {
         let result = receiver.await?;
 
         if let Err(error) = &result {
-            log::warn!(
-                "[CHAT-SESSIONS] request_send_message failed for topic={}: {}",
-                topic_id,
-                error
-            );
+            tracing::warn!(error = %error, "send request failed");
         }
 
         result
@@ -118,17 +105,21 @@ impl ChatSessionsHandle {
 
     async fn save_chat_and_start_session(
         sessions: &mut HashMap<TopicId, ChatSession>,
-        chat: NwChat,
+        mut chat: NwChat,
         store: &SessionManagerStore,
         gossip: &Gossip,
     ) -> Result<()> {
         if sessions.contains_key(&chat.topic_id) {
-            log::debug!(
-                "[CHAT-SESSIONS] save_chat_and_start_session: topic already active, skipping duplicate add: {}",
-                chat.topic_id
-            );
             return Ok(());
         }
+
+        let local_endpoint_id = store.profile().contact.endpoint_id;
+        let local_member = chat
+            .members
+            .iter_mut()
+            .find(|member| member.contact.endpoint_id == local_endpoint_id)
+            .ok_or_else(|| anyhow!("invited chat does not include the local user"))?;
+        local_member.status = NwChatMemberStatus::Joined;
 
         store.save_chat(chat.clone()).await?;
 
@@ -151,11 +142,7 @@ impl ChatSessionsHandle {
 
         sessions.insert(topic_id, session);
 
-        log::info!(
-            "[CHAT-SESSIONS] added chat session for topic={}, total_sessions={}",
-            topic_id,
-            sessions.len()
-        );
+        tracing::info!(topic_id = %short_topic_id(&topic_id), "chat session started");
 
         Ok(())
     }
@@ -169,13 +156,9 @@ impl ChatSessionsHandle {
         while let Some(command) = receiver.recv().await {
             match command {
                 ChatSessionCommand::AddChat { chat, reply } => {
-                    let result = Self::save_chat_and_start_session(
-                        &mut sessions,
-                        chat,
-                        &store,
-                        &gossip,
-                    )
-                    .await;
+                    let result =
+                        Self::save_chat_and_start_session(&mut sessions, chat, &store, &gossip)
+                            .await;
 
                     let _ = reply.send(result);
                 }
@@ -202,35 +185,16 @@ impl ChatSessionsHandle {
                     message_data,
                     reply,
                 } => {
-                    log::debug!(
-                        "[CHAT-SESSIONS] command SendMessage: topic={}, sent_at={}, content_len={}, active_sessions={}",
-                        topic_id,
-                        message_data.sent_at,
-                        message_data.content.len(),
-                        sessions.len()
-                    );
-
                     let result = match sessions.get(&topic_id) {
                         Some(session) => session.send(message_data).await,
-                        None => {
-                            let known_topics = sessions
-                                .keys()
-                                .map(ToString::to_string)
-                                .collect::<Vec<_>>()
-                                .join(",");
-
-                            Err(anyhow!(
-                                "no active chat session for topic ID: {topic_id}. known_topics=[{known_topics}]"
-                            ))
-                        }
+                        None => Err(anyhow!(
+                            "no active chat session for topic ID: {}",
+                            short_topic_id(&topic_id)
+                        )),
                     };
 
                     if let Err(error) = &result {
-                        log::warn!(
-                            "[CHAT-SESSIONS] SendMessage failed for topic={}: {}",
-                            topic_id,
-                            error
-                        );
+                        tracing::warn!(topic_id = %short_topic_id(&topic_id), error = %error, "send failed");
                     }
 
                     let _ = reply.send(result);
@@ -258,11 +222,7 @@ impl ChatSessionsHandle {
             topic_id,
         };
 
-        log::info!(
-            "[CHAT-SESSIONS] creating chat session for new topic={}, members={}",
-            topic_id,
-            chat.members.len()
-        );
+        tracing::info!(topic_id = %short_topic_id(&topic_id), "creating chat session");
 
         Self::save_chat_and_start_session(sessions, chat, store, gossip).await?;
         Ok(topic_id)

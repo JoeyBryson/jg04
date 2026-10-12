@@ -6,9 +6,7 @@ use iroh::{EndpointId, SecretKey};
 use iroh_gossip::TopicId;
 
 use super::client::DbClient;
-use crate::network::{
-    NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile,
-};
+use crate::network::{NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile};
 
 fn sample_endpoint_id(seed: u8) -> EndpointId {
     SecretKey::from_bytes(&[seed; 32]).public()
@@ -101,6 +99,12 @@ impl DbClient {
             endpoint_id,
             content: format!("Sample message {}", 300 + time + 1),
             sent_at,
+            message_id: blake3::hash(
+                format!("{topic_id}:{endpoint_id}:sample:{time}:{sent_at}").as_bytes(),
+            )
+            .as_bytes()
+            .to_vec(),
+            signature: vec![0; 64],
         };
 
         self.add_nw_message(message).await?;
@@ -211,6 +215,12 @@ impl DbClient {
                     endpoint_id,
                     content: format!("Sample message {}", message_index + 1),
                     sent_at,
+                    message_id: blake3::hash(
+                        format!("{topic_id}:{endpoint_id}:{message_index}:{sent_at}").as_bytes(),
+                    )
+                    .as_bytes()
+                    .to_vec(),
+                    signature: vec![0; 64],
                 };
 
                 self.add_nw_message(message).await?;

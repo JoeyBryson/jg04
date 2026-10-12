@@ -13,9 +13,8 @@
 //! - `reset_database() -> Result<()>`
 
 use super::DbWriter;
-use crate::network::{
-    NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile,
-};
+use crate::network::MAX_CHAT_MESSAGE_CONTENT_BYTES;
+use crate::network::{NwChat, NwChatMember, NwChatMemberStatus, NwContact, NwMessage, NwProfile};
 use crate::ui::UiContact;
 use anyhow::{Context, Result, anyhow, bail};
 use iroh::EndpointId;
@@ -34,12 +33,7 @@ impl DbWriter {
             VALUES (?1, ?2, ?3, ?4)
             ON CONFLICT(id) DO NOTHING
             ",
-            (
-                1,
-                endpoint_bytes,
-                secret_bytes,
-                profile_name.clone(),
-            ),
+            (1, endpoint_bytes, secret_bytes, profile_name.clone()),
         )?;
 
         if inserted == 0 {
@@ -73,16 +67,56 @@ impl DbWriter {
     }
 
     pub fn add_nw_message(&self, message: NwMessage) -> Result<()> {
-        self.conn.execute(
-            "INSERT INTO messages (topic_id, endpoint_id, content, sent_at)
-             VALUES (?1, ?2, ?3, ?4)",
+        if message.content.len() > MAX_CHAT_MESSAGE_CONTENT_BYTES {
+            bail!("chat message content exceeds the maximum size")
+        }
+        if message.message_id.len() != 32 {
+            bail!("message ID must be 32 bytes")
+        }
+        if message.signature.len() != 64 {
+            bail!("message signature must be 64 bytes")
+        }
+        let inserted = self.conn.execute(
+            "INSERT INTO messages (
+                 topic_id, endpoint_id, content, sent_at,
+                 message_id, signature
+             )
+             SELECT ?1, ?2, ?3, ?4, ?5, ?6
+             WHERE EXISTS (
+                 SELECT 1
+                                 FROM chat_members cm
+                                 JOIN contacts c ON c.endpoint_id = cm.endpoint_id
+                                 WHERE cm.topic_id = ?1
+                                     AND cm.endpoint_id = ?2
+                                       AND cm.status = ?7
+             )
+             ON CONFLICT(topic_id, message_id) DO NOTHING",
             (
                 message.topic_id.as_bytes(),
                 message.endpoint_id.as_bytes(),
                 message.content,
                 message.sent_at,
+                message.message_id.clone(),
+                message.signature,
+                NwChatMemberStatus::Joined as i32,
             ),
         )?;
+
+        if inserted == 0 {
+            let already_exists = self
+                .conn
+                .query_row(
+                    "SELECT 1 FROM messages WHERE topic_id = ?1 AND message_id = ?2",
+                    (message.topic_id.as_bytes(), message.message_id),
+                    |_| Ok(()),
+                )
+                .optional()?
+                .is_some();
+            if already_exists {
+                return Ok(());
+            }
+            bail!("message author is not a joined member of the chat")
+        }
 
         Ok(())
     }
@@ -206,11 +240,7 @@ impl DbWriter {
         Ok(())
     }
 
-    pub fn update_contact_name(
-        &mut self,
-        endpoint_id: EndpointId,
-        name: String,
-    ) -> Result<()> {
+    pub fn update_contact_name(&mut self, endpoint_id: EndpointId, name: String) -> Result<()> {
         let transaction = self
             .conn
             .transaction()
@@ -340,20 +370,13 @@ impl DbWriter {
         contacts: Vec<UiContact>,
         name: Option<String>,
     ) -> Result<String> {
-        let my_profile = self
-            .conn
-            .query_row(
-                "SELECT endpoint_id, contact_name
+        let my_profile = self.conn.query_row(
+            "SELECT endpoint_id, contact_name
                  FROM user_profile
                  WHERE id = 1",
-                [],
-                |row| {
-                    Ok((
-                        row.get::<_, [u8; 32]>(0)?,
-                        row.get::<_, String>(1)?,
-                    ))
-                },
-            )?;
+            [],
+            |row| Ok((row.get::<_, [u8; 32]>(0)?, row.get::<_, String>(1)?)),
+        )?;
 
         let mut members = Vec::with_capacity(contacts.len() + 1);
 
